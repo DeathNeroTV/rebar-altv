@@ -16,8 +16,13 @@ export function useServerConfig() {
         updatePlayers();
     }
 
+    function get<K extends keyof ServerConfig>(key: K) {
+        return config[key];
+    }
+
     return {
         set,
+        get,
     };
 }
 
