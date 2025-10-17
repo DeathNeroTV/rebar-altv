@@ -1,90 +1,60 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import { useTranslate } from '@Shared/translate';
-import { AuthEvents } from '../../shared/authEvents';
-import { useEvents } from '@Composables/useEvents';
-
 const { t } = useTranslate('de');
-const events = useEvents();
 
 const email = ref('');
 const password = ref('');
-const rememberMe = ref(false);
+const remember = ref(false);
 const isLoading = ref(false);
-const error = ref('');
 
 function handleLogin() {
     if (!email.value || !password.value) {
-        error.value = t('auth.error.missingFields');
+        alert(t('auth.error.missingFields'));
         return;
     }
-
     isLoading.value = true;
-    error.value = '';
-
-    events.emitServer(AuthEvents.toServer.login, email.value, password.value, rememberMe.value);
-    setTimeout(() => isLoading.value = false, 1500);
+    setTimeout(() => (isLoading.value = false), 1500); // Placeholder
 }
 </script>
 
 <template>
-    <div class="flex flex-col space-y-4 text-green-300">
-        <div>
-            <label class="block mb-1 text-xs uppercase tracking-widest text-green-400/70">
-                {{ t('auth.email') }}
-            </label>
+    <form class="flex flex-col gap-5 w-full max-w-md" @submit.prevent="handleLogin">
+        <div class="flex flex-col">
+            <label class="text-sm font-semibold mb-1 text-gray-300">{{ t('auth.email') }}</label>
             <input
                 v-model="email"
                 type="email"
-                class="w-full px-3 py-2 rounded-md bg-black/40 border border-green-500/30 text-green-200 focus:outline-none focus:ring-2 focus:ring-green-400/60"
-                placeholder="example@mail.com"
+                :placeholder="t('auth.email')"
+                class="bg-neutral-800/60 border border-green-700/50 rounded-lg p-3 text-gray-100
+                       focus:border-green-400 focus:outline-none transition-all duration-300"
             />
         </div>
 
-        <div>
-            <label class="block mb-1 text-xs uppercase tracking-widest text-green-400/70">
-                {{ t('auth.password') }}
-            </label>
+        <div class="flex flex-col">
+            <label class="text-sm font-semibold mb-1 text-gray-300">{{ t('auth.password') }}</label>
             <input
                 v-model="password"
                 type="password"
-                class="w-full px-3 py-2 rounded-md bg-black/40 border border-green-500/30 text-green-200 focus:outline-none focus:ring-2 focus:ring-green-400/60"
-                placeholder="********"
+                :placeholder="t('auth.password')"
+                class="bg-neutral-800/60 border border-green-700/50 rounded-lg p-3 text-gray-100
+                       focus:border-green-400 focus:outline-none transition-all duration-300"
             />
         </div>
 
-        <div class="flex flex-col gap-4 items-center justify-between text-sm text-green-400/70">
-            <label class="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" v-model="rememberMe" class="accent-green-400" />
-                <span>{{ t('auth.remember') }}</span>
-            </label>
-            <a href="#" class="hover:text-green-300 transition-colors duration-300">{{
-                t('auth.forgotPassword')
-            }}</a>
+        <div class="flex items-center gap-2">
+            <input type="checkbox" v-model="remember" id="remember" class="accent-green-500">
+            <label for="remember" class="text-gray-400 text-sm select-none">{{ t('auth.remember') }}</label>
         </div>
 
-        <div>
-            <button
-                @click="handleLogin"
-                class="w-full py-2 mt-4 text-black font-bold uppercase tracking-wider bg-green-400 hover:bg-green-500 rounded-md shadow-[0_0_20px_rgba(0,255,156,0.4)] transition-all duration-300"
-            >
-                {{ isLoading ? t('auth.loading') : t('auth.login.button') }}
-            </button>
-        </div>
-
-        <transition name="fade">
-            <p v-if="error" class="mt-3 text-sm text-red-400 text-center">{{ error }}</p>
-        </transition>
-    </div>
+        <button
+            type="submit"
+            class="mt-3 py-3 bg-green-700/60 rounded-lg font-semibold text-white tracking-wide uppercase
+                   border border-green-600 hover:bg-green-600 hover:shadow-[0_0_15px_rgba(0,255,136,0.4)]
+                   transition-all duration-300"
+        >
+            <span v-if="!isLoading">{{ t('auth.login.button') }}</span>
+            <span v-else>{{ t('auth.loading') }}</span>
+        </button>
+    </form>
 </template>
-
-<style scoped>
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-.fade-enter-to,
-.fade-leave-from {
-    opacity: 1;
-}
-</style>

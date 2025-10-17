@@ -10,102 +10,47 @@ const showLogin = ref(true);
 </script>
 
 <template>
-    <div
-        class="relative flex items-center justify-center w-screen h-screen bg-gradient-to-br from-neutral-900 via-neutral-950 to-neutral-800 overflow-hidden"
-    >
-        <!-- Dekorative Linien (Division-Style) -->
-        <div
-            class="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(0,255,156,0.1)_0%,transparent_70%)]"
-        ></div>
-        <div class="absolute w-full h-px bg-green-600/40 top-1/3"></div>
-        <div class="absolute h-full w-px bg-green-600/40 left-1/3"></div>
+    <div class="relative flex items-center justify-center w-screen h-screen overflow-hidden text-gray-100 bg-neutral-950">
 
-        <!-- Auth Box -->
+        <!-- Hintergrund -->
+        <div class="absolute inset-0 bg-gradient-to-br from-black via-neutral-900 to-green-950 opacity-90"></div>
+        <div class="absolute inset-0 bg-[url('/assets/grid.svg')] opacity-10 animate-pulse"></div>
+
+        <!-- Main Auth Container -->
         <div
-            class="relative z-10 backdrop-blur-md bg-neutral-900/60 border border-green-600/30 rounded-2xl shadow-[0_0_30px_rgba(0,255,156,0.2)] p-12 w-[450px] transition-all duration-500"
+            class="relative z-10 flex flex-col items-center justify-center w-2/3 max-w-4xl p-10 rounded-2xl
+                   bg-neutral-900/40 border border-green-700/40 backdrop-blur-md shadow-[0_0_30px_rgba(0,255,120,0.2)] transition-all duration-700"
         >
-            <h1
-                class="text-2xl font-extrabold text-green-400 tracking-widest text-center mb-6 select-none"
-            >
-                Trial Life Roleplay
+            <h1 class="mb-6 text-4xl font-bold tracking-widest text-[#00ff88] drop-shadow-[0_0_6px_rgba(0,255,136,0.6)]">
+                {{ showLogin ? t('auth.login.title') : t('auth.register.title') }}
             </h1>
 
-            <!-- Login / Register Switch -->
-            <div class="flex justify-center mb-6">
-                <button
-                    class="px-4 py-2 text-sm font-semibold uppercase transition-colors duration-300 rounded-md"
-                    :class="showLogin ? 'text-green-400 border-b-2 border-green-500' : 'text-gray-400 hover:text-green-300'"
-                    @click="showLogin = true"
-                >
-                    {{ t('auth.login.title') }}
-                </button>
-                <button
-                    class="px-4 py-2 ml-4 text-sm font-semibold uppercase transition-colors duration-300 rounded-md"
-                    :class="!showLogin ? 'text-green-400 border-b-2 border-green-500' : 'text-gray-400 hover:text-green-300'"
-                    @click="showLogin = false"
-                >
-                    {{ t('auth.register.title') }}
-                </button>
-            </div>
-
-            <!-- Animated Form Switch -->
-            <transition
-                name="fade"
-                mode="out-in"
-                enter-active-class="transition-opacity duration-500 ease-out"
-                leave-active-class="transition-opacity duration-300 ease-in"
-            >
-                <div key="show-login">
-                    <AuthLogin v-if="showLogin" />
-                    <AuthRegister v-else />
-                </div>
+            <transition name="fade" mode="out-in">
+                <component :is="showLogin ? AuthLogin : AuthRegister" class="w-full" />
             </transition>
 
-            <!-- Footer -->
-            <div class="mt-8 text-xs text-center text-gray-500 uppercase tracking-wider select-none">
-                <span>{{ t('auth.footer.version') }} 1.0.0</span>
+            <div class="mt-6 text-sm text-center">
+                <span
+                    @click="showLogin = !showLogin"
+                    class="cursor-pointer text-green-400 hover:text-green-300 transition-all duration-300 hover:underline"
+                >
+                    {{ showLogin ? t('auth.span.new.user') : t('auth.span.existing.user') }}
+                </span>
+            </div>
+
+            <div class="mt-4 text-xs text-neutral-400">
+                {{ t('auth.footer.version') }} 1.0.0
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap');
-
-* {
-    font-family: 'Orbitron', sans-serif;
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-
-.fade-enter-to,
-.fade-leave-from {
-    opacity: 1;
-}
-
-/* Neon Pulse Effekt */
-button.text-green-400 {
-    text-shadow: 0 0 10px rgba(0, 255, 156, 0.6);
-}
-
-button:hover {
-    text-shadow: 0 0 20px rgba(0, 255, 156, 0.8);
-}
-
-/* Eingabefelder im The Division-Stil */
-input {
-    background-color: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(0, 255, 156, 0.3);
-    color: #d1fae5;
-    transition: all 0.3s ease;
-}
-
-input:focus {
-    outline: none;
-    border-color: rgba(0, 255, 156, 0.8);
-    box-shadow: 0 0 10px rgba(0, 255, 156, 0.4);
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 </style>

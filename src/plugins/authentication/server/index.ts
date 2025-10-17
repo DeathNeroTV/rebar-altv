@@ -10,6 +10,7 @@ import '../translate/index.js';
 type AccountData = { token: string } & Account;
 
 const Rebar = useRebar();
+const api = Rebar.useApi();
 const { t } = useTranslate('de');
 const db = Rebar.database.useDatabase();
 
