@@ -3,5 +3,5 @@ export const CharacterSelectConfig = {
     maxLength: 8,
     askForLastName: true,
     noDuplicateNames: true,
-    maxCharacters: 1,
+    maxCharacters: 3,
 };

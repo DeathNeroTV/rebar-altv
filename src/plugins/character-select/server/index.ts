@@ -151,7 +151,8 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
 
     Rebar.document.character.useCharacterBinder(player).bind(character);
 
-    Rebar.player.useNative(player).invoke('displayRadar', true);
+    Rebar.player.useWorld(player).enableControls();
+    Rebar.player.useWorld(player).freezeCamera(false);
     Rebar.player.useWebview(player).hide('CharacterSelect');
     player.emit(CharacterSelectEvents.toClient.toggleControls, true);
     player.dimension = 0;
@@ -164,6 +165,7 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
     Rebar.player.useClothing(player).sync();
 
     // Emit bound character event here
+    player.invincible = false;
     player.frozen = false;
     player.deleteMeta(sessionKey);
     PluginAPI.invokeSelect(player, character);
@@ -207,7 +209,11 @@ async function handleLogin(player: alt.Player) {
     player.spawn(SpawnPos);
     player.pos = SpawnPos;
     player.frozen = true;
+    player.invincible = true;
     player.visible = false;
+
+    Rebar.player.useWorld(player).disableControls();
+    Rebar.player.useWorld(player).freezeCamera(true);
     await alt.Utils.wait(500);
 
     player.dimension = player.id + 1;

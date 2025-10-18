@@ -1,6 +1,5 @@
 import * as alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
-
 import { AuthEvents } from '../shared/authEvents.js';
 import { Account } from '@Shared/types/account.js';
 import { useTranslate } from '@Shared/translate.js';
@@ -10,12 +9,23 @@ import '../translate/index.js';
 type AccountData = { token: string } & Account;
 
 const Rebar = useRebar();
-const api = Rebar.useApi();
+const ServerConfig = Rebar.useServerConfig();
 const { t } = useTranslate('de');
 const db = Rebar.database.useDatabase();
 
 const loggedInPlayers: Map<number, string> = new Map<number, string>();
 const sessionKey = 'can-authenticate';
+
+ServerConfig.set('disableAmbientNoise', true);
+ServerConfig.set('disableVehicleSeatSwap', true);
+ServerConfig.set('hideAreaName', true);
+ServerConfig.set('hideHealthArmour', true);
+ServerConfig.set('hideMinimapInPage', true);
+ServerConfig.set('hideMinimapOnFoot', true);
+ServerConfig.set('disableWeaponRadial', true);
+ServerConfig.set('hideStreetName', true);
+ServerConfig.set('hideVehicleClass', true);
+ServerConfig.set('hideVehicleName', true);
 
 function setAccount(player: alt.Player, account: Account) {
     Rebar.document.account.useAccountBinder(player).bind(account);

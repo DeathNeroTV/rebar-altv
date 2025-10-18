@@ -17,6 +17,7 @@ resources/images/**/*.webp
 resources/fonts/**/*.otf
 resources/fonts/**/*.ttf
 resources/rmlui/plugins
+resources/gabz_*
 webview/public/sounds/**/*.ogg
 webview/public/images/**/*.png
 webview/public/images/**/*.jpg
