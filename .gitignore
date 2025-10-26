@@ -39,7 +39,7 @@ tmp/
 src/scratchpad/*.ts
 
 src/plugins/sandbox-*
-src/plugins/discord-*
+src/plugins/*
 
 # Logs
 logs
