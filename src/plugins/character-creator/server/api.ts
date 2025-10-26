@@ -10,15 +10,11 @@ const createCallbacks: Array<PlayerCharacterCallback> = [];
 const skipCreateCallbacks: Array<PlayerCharacterCallback> = [];
 
 export function invokeCreate(player: alt.Player) {
-    for (let cb of createCallbacks) {
-        cb(player);
-    }
+    createCallbacks.forEach(cb => cb(player));
 }
 
 export function invokeSkipCreate(player: alt.Player) {
-    for (let cb of skipCreateCallbacks) {
-        cb(player);
-    }
+    skipCreateCallbacks.forEach(cb => cb(player));
 }
 
 function useApi() {

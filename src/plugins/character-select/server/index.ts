@@ -57,7 +57,7 @@ async function showSelection(player: alt.Player, attempts = 0) {
         return;
     }
 
-    webview.emit(CharacterSelectEvents.toClient.populateCharacters, characters);
+    webview.emit(CharacterSelectEvents.toClient.populateCharacters, characters, CharacterSelectConfig.maxCharacters);
 }
 
 async function handleUsernameSubmit(player: alt.Player, first: string, last: string) {
@@ -150,12 +150,13 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
     }
 
     Rebar.document.character.useCharacterBinder(player).bind(character);
-
     Rebar.player.useWorld(player).enableControls();
     Rebar.player.useWorld(player).freezeCamera(false);
     Rebar.player.useWebview(player).hide('CharacterSelect');
-    player.emit(CharacterSelectEvents.toClient.toggleControls, true);
-    player.dimension = 0;
+
+    player.dimension = character.dimension ?? 0;
+    if (character.pos) player.pos = new alt.Vector3(character.pos);
+    if (character.rot) player.rot = new alt.Vector3(character.rot);
 
     if (character.appearance) {
         player.visible = true;
@@ -221,14 +222,31 @@ async function handleLogin(player: alt.Player) {
     showSelection(player);
 }
 
+async function handleDisconnect(player: alt.Player, reason: string) {
+    const character = Rebar.document.character.useCharacter(player);
+    if (!character) return;
+
+    await character.setBulk({ 
+        pos: player.pos, 
+        rot: player.rot, 
+        dimension: player.dimension 
+    });
+}
+
 async function init() {
     await alt.Utils.waitFor(() => api.isReady('auth-api'), 30000);
     const auth = api.get('auth-api');
     auth.onLogin(handleLogin);
+    auth.onLogout(showSelection);
     alt.onClient(CharacterSelectEvents.toServer.submitUsername, handleUsernameSubmit);
     alt.onClient(CharacterSelectEvents.toServer.trashCharacter, handleTrashCharacter);
     alt.onClient(CharacterSelectEvents.toServer.spawnCharacter, handleSpawnCharacter);
     alt.onClient(CharacterSelectEvents.toServer.syncCharacter, handleSyncCharacter);
+    alt.on('playerDisconnect', handleDisconnect);
+    alt.on('resourceStop', () => {
+        const players = [...alt.Player.all];
+        players.forEach(player => handleDisconnect(player, 'server angehalten'));
+    });
 }
 
 init();

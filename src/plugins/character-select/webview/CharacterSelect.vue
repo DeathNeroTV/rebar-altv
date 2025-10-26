@@ -27,13 +27,13 @@ const errorMessage = ref<string | undefined>();
 const isReady = ref(false);
 const isSelectingUsername = ref(false);
 const isTrashing = ref(false);
-const selectedIndex = ref(-1);
+const selectedIndex = ref(0);
 const selectedGender = ref<'m' | 'f'>('m');
 const maxChars = ref<number>(2);
 const timeout = ref<undefined | NodeJS.Timeout>(undefined);
 
 function handlePopulateCharacters(_characters: Character[], _maxChars: number) {
-    selectedIndex.value = -1;
+    selectedIndex.value = 0;
     characters.value = _characters;
     maxChars.value = _maxChars;
     isReady.value = true;

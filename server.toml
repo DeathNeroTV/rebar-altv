@@ -12,10 +12,15 @@ debug = true
 description = 'alt:V Sample Server'
 modules = [ 'js-module' ]
 resources = [
+    'gabz_hub',
+    'gabz_mapdata',
+    'gabz_mrpd',
+    'gabz_pdprops',
+    'gabz_pillbox',
     'images',
     'fonts',
     'sounds',
     'rmlui',
     'webview',
-    'core'
+    'core',
 ]
