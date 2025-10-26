@@ -48,7 +48,7 @@ function changeStates() {
     message = message.replaceAll("_vehicle_count_", vehiclesCount.toString());
 
     client.user.setActivity({
-        name: 'alt:V',
+        name: 'Trial Life Roleplay',
         state: message,
         url: DiscordConfig.BOT_WEBSITE_URL,
         type: 2

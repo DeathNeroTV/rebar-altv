@@ -28,10 +28,10 @@ setBulk({
         'discord.auth.account.failed': 'Konto konnte nicht erstellt oder abgerufen werden.',
         'discord.auth.guild.no.member': 'Sie sind nicht Mitglied unseres Discord-Servers. Bitte treten Sie vor der Verbindung bei.',
         'discord.auth.guild.no.whitelist': 'Sie sind nicht auf der Whitelist. Bitte überprüfen Sie unsere Whitelist-Richtlinien.',
-        'discord.auth.success': 'wurde authentifiziert.',
+        'discord.auth.success': 'wurde verifiziert.',
         'discord.auth.banned.no.reason': 'ohne jeglichen Grund',
-        'discord.auth.title': 'Discord-Authentifizierung.',
-        'discord.auth.subtile': 'warte, bis wir wissen, wer du bist.',
-        'discord.auth.information': 'möglicherweise müssen Sie unsere App in Discord autorisieren.'
+        'discord.auth.title': 'Discord-Verifizierung.',
+        'discord.auth.subtile': 'Warte, bis wir wissen, wer du bist.',
+        'discord.auth.information': 'Möglicherweise müssen Sie unsere App in Discord autorisieren.'
     }
 })
