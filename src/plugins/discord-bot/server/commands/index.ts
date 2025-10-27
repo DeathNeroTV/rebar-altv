@@ -189,8 +189,8 @@ async function commandCharacterInfo(interaction: Interaction): Promise<any> {
         .setTitle(char.name)
         .setDescription('some character from Rebar, YOOO')
         .addFields(
-            { name: 'Dead?', value: char.isDead ? 'Yes' : 'Nah', inline: true },
-            { name: 'penis', value: char.appearance.sex == 0 ? 'no' : 'yes', inline: true },
+            { name: 'Dead?', value: char.isDead ? 'Yes' : 'No', inline: true },
+            { name: 'Male', value: char.appearance.sex == 0 ? 'No' : 'Yes', inline: true },
         )
         .setFooter({ text: 'character playtime: ' + char.hours });
 

@@ -24,7 +24,6 @@ export const client: Client = new Client({
 });
 export const commands: Command[] = [];
 
-
 export function registerCommand(command: Command) {
     commands.push(command);
     alt.log('[DISCORD] register command:', command.name);

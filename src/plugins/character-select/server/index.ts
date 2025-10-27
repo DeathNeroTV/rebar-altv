@@ -10,6 +10,8 @@ import { CharacterSelectConfig } from '../shared/config.js';
 import { CharacterSelectEvents } from '../shared/characterSelectEvents.js';
 
 import '../translate/index.js';
+import { client } from '@Plugins/discord-bot/server/client.js';
+import { getClient } from '@Plugins/discord-bot/server/bot.js';
 
 const SpawnPos = new alt.Vector3({ x: -864.1437377929688, y: -172.6201934814453, z: 37.799232482910156 });
 const MAX_ATTEMPTS = 5;
@@ -234,8 +236,8 @@ async function handleDisconnect(player: alt.Player, reason: string) {
 }
 
 async function init() {
-    await alt.Utils.waitFor(() => api.isReady('auth-api'), 30000);
-    const auth = api.get('auth-api');
+    await alt.Utils.waitFor(() => api.isReady('discord-auth-api'), 30000);
+    const auth = api.get('discord-auth-api');
     auth.onLogin(handleLogin);
     auth.onLogout(showSelection);
     alt.onClient(CharacterSelectEvents.toServer.submitUsername, handleUsernameSubmit);
@@ -243,10 +245,7 @@ async function init() {
     alt.onClient(CharacterSelectEvents.toServer.spawnCharacter, handleSpawnCharacter);
     alt.onClient(CharacterSelectEvents.toServer.syncCharacter, handleSyncCharacter);
     alt.on('playerDisconnect', handleDisconnect);
-    alt.on('resourceStop', () => {
-        const players = [...alt.Player.all];
-        players.forEach(player => handleDisconnect(player, 'server angehalten'));
-    });
+    alt.on('resourceStop', async () => await getClient().destroy());
 }
 
 init();

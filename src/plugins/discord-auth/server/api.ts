@@ -6,6 +6,7 @@ type PlayerCallback = (player: alt.Player, account: Account) => void;
 
 const Rebar = useRebar();
 const loginCallbacks: Array<PlayerCallback> = [];
+const logoutCallbacks: Array<PlayerCallback> = [];
 
 export function invokeLogin(player: alt.Player, account: Account) {
     for ( const cb of loginCallbacks ) {
@@ -13,14 +14,24 @@ export function invokeLogin(player: alt.Player, account: Account) {
     }
 }
 
+export function invokeLogout(player: alt.Player, account: Account) {
+    for ( const cb of logoutCallbacks ) {
+        cb(player, account);
+    }
+}
 
 export function useDiscordAuth() {
     function onLogin(callback: (player: alt.Player) => void) {
         loginCallbacks.push(callback);
     }
 
+    function onLogout(callback: (player: alt.Player) => void) {
+        logoutCallbacks.push(callback);
+    }
+
     return {
         onLogin,
+        onLogout
     };
 }
 
