@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 import { Character } from '@Shared/types/character';
 import { useTranslate } from '@Shared/translate';
@@ -27,25 +27,19 @@ const errorMessage = ref<string | undefined>();
 const isReady = ref(false);
 const isSelectingUsername = ref(false);
 const isTrashing = ref(false);
-const selectedIndex = ref(0);
-const selectedGender = ref<'m' | 'f'>('m');
+const selectedIndex = ref(-1);
 const maxChars = ref<number>(2);
 const timeout = ref<undefined | NodeJS.Timeout>(undefined);
 
 function handlePopulateCharacters(_characters: Character[], _maxChars: number) {
-    selectedIndex.value = 0;
     characters.value = _characters;
     maxChars.value = _maxChars;
     isReady.value = true;
     isSelectingUsername.value = false;
-    events.emitServer(CharacterSelectEvents.toServer.syncCharacter, characters.value[selectedIndex.value]._id);
 }
 
 function spawnCharacter() {
-    events.emitServer(
-        CharacterSelectEvents.toServer.spawnCharacter,
-        characters.value[selectedIndex.value]._id,
-    );
+    events.emitServer(CharacterSelectEvents.toServer.spawnCharacter, characters.value[selectedIndex.value]._id);
 }
 
 function trashCharacter() {
@@ -54,20 +48,7 @@ function trashCharacter() {
 
 function confirmTrashCharacter() {
     isTrashing.value = false;
-    events.emitServer(
-        CharacterSelectEvents.toServer.trashCharacter,
-        characters.value[selectedIndex.value]._id,
-    );
-}
-
-function changeGender(gender: 'm' | 'f') {
-    selectedGender.value = gender; 
-}
-
-function selectCharacter(index: number) {
-    selectedIndex.value = index;
-    if (index === -1) return;
-    events.emitServer(CharacterSelectEvents.toServer.syncCharacter, characters.value[selectedIndex.value]._id);
+    events.emitServer(CharacterSelectEvents.toServer.trashCharacter, characters.value[selectedIndex.value]._id);
 }
 
 function handleError(msg: string) {
@@ -82,6 +63,21 @@ function handleError(msg: string) {
         errorMessage.value = undefined;
     }, 5000);
 }
+
+const selectCharacter = (index: number) => {
+    selectedIndex.value = selectedIndex.value !== index ? index : -1;
+};
+
+watch(selectedIndex, (_, newVal) => {
+    const char = characters.value[newVal];
+
+    if (!char) {
+        console.log('character-select -> Kein Charakter gefunden');
+        return;
+    }
+
+    events.emitServer(CharacterSelectEvents.toServer.selectCharacter, char._id);
+});
 
 events.on(CharacterSelectEvents.toClient.handleError, handleError);
 events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateCharacters);
@@ -99,7 +95,7 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
 
         <!-- Select Username -->
         <CharacterUsername
-            v-if="characters.length <= 0 || isSelectingUsername"
+            v-if="isSelectingUsername"
             :can-cancel="characters.length >= 1"
             @cancel="isSelectingUsername = false"
         />
@@ -110,9 +106,9 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
         <template v-else-if="!isTrashing">        
             <div class="flex flex-col items-center gap-5 text-gray-100 p-5">
                 <h1
-                    class="select-none text-3xl font-semibold tracking-wide text-[#008736] drop-shadow-[0_0_6px_rgba(0,135,54,0.8)]"
+                    class="select-none text-3xl uppercase font-semibold tracking-wide text-[#008736] drop-shadow-[0_0_6px_rgba(0,135,54,0.8)]"
                 >
-                    CHARAKTER AUSWÄHLEN
+                     {{ t('character.select.title') }}
                 </h1>
 
                 <transition-group
@@ -125,7 +121,7 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
                     <WildCard
                         v-if="characters.length < maxChars"
                         :key="'wildcard'"
-                        :selected="selectedIndex === -1"
+                        :selected="isSelectingUsername"
                         @click="isSelectingUsername = true;"
                     />
 
@@ -134,7 +130,7 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
                         :key="index"
                         :character="char"
                         :selected="selectedIndex === index"
-                        @click="selectCharacter(index)"
+                        @click.stop="selectCharacter(index)"
                     >
                         <template #default>
                             <div class="flex flex-row gap-2">
@@ -152,7 +148,7 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
                 </transition-group>
 
                 <p
-                    class="select-none text-sm text-gray-100 bg-neutral-950/25 backdrop-blur-md px-2 py-1 rounded-lg border-2 border-gray-100/25 font-bold"
+                    class="select-none uppercase text-sm text-gray-100 bg-neutral-950/25 backdrop-blur-md px-2 py-1 rounded-lg border-2 border-gray-100/25 font-bold"
                 >
                     {{ characters.length }} / {{ maxChars }} Charakter(e)
                 </p>

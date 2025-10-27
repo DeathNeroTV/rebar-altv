@@ -2,11 +2,12 @@ import alt from "alt-server";
 import {useRebar} from "@Server/index.js";
 import {Account} from "@Shared/types/index.js";
 
-type PlayerCallback = (player: alt.Player, account: Account) => void;
+type PlayerLoginCallback = (player: alt.Player, account: Account) => void;
+type PlayerLogoutCallback = (player: alt.Player) => void;
 
 const Rebar = useRebar();
-const loginCallbacks: Array<PlayerCallback> = [];
-const logoutCallbacks: Array<PlayerCallback> = [];
+const loginCallbacks: Array<PlayerLoginCallback> = [];
+const logoutCallbacks: Array<PlayerLogoutCallback> = [];
 
 export function invokeLogin(player: alt.Player, account: Account) {
     for ( const cb of loginCallbacks ) {
@@ -14,9 +15,9 @@ export function invokeLogin(player: alt.Player, account: Account) {
     }
 }
 
-export function invokeLogout(player: alt.Player, account: Account) {
+export function invokeLogout(player: alt.Player) {
     for ( const cb of logoutCallbacks ) {
-        cb(player, account);
+        cb(player);
     }
 }
 

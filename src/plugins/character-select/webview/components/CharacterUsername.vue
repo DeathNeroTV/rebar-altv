@@ -9,15 +9,17 @@ import { useTranslate } from '@Shared/translate';
 const { t } = useTranslate('de');
 
 const events = useEvents();
-const first = ref('');
-const last = ref('');
-const allValid = ref(false);
+const first = ref<string>('');
+const last = ref<string>('');
+const gender = ref<number>(-1);
+const allValid = ref<boolean>(false);
 const usernameError = ref<undefined | string>('');
 const props = defineProps<{ canCancel: boolean }>();
 const emits = defineEmits<{ (e: 'cancel'): void }>();
 
 let firstError = ref<undefined | string>('');
 let lastError = ref<undefined | string>('');
+let genderError = ref<undefined | string>('');
 
 function validate() {
     allValid.value = false;
@@ -25,13 +27,9 @@ function validate() {
     firstError.value = undefined;
     lastError.value = undefined;
 
+
     if (first.value.length < CharacterSelectConfig.minLength) {
         firstError.value = `Gebe mindestens ${CharacterSelectConfig.minLength} Satzzeichen an`;
-        return;
-    }
-
-    if (first.value.length > CharacterSelectConfig.maxLength) {
-        firstError.value = `Gebe maximal ${CharacterSelectConfig.maxLength} Satzzeichen an`;
         return;
     }
 
@@ -43,11 +41,6 @@ function validate() {
     if (CharacterSelectConfig.askForLastName) {
         if (last.value.length < CharacterSelectConfig.minLength) {
             lastError.value = `Gebe mindestens ${CharacterSelectConfig.minLength} Satzzeichen an`;
-            return;
-        }
-
-        if (last.value.length > CharacterSelectConfig.maxLength) {
-            lastError.value = `Gebe maximal ${CharacterSelectConfig.maxLength} Satzzeichen an`;
             return;
         }
 
@@ -68,7 +61,7 @@ function create() {
 
 <template>
     <div class="flex h-screen w-screen items-center justify-center overflow-hidden text-neutral-950">
-        <div class="w-1/4 rounded-md bg-neutral-950/25 border-2 border-gray-100/25 p-3 shadow-lg">
+        <div class="w-1/4 rounded-md bg-neutral-950/50 border-2 border-gray-100/25 p-3 shadow-lg">
             <div class="flex flex-col gap-4 text-gray-100">
                 <span class="text-lg font-medium">{{ t('character.select.first') }}</span>
                 <span class="py-6 font-medium text-red-400" v-if="usernameError">{{ usernameError }}</span>

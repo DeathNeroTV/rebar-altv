@@ -20,7 +20,7 @@
 		<div class="flex flex-col justify-between items-center gap-2">	
 			<div class="w-full flex flex-row justify-between items-center mb-2">
 				<h2 class="w-full px-2 text-xl font-bold">{{ props.character.name }}</h2>
-				<slot />
+				<slot v-if="props.selected" />
 			</div>
 			<div
 				v-if="!props.character.appearance"

@@ -2,7 +2,9 @@ import { useTranslate } from '@Shared/translate.js';
 const { setBulk } = useTranslate();
 
 setBulk({
-    de: {
+    de: { 
+        'character.select.gender.male': 'Männlich',
+        'character.select.gender.female': 'Weiblich',
         'character.select.no.account': 'Kein Konto gefunden, starte dein Spiel neu',
         'character.select.bad.write': 'Aktualisierung fehlgeschlagen, tritt erneut dem Server bei',
         'character.select.bad.character': 'Charakter existiert nicht, tritt erneut dem Server bei',
@@ -16,6 +18,7 @@ setBulk({
         'character.select.confirm': 'Bestätigen',
         'character.select.delete': 'Löschen',
         'character.select.spawn': 'Spawn',
+        'character.select.title': 'Charakter auswählen',
         'character.select.create': 'Charakter erstellen',
         'character.select.no.appearance': 'Keine Erscheinung',
         'character.select.confirm.delete': 'Charakter wirklich löschen?',
@@ -24,6 +27,8 @@ setBulk({
         'character.select.max.characters.reached': 'Maximale Anzahl an Charakteren erreicht',
     },
     en: {
+        'character.select.gender.male': 'Male',
+        'character.select.gender.female': 'Female',
         'character.select.no.account': 'No account was found, restart your game',
         'character.select.bad.write': 'Failed to update, rejoin the server',
         'character.select.bad.character': 'Character does not exist, rejoin server',
@@ -37,6 +42,7 @@ setBulk({
         'character.select.confirm': 'Confirm',
         'character.select.delete': 'Delete',
         'character.select.spawn': 'Spawn',
+        'character.select.title': 'CHARACTER SELECT',
         'character.select.create': 'Create Character',
         'character.select.no.appearance': 'No Appearance',
         'character.select.confirm.delete': 'Are you sure you want to delete',

@@ -2,7 +2,7 @@ import * as alt from 'alt-server';
 import { DiscordAuthConfig } from './config.js';
 import { DiscordAuthEvents } from '../shared/events.js';
 import { useRebar } from '@Server/index.js';
-import { Account } from '@Shared/types/index.js';
+import { Account, ServerConfig } from '@Shared/types/index.js';
 import {getCurrentUser, getUserGuildMember, requestInit} from "./requests.js";
 import {DiscordInfo, DiscordSession} from "../shared/discordAuth.js";
 import {useTranslate} from "@Shared/translate.js";
@@ -15,6 +15,23 @@ const db = Rebar.database.useDatabase();
 const translate = useTranslate();
 
 const sessions: Array<DiscordSession> = [];
+const serverConfig = Rebar.useServerConfig();
+
+const sections = [
+    'disableVehicleSeatSwap',
+    'disableAmbientNoise',
+    'disableWeaponRadial',
+    'disablePistolWhip',
+    'hideHealthArmour',
+    'hideAreaName',
+    'hideMinimapInPage',
+    'hideMinimapOnFoot',
+    'hideStreetName',
+    'hideVehicleClass',
+    'hideVehicleName',
+] as const satisfies (keyof ServerConfig)[];
+
+sections.forEach(section => serverConfig.set(section, true));
 
 requestInit();
 
@@ -60,7 +77,8 @@ async function handleToken(player: alt.Player, token: string) {
     if ( !account ) {
         const _id = await db.create<Partial<Account>>(
             {
-                discord: currentUser.id
+                discord: currentUser.id,
+                email: currentUser.email,
             },
             Rebar.database.CollectionNames.Accounts
         );
@@ -70,6 +88,11 @@ async function handleToken(player: alt.Player, token: string) {
     if (!account) {
         player.kick(translate.t("discord.auth.account.failed"));
         return;
+    }
+
+    if (!account.email) {
+        account.email = currentUser.email;
+        await db.update<Account>
     }
 
     if (account.banned) {

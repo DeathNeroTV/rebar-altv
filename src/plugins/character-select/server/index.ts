@@ -10,8 +10,8 @@ import { CharacterSelectConfig } from '../shared/config.js';
 import { CharacterSelectEvents } from '../shared/characterSelectEvents.js';
 
 import '../translate/index.js';
-import { client } from '@Plugins/discord-bot/server/client.js';
 import { getClient } from '@Plugins/discord-bot/server/bot.js';
+import { invokeLogout } from '@Plugins/discord-auth/server/api.js';
 
 const SpawnPos = new alt.Vector3({ x: -864.1437377929688, y: -172.6201934814453, z: 37.799232482910156 });
 const MAX_ATTEMPTS = 5;
@@ -22,9 +22,6 @@ const sessionKey = 'can-select-character';
 const { t } = useTranslate('de');
 
 async function showSelection(player: alt.Player, attempts = 0) {
-    Rebar.player.useNative(player).invoke('displayRadar', false);
-    player.emit(CharacterSelectEvents.toClient.toggleControls, false);
-
     if (attempts > MAX_ATTEMPTS) {
         player.kick();
         return;
@@ -55,7 +52,7 @@ async function showSelection(player: alt.Player, attempts = 0) {
     const result = await webview.isReady('CharacterSelect', 'page');
     if (!result) {
         attempts++;
-        showSelection(player, attempts);
+        await showSelection(player, attempts);
         return;
     }
 
@@ -69,7 +66,7 @@ async function handleUsernameSubmit(player: alt.Player, first: string, last: str
 
     const webview = Rebar.player.useWebview(player);
 
-    if (first.length < CharacterSelectConfig.minLength || first.length > CharacterSelectConfig.maxLength) {
+    if (first.length < CharacterSelectConfig.minLength) {
         webview.emit(CharacterSelectEvents.toClient.handleError, t('character.select.first.invalid'));
         return;
     }
@@ -80,7 +77,7 @@ async function handleUsernameSubmit(player: alt.Player, first: string, last: str
     }
 
     if (CharacterSelectConfig.askForLastName) {
-        if (last.length < CharacterSelectConfig.minLength || last.length > CharacterSelectConfig.maxLength) {
+        if (last.length < CharacterSelectConfig.minLength) {
             webview.emit(CharacterSelectEvents.toClient.handleError, t('character.select.last.invalid'));
             return;
         }
@@ -121,12 +118,13 @@ async function handleUsernameSubmit(player: alt.Player, first: string, last: str
         { account_id: accDocument.getField('_id'), name: combinedName },
         CollectionNames.Characters,
     );
+
     if (!_id) {
         player.kick(t('character.select.bad.write'));
         return;
     }
 
-    showSelection(player);
+    await showSelection(player);
 }
 
 async function getCharacter(player: alt.Player, id: string): Promise<Character | undefined> {
@@ -153,12 +151,13 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
 
     Rebar.document.character.useCharacterBinder(player).bind(character);
     Rebar.player.useWorld(player).enableControls();
-    Rebar.player.useWorld(player).freezeCamera(false);
     Rebar.player.useWebview(player).hide('CharacterSelect');
 
-    player.dimension = character.dimension ?? 0;
     if (character.pos) player.pos = new alt.Vector3(character.pos);
     if (character.rot) player.rot = new alt.Vector3(character.rot);
+
+    if (character.dimension) player.dimension = character.dimension;
+    else player.dimension = 0;
 
     if (character.appearance) {
         player.visible = true;
@@ -171,6 +170,7 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
     player.invincible = false;
     player.frozen = false;
     player.deleteMeta(sessionKey);
+    player.emit(CharacterSelectEvents.toClient.fadeOutCamera);
     PluginAPI.invokeSelect(player, character);
 }
 
@@ -185,28 +185,20 @@ async function handleTrashCharacter(player: alt.Player, id: string) {
     }
 
     await db.deleteDocument(id, CollectionNames.Characters);
-    showSelection(player);
+    await showSelection(player);
 }
 
-async function handleSyncCharacter(player: alt.Player, id: string) {
-    const character = await getCharacter(player, id);
-    if (!character) {
-        Rebar.player
-            .useWebview(player)
-            .emit(CharacterSelectEvents.toClient.handleError, t('character.select.character.not.found'));
+async function handleSelectCharacter(player: alt.Player, id: string) {
+    const char = await getCharacter(player, id);
+    if (!char) {
+        Rebar.player.useWebview(player).emit(CharacterSelectEvents.toClient.handleError, t('character.select.character.not.found'));
         return;
     }
 
-    if (character.appearance) {
-        player.visible = true;
-        Rebar.player.usePlayerAppearance(player).apply(character.appearance);
-    } else {
-        player.visible = false;
-    }
-
-    Rebar.player.useClothing(player).apply(character);
+    player.emit(CharacterSelectEvents.toClient.focusCamera, char._id);
 }
 
+// --- Login / Logout ---
 async function handleLogin(player: alt.Player) {
     player.model = 'mp_m_freemode_01';
     player.spawn(SpawnPos);
@@ -216,34 +208,62 @@ async function handleLogin(player: alt.Player) {
     player.visible = false;
 
     Rebar.player.useWorld(player).disableControls();
-    Rebar.player.useWorld(player).freezeCamera(true);
     await alt.Utils.wait(500);
 
     player.dimension = player.id + 1;
     player.setMeta(sessionKey, true);
-    showSelection(player);
+    await showSelection(player);
+    player.emit(CharacterSelectEvents.toClient.startCamera);
 }
 
-async function handleDisconnect(player: alt.Player, reason: string) {
+async function handleLogout(player: alt.Player) {
+    if (player.hasMeta(sessionKey)) return;
+    
     const character = Rebar.document.character.useCharacter(player);
-    if (!character) return;
+    if (!character.isValid) {
+        alt.logError('Kein Charakter für Spieler mit ID %s gefunden', player.id);
+        return;
+    }
 
-    await character.setBulk({ 
-        pos: player.pos, 
-        rot: player.rot, 
-        dimension: player.dimension 
-    });
+    const data = {
+        pos: player.pos,
+        rot: player.rot
+    } as Partial<Character>;
+
+    if (player.dimension !== 0) data.dimension = player.dimension;
+    else if (data.dimension) delete data.dimension;
+
+    await character.setBulk(data);
+    await handleLogin(player);
 }
 
+// --- Disconnect ---
+async function handleDisconnect(player: alt.Player, reason: string) {
+    if (player.hasMeta(sessionKey)) return;
+
+    const character = Rebar.document.character.useCharacter(player);
+    if (!character.isValid) return;
+
+    const data = character.get() as Partial<Character>;    
+    if (player.dimension !== 0) data.dimension = player.dimension;
+    else if (data.dimension) delete data.dimension;
+
+    await character.setBulk(data);
+
+    alt.log('[DISCONNECT] Charakter mit ID %s wurden gespeichert', character.getField('id'));
+}
+
+// --- Init ---
 async function init() {
     await alt.Utils.waitFor(() => api.isReady('discord-auth-api'), 30000);
     const auth = api.get('discord-auth-api');
     auth.onLogin(handleLogin);
-    auth.onLogout(showSelection);
+    auth.onLogout(handleLogout);
     alt.onClient(CharacterSelectEvents.toServer.submitUsername, handleUsernameSubmit);
     alt.onClient(CharacterSelectEvents.toServer.trashCharacter, handleTrashCharacter);
     alt.onClient(CharacterSelectEvents.toServer.spawnCharacter, handleSpawnCharacter);
-    alt.onClient(CharacterSelectEvents.toServer.syncCharacter, handleSyncCharacter);
+    alt.onClient(CharacterSelectEvents.toServer.selectCharacter, handleSelectCharacter);
+    alt.onClient(CharacterSelectEvents.toServer.logoutCharacter, invokeLogout);
     alt.on('playerDisconnect', handleDisconnect);
     alt.on('resourceStop', async () => await getClient().destroy());
 }
