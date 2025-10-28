@@ -9,8 +9,7 @@
 
     const events = useEvents();
 
-    const isVisible = ref<boolean>(true);
-
+    const isVisible = ref<boolean>(false);
     const stats = reactive<Partial<Character>>({
         id: 0,
         health: 0,
@@ -19,7 +18,6 @@
         water: 0,
         voiceRange: 0,
     });
-
     const vehicle = reactive<Partial<Vehicle>>({
         speed: 0,
         gear: 0,

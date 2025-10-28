@@ -5,7 +5,6 @@ import { HudEvents } from '../shared/events.js';
 import { Vehicle } from '@Shared/types/vehicle.js';
 
 const Rebar = useRebar();
-
 const allowedPlayerKeys: (keyof Character)[] = [
     'armour',
     'food',
@@ -13,10 +12,10 @@ const allowedPlayerKeys: (keyof Character)[] = [
     'health',
     'voiceRange'
 ];
-
 const allowedVehicleKeys: (keyof Vehicle)[] = [
     'speed',
     'gear',
+    'maxSpeed',
     'stateProps',
     'lightsOn',
     'fuel',
@@ -58,7 +57,7 @@ alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: num
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
     if (!player.vehicle?.valid) return;
-    
+
     const vehicleData = Rebar.document.vehicle.useVehicle(player.vehicle);
     if (!vehicleData.isValid) return;
 

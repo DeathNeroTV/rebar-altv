@@ -57,7 +57,7 @@
                 <div class="flex text-center justify-end gap-0.5">
                     <div class="relative w-8 h-8 flex items-center justify-center backdrop-blur-sm border-t border-b">
                         <div class="absolute bottom-0 left-0 w-full h-full bg-transparent"></div>
-                        <div class="relative items-center place-content-center">ID: {{ data.id }}</div>
+                        <div class="relative flex flex-1 items-center place-content-center">{{ data.id }}</div>
                     </div>
                     <div class="relative w-8 h-8 flex items-center justify-center backdrop-blur-sm border-t border-b">
                         <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${data.food}%` }"></div>
@@ -72,7 +72,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="w-full h-7 border-t border-b text-center backdrop-blur-sm">{{ actualTime }}</div>
+                <div class="w-full h-7 border-t border-b text-center items-center backdrop-blur-sm flex flex-1 gap-1">
+                    <font-awesome-icon :icon="['fas', 'clock']" class="text-lg text-gray-100" />
+                    {{ actualTime }}
+                </div>
             </div>
         </div>
     </div>
