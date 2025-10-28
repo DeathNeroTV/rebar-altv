@@ -3,7 +3,6 @@ import * as alt from 'alt-client';
 import * as native from 'natives';
 import { TargetData, TargetOption } from '../shared/index.js';
 
-
 let currentTarget: TargetData | null = null;
 
 alt.everyTick(() => {
