@@ -4,8 +4,8 @@ import { useTranslate } from '@Shared/translate.js';
 import { Character } from '@Shared/types/character.js';
 import { CollectionNames } from '@Server/document/shared.js';
 
-import * as PluginAPI from './api.js';
 
+import { invokeSelect } from './api.js';
 import { CharacterSelectConfig } from '../shared/config.js';
 import { CharacterSelectEvents } from '../shared/characterSelectEvents.js';
 
@@ -21,6 +21,7 @@ const api = Rebar.useApi();
 const db = Rebar.database.useDatabase();
 const sessionKey = 'can-select-character';
 const { t } = useTranslate('de');
+
 
 async function showSelection(player: alt.Player, attempts = 0) {
     player.emit(CharacterSelectEvents.toClient.toggleControls, false);
@@ -153,27 +154,14 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
         return;
     }
 
-    Rebar.document.character.useCharacterBinder(player).bind(character);
-    player.emit(CharacterSelectEvents.toClient.toggleControls, true);
-    Rebar.player.useWebview(player).hide('CharacterSelect');
-
-    if (character.pos) player.pos = new alt.Vector3(character.pos);
-    if (character.rot) player.rot = new alt.Vector3(character.rot);
-
-    if (character.dimension) player.dimension = character.dimension;
-    else player.dimension = 0;
-
-    if (character.appearance) {
-        player.visible = true;
-        Rebar.player.usePlayerAppearance(player).sync();
-    }
-
-    Rebar.player.useClothing(player).sync();
-
-    // Emit bound character event here
+    player.dimension = 0;
     player.frozen = false;
     player.deleteMeta(sessionKey);
-    PluginAPI.invokeSelect(player, character);
+
+    Rebar.document.character.useCharacterBinder(player, true).bind(character);
+    player.emit(CharacterSelectEvents.toClient.toggleControls, true);
+    Rebar.player.useWebview(player).hide('CharacterSelect');
+    invokeSelect(player, character);
 }
 
 async function handleTrashCharacter(player: alt.Player, id: string) {
@@ -223,48 +211,22 @@ async function handleLogin(player: alt.Player) {
 
 async function handleLogout(player: alt.Player) {
     if (player.hasMeta(sessionKey)) return;
-    
-    const character = Rebar.document.character.useCharacter(player);
-    if (!character.isValid) {
-        alt.logError('Kein Charakter für Spieler mit ID %s gefunden', player.id);
-        return;
-    }
-
-    const data = {
-        pos: player.pos,
-        rot: player.rot
-    } as Partial<Character>;
-
-    if (player.dimension !== 0) data.dimension = player.dimension;
-    else if (data.dimension) delete data.dimension;
-
-    await character.setBulk(data);
-    alt.log('[LOGOUT] Charakter mit ID %s wurden gespeichert', character.getField('id'));
+    Rebar.player.useState(player).save();
     await handleLogin(player);
 }
 
 // --- Disconnect ---
 async function handleDisconnect(player: alt.Player, reason: string) {
     if (player.hasMeta(sessionKey)) return;
-
-    const character = Rebar.document.character.useCharacter(player);
-    if (!character.isValid) return;
-
-    const data = character.get() as Partial<Character>;    
-    if (player.dimension !== 0) data.dimension = player.dimension;
-    else if (data.dimension) delete data.dimension;
-
-    await character.setBulk(data);
-
-    alt.log('[DISCONNECT] Charakter mit ID %s wurden gespeichert', character.getField('id'));
+    Rebar.player.useState(player).save();
 }
 
 // --- Init ---
 async function init() {
     await alt.Utils.waitFor(() => api.isReady('discord-auth-api'), 30000);
-    const auth = api.get('discord-auth-api');
-    auth.onLogin(handleLogin);
-    auth.onLogout(handleLogout);
+    const discordAuthApi = api.get('discord-auth-api');
+    discordAuthApi.onLogin(handleLogin);
+    discordAuthApi.onLogout(handleLogout);
     alt.onClient(CharacterSelectEvents.toServer.submitUsername, handleUsernameSubmit);
     alt.onClient(CharacterSelectEvents.toServer.trashCharacter, handleTrashCharacter);
     alt.onClient(CharacterSelectEvents.toServer.spawnCharacter, handleSpawnCharacter);
