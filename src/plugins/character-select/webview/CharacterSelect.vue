@@ -27,19 +27,27 @@ const errorMessage = ref<string | undefined>();
 const isReady = ref(false);
 const isSelectingUsername = ref(false);
 const isTrashing = ref(false);
-const selectedIndex = ref(-1);
+const selectedIndex = ref(0);
 const maxChars = ref<number>(2);
 const timeout = ref<undefined | NodeJS.Timeout>(undefined);
 
 function handlePopulateCharacters(_characters: Character[], _maxChars: number) {
+    selectedIndex.value = 0;
     characters.value = _characters;
     maxChars.value = _maxChars;
     isReady.value = true;
     isSelectingUsername.value = false;
+
+    const char = characters.value[selectedIndex.value];
+
+    if (char && char._id) events.emitServer(CharacterSelectEvents.toServer.syncCharacter, char._id);
+    else console.warn('CharacterSelect -> Kein gültiger Charakter beim populate vorhanden!');
 }
 
 function spawnCharacter() {
-    events.emitServer(CharacterSelectEvents.toServer.spawnCharacter, characters.value[selectedIndex.value]._id);
+    const char = characters.value[selectedIndex.value];
+    if (!char || !char._id) return;
+    events.emitServer(CharacterSelectEvents.toServer.spawnCharacter, char._id);
 }
 
 function trashCharacter() {
@@ -47,8 +55,10 @@ function trashCharacter() {
 }
 
 function confirmTrashCharacter() {
+    const char = characters.value[selectedIndex.value];
+    if (!char || !char._id) return;
     isTrashing.value = false;
-    events.emitServer(CharacterSelectEvents.toServer.trashCharacter, characters.value[selectedIndex.value]._id);
+    events.emitServer(CharacterSelectEvents.toServer.trashCharacter, char._id);
 }
 
 function handleError(msg: string) {
@@ -64,20 +74,17 @@ function handleError(msg: string) {
     }, 5000);
 }
 
-const selectCharacter = (index: number) => {
-    selectedIndex.value = selectedIndex.value !== index ? index : -1;
-};
-
-watch(selectedIndex, (_, newVal) => {
-    const char = characters.value[newVal];
-
-    if (!char) {
-        console.log('character-select -> Kein Charakter gefunden');
+function selectCharacter(index: number) {
+    console.log('CharacterSelect -> index:', index, 'characters:', characters.value);
+    const char = characters.value[index];
+    if (!char || !char._id) {
+        console.warn('CharacterSelect -> Ungültiger Charakter bei Auswahl:', index, char);
         return;
     }
 
-    events.emitServer(CharacterSelectEvents.toServer.selectCharacter, char._id);
-});
+    selectedIndex.value = index;
+    events.emitServer(CharacterSelectEvents.toServer.syncCharacter, char._id);
+};
 
 events.on(CharacterSelectEvents.toClient.handleError, handleError);
 events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateCharacters);
@@ -130,7 +137,7 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
                         :key="index"
                         :character="char"
                         :selected="selectedIndex === index"
-                        @click.stop="selectCharacter(index)"
+                        @click="selectCharacter(index)"
                     >
                         <template #default>
                             <div class="flex flex-row gap-2">

@@ -10,9 +10,7 @@ const Rebar = useRebar();
 const selectCallbacks: Array<PlayerCharacterCallback> = [];
 
 export function invokeSelect(player: alt.Player, character: Character) {
-    for (let cb of selectCallbacks) {
-        cb(player, character);
-    }
+    selectCallbacks.forEach(cb => cb(player, character));
 }
 
 export function useApi() {

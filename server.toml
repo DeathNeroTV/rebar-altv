@@ -2,7 +2,7 @@ name = 'Trial Life Roleplay'
 host = '0.0.0.0'
 port = 7788
 players = 20
-password = "mgcom2025"
+#password = "mgcom2025"
 announce = true
 token = "9676c313-052a-407a-86ca-f7c9ccdce4f6"
 gamemode = 'Roleplay'
@@ -12,6 +12,12 @@ debug = true
 description = 'alt:V Sample Server'
 modules = [ 'js-module' ]
 resources = [
+    'gabz_hub',
+    'gabz_mapdata',
+    'gabz_mrpd',
+    'gabz_pdprops',
+    'gabz_pillbox',
+    'lsiar',
     'images',
     'fonts',
     'sounds',
