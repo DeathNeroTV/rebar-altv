@@ -22,9 +22,9 @@ alt.everyTick(() => {
     // Respawn
     if (canRespawn && alt.isKeyDown(RESPAWN_KEY)) {
         natives.doScreenFadeOut(3000);
-        
+
         alt.setTimeout(() => {
-            natives.doScreenFadeIn(3000);
+            natives.doScreenFadeIn(3000);            
             alt.emitServer(DeathEvents.toServer.toggleRespawn);
             canRespawn = false;
             calledEMS = false;
