@@ -5,7 +5,7 @@
 
 	const { t } = useTranslate('de');
     const props = defineProps<{
-        character: Character;
+        character: Partial<Character>;
         selected: boolean;
     }>();
 </script>

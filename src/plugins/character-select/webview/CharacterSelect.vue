@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 import { Character } from '@Shared/types/character';
 import { useTranslate } from '@Shared/translate';
@@ -19,7 +19,7 @@ const { t } = useTranslate('de');
 
 const events = useEvents();
 
-const characters = ref<Character[]>([
+const characters = ref<Partial<Character>[]>([
     { _id: '663914c4012562fe4e0e3b42', account_id: '6630561244ad1a217ae19d5f', name: 'Sony_Vegas' },
 ]);
 
@@ -111,7 +111,7 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
         </Confirmation>
 
         <template v-else-if="!isTrashing">        
-            <div class="flex flex-col items-center gap-5 text-gray-100 p-5">
+            <div class="flex flex-col items-center gap-5 text-gray-100 p-5 rounded-lg bg-neutral-950/25">
                 <h1
                     class="select-none text-3xl uppercase font-semibold tracking-wide text-[#008736] drop-shadow-[0_0_6px_rgba(0,135,54,0.8)]"
                 >
@@ -121,7 +121,7 @@ events.on(CharacterSelectEvents.toClient.populateCharacters, handlePopulateChara
                 <transition-group
                     name="fade"
                     tag="div"
-                    class="w-full flex flex-col gap-4"
+                    class="w-full h-full flex flex-col gap-4"
                     enter-active-class="transition transform duration-500"
                     leave-active-class="transition transform duration-300"
                 >
