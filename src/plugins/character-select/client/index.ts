@@ -15,16 +15,28 @@ let peds: { [key: string]: number } = {};
 let cam: number | null = null;
 let camActive = false;
 
-alt.onServer(CharacterSelectEvents.toClient.populateCharacters, (characters: Partial<Character>[], maxChars: number) => {
+alt.onServer(CharacterSelectEvents.toClient.populateCharacters, async (characters: Partial<Character>[], maxChars: number) => {
     const localPlayer = alt.Player.local;
     for (const char of characters) {
         const gender = char.appearance?.sex ?? 1;
-        const ped = new alt.LocalPed(models[gender], localPlayer.dimension, char.pos, char.rot);
+        const modelName = models[gender];
+
+        await alt.Utils.requestModel(modelName, 10000);
+
+        const ped = new alt.LocalPed(modelName, localPlayer.dimension, char.pos, char.rot);
     
-        alt.Utils.assert(ped.scriptID !== 0);
+        if (!ped || ped.scriptID === 0) {
+            alt.logError(`Konnte LocalPed für ${char._id} nicht erstellen.`);
+            continue;
+        }
+
+        ped.dimension = localPlayer.dimension;
+        ped.pos = new alt.Vector3(char.pos);
+        ped.rot = new alt.Vector3(char.rot);
+        ped.frozen = true;
 
         native.taskStandStill(ped.scriptID, -1);
-        native.freezeEntityPosition(ped.scriptID, true);
+        native.setBlockingOfNonTemporaryEvents(ped.scriptID, true);
 
         if (char.appearance) {
             const app: Partial<Appearance> = char.appearance;
@@ -97,16 +109,16 @@ alt.onServer(CharacterSelectEvents.toClient.populateCharacters, (characters: Par
         } 
 
         peds[char._id] = ped.scriptID;
-        alt.log('character-select -> peds[', char._id, '] = ', ped.scriptID);
+        alt.log(`CharacterSelect → Ped [${char._id}] = ${ped.scriptID}`);
     }
-    
+
     view.show('CharacterSelect', 'page');
     view.emit('charselect:characters', characters, maxChars);
 });
 
 alt.onServer(CharacterSelectEvents.toClient.focusCamera, (charId: string) => {
     if (!peds[charId]) {
-        alt.logError('character-select-camera-focus', 'Charakter wurde nicht gefunden');
+        alt.logError('CharacterSelect: focusCamera - Ped nicht gefunden', charId);
         return;
     }
 
@@ -127,48 +139,108 @@ alt.onServer(CharacterSelectEvents.toClient.fadeOutCamera, () => {
 });
 
 function setCharacterCamera(targetPed: number) {
-    const pedPos = native.getEntityCoords(targetPed, true);
-    const camPos = new alt.Vector3(pedPos.x + 1.2, pedPos.y + 1.2, pedPos.z + 0.6);
+    if (!native.doesEntityExist(targetPed)) return;
 
+    const pedPos = native.getEntityCoords(targetPed, true);
+
+    // --- Kamera-Ziel (Endposition) ---
+    const targetPos = native.getOffsetFromEntityInWorldCoords(targetPed, 1.3, 1.3, 0.6);
+
+    // --- Start (Himmels-)Position ---
+    const skyPos = {
+        x: pedPos.x,
+        y: pedPos.y,
+        z: pedPos.z + 30.0 // Kamera fährt hoch über den Charakter
+    };
+
+    // Falls Kamera noch nicht existiert: erstelle eine neue
     if (!camActive) {
         cam = native.createCamWithParams(
             'DEFAULT_SCRIPTED_CAMERA',
-            camPos.x,
-            camPos.y,
-            camPos.z,
-            0,
-            0,
-            0,
-            60.0,
+            skyPos.x,
+            skyPos.y,
+            skyPos.z,
+            -90.0,
+            0.0,
+            0.0,
+            50.0,
             true,
             0
         );
+
         native.pointCamAtCoord(cam, pedPos.x, pedPos.y, pedPos.z + 0.5);
         native.setCamActive(cam, true);
-        native.renderScriptCams(true, true, 1000, true, false, 0);
+        native.renderScriptCams(true, true, 1500, true, false, 0);
+
+        // Sanft auf Charakter herunterfahren
+        alt.setTimeout(() => {
+            const descendCam = native.createCamWithParams(
+                'DEFAULT_SCRIPTED_CAMERA',
+                targetPos.x,
+                targetPos.y,
+                targetPos.z,
+                0.0,
+                0.0,
+                0.0,
+                60.0,
+                true,
+                0
+            );
+
+            native.pointCamAtEntity(descendCam, targetPed, 0, 0, 0, true);
+            native.setCamActiveWithInterp(descendCam, cam!, 2000, 1, 1);
+
+            alt.setTimeout(() => {
+                if (cam && native.doesCamExist(cam)) native.destroyCam(cam, false);
+                cam = descendCam;
+            }, 2200);
+        }, 400);
+
         camActive = true;
         return;
     }
 
-    const newCam = native.createCamWithParams(
+    // --- Wenn Kamera bereits existiert: "rausfahren", dann reinfahren ---
+    const skyCam = native.createCamWithParams(
         'DEFAULT_SCRIPTED_CAMERA',
-        camPos.x,
-        camPos.y,
-        camPos.z,
-        0,
-        0,
-        0,
-        60.0,
+        skyPos.x,
+        skyPos.y,
+        skyPos.z,
+        -90.0,
+        0.0,
+        0.0,
+        50.0,
         true,
         0
     );
-    native.pointCamAtCoord(newCam, pedPos.x, pedPos.y, pedPos.z + 0.5);
-    native.setCamActiveWithInterp(newCam, cam, 1500, 1, 1);
+
+    native.pointCamAtCoord(skyCam, pedPos.x, pedPos.y, pedPos.z);
+    native.setCamActiveWithInterp(skyCam, cam!, 1200, 1, 1);
 
     alt.setTimeout(() => {
-        if (cam) native.destroyCam(cam, false);
-        cam = newCam;
-    }, 1600);
+        const descendCam = native.createCamWithParams(
+            'DEFAULT_SCRIPTED_CAMERA',
+            targetPos.x,
+            targetPos.y,
+            targetPos.z,
+            0.0,
+            0.0,
+            0.0,
+            60.0,
+            true,
+            0
+        );
+
+        native.pointCamAtEntity(descendCam, targetPed, 0, 0, 0, true);
+        native.setCamActiveWithInterp(descendCam, skyCam, 1800, 1, 1);
+
+        // Alte Kamera nach Interpolation zerstören
+        alt.setTimeout(() => {
+            if (cam && native.doesCamExist(cam)) native.destroyCam(cam, false);
+            if (skyCam && native.doesCamExist(skyCam)) native.destroyCam(skyCam, false);
+            cam = descendCam;
+        }, 2000);
+    }, 1300);
 }
 
 function destroyCharacterCamera() {
