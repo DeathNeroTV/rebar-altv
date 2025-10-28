@@ -12,6 +12,7 @@
     const isVisible = ref<boolean>(true);
 
     const stats = reactive<Partial<Character>>({
+        id: 0,
         health: 0,
         armour: 0,
         food: 0,

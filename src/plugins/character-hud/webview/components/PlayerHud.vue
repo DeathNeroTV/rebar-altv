@@ -56,6 +56,10 @@
             <div class="w-fit flex flex-col gap-1">
                 <div class="flex text-center justify-end gap-0.5">
                     <div class="relative w-8 h-8 flex items-center justify-center backdrop-blur-sm border-t border-b">
+                        <div class="absolute bottom-0 left-0 w-full h-full bg-transparent"></div>
+                        <div class="relative items-center place-content-center">ID: {{ data.id }}</div>
+                    </div>
+                    <div class="relative w-8 h-8 flex items-center justify-center backdrop-blur-sm border-t border-b">
                         <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${data.food}%` }"></div>
                         <div class="relative items-center place-content-center">
                             <font-awesome-icon :icon="['fas', 'utensils']" class="text-lg text-gray-100" />
@@ -65,12 +69,6 @@
                         <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${data.water}%` }"></div>
                         <div class="z-10 items-center place-content-center">
                             <font-awesome-icon :icon="['fas', 'tint']" class="text-lg text-gray-100" />
-                        </div>
-                    </div>
-                    <div class="relative w-8 h-8 flex items-center justify-center backdrop-blur-sm border-t border-b">
-                        <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${(data.voiceRange/ 32) * 100}%` }"></div>
-                        <div class="z-10 items-center place-content-center">
-                            <font-awesome-icon :icon="['fas', 'microphone']" class="text-lg text-gray-100" />
                         </div>
                     </div>
                 </div>
