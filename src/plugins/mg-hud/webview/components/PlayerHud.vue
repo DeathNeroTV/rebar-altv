@@ -1,5 +1,5 @@
 <template>
-    <div v-if="!data.isDead" class="w-fit h-fit flex flex-col gap-1 bg-neutral-950/25 text-white p-2 rounded-br-lg select-none pointer-events-none">
+    <div v-if="isVisible" class="w-fit h-fit flex flex-col gap-1 bg-neutral-950/25 text-white p-2 rounded-br-lg select-none pointer-events-none">
         <!-- Horizontal Armor and Health Bars -->
         <div class="w-full h-full flex flex-col gap-1">
         
@@ -24,7 +24,7 @@
 
             <!-- Health Bar -->
             <div class="relative h-2 bg-neutral-950/25 backdrop-blur-sm">
-                <div class="absolute top-0 left-0 h-full bg-green-700" :style="{ width: data.health + '%' }"></div>
+                <div class="absolute top-0 left-0 h-full bg-green-700" :style="{ width: (data.health - 100) + '%' }"></div>
             </div>
         </div>
 
@@ -86,7 +86,7 @@
     import { ref, computed } from 'vue';
     import { getNameFromHash } from '../composables/weaponHashes';
 
-    const props = defineProps<{ data: Partial<Character>; }>();
+    const props = defineProps<{ isVisible: boolean; data: Partial<Character>; }>();
 
     const getWeapon = computed(() => {
         return props.data.weapon ? {

@@ -7,7 +7,6 @@ import { TargetingEvents } from '../shared/events.js';
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
 
-
 let targets: TargetDefinition[] = [];
 let currentTarget: TargetDefinition | null = null;
 let isTargetingActive = false;
@@ -20,25 +19,26 @@ alt.onServer(TargetingEvents.toClient.listTargets, (list: TargetDefinition[]) =>
 });
 
 alt.on('keydown', (key: alt.KeyCode) => {
-    if (key !== alt.KeyCode.Alt) return;
-    isTargetingActive = true;
-    view.emit(TargetingEvents.toClient.showTarget);
-});
+    if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen || Rebar.menus.isNativeMenuOpen || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+    if (key === alt.KeyCode.Alt) {
+        isTargetingActive = true;
+        view.emit(TargetingEvents.toClient.showTarget);
+        return;
+    }
 
-alt.on('mousedown', (button: number) => {
-    if (!currentTarget) return;
-    if (button !== 1) return;
-
-    view.emit(TargetingEvents.toClient.openMenu, currentTarget.options || []);
+    if (key === alt.KeyCode.MouseRight) {
+        if (!currentTarget) return;
+        view.emit(TargetingEvents.toClient.openMenu, currentTarget.options || []);
+        return;
+    }
 });
 
 alt.on('keyup', (key: alt.KeyCode) => {
+    if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen || Rebar.menus.isNativeMenuOpen || alt.isMenuOpen() || view.isAnyPageOpen()) return;
     if (key !== alt.KeyCode.Alt) return;
     isTargetingActive = false;
-    if (currentTarget) {
-        currentTarget = null;
-        view.emit(TargetingEvents.toClient.hideTarget);
-    }
+    currentTarget = null;
+    view.emit(TargetingEvents.toClient.hideTarget);
 });
 
 alt.everyTick(() => {

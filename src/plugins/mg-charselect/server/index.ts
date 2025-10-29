@@ -11,8 +11,8 @@ import { CharacterSelectEvents } from '../shared/characterSelectEvents.js';
 
 import '../translate/index.js';
 
-import { getClient } from '@Plugins/discord-bot/server/bot.js';
-import { invokeLogout } from '@Plugins/discord-auth/server/api.js';
+import { getClient } from '@Plugins/mg-discord-bot/server/bot.js';
+import { invokeLogout } from '@Plugins/mg-discord-auth/server/api.js';
 
 const SpawnPos = new alt.Vector3({ x: -864.1437377929688, y: -172.6201934814453, z: 37.799232482910156 });
 const MAX_ATTEMPTS = 5;

@@ -3,21 +3,21 @@ const { setBulk } = useTranslate();
 
 setBulk({
     en: {
-        'death.downed': 'Unconscious',
-        'death.critical': 'You are critically injured. Revival soon.',
-        'death.timerUntilRespawn': ' until the helicopter arrives.',
-        'death.callEMS': 'Press G to call EMS.',
-        'death.emsCalled': 'EMS called',
-        'death.pressEToRespawn': 'Press E to be picked up by helicopter.',
-        'death.beingRevived': 'Being revived...',
+        'death.downed': 'Emergency system',
+        'death.critical': 'You have fallen unconscious due to your injuries.',
+        'death.timerUntilRespawn': ' until the rescue helicopter arrives.',
+        'death.callEMS': 'Press G to make an emergency call.',
+        'death.emsCalled': 'The emergency call has been made.',
+        'death.pressEToRespawn': 'Press E to be picked up by the helicopter.',
+        'death.beingRevived': 'You are being revived...',
     },
     de: {
-        'death.downed': 'Bewusstlos',
-        'death.critical': 'Du bist kritisch verletzt. Reanimation in Kürze.',
-        'death.timerUntilRespawn': ' bis zum Eintreffen des Helikopters.',
-        'death.callEMS': 'Drücke G für Notruf',
-        'death.emsCalled': 'Notruf abgesetzt',
+        'death.downed': 'Notfallsystem',
+        'death.critical': 'Du bist durch deine Verletzungen ohnmächtig geworden.',
+        'death.timerUntilRespawn': ' bis zum Eintreffen des Rettungshelikopters.',
+        'death.callEMS': 'Drücke G, um einen Notruf abzusetzen',
+        'death.emsCalled': 'Der Notruf wurde abgesetzt',
         'death.pressEToRespawn': 'Drücke E, um mit dem Helikopter abgeholt zu werden',
-        'death.beingRevived': 'Wird wiederbelebt ...',
+        'death.beingRevived': 'Du wirst wiederbelebt...',
     }
 });

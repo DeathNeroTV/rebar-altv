@@ -12,39 +12,35 @@ const allowedPlayerKeys: (keyof Character)[] = [
     'food',
     'water',
     'health',
-    'voiceRange'
+    'voiceRange',
+    'isDead',
+    'weapon'
 ];
+
 const allowedVehicleKeys: (keyof Vehicle)[] = [
     'speed',
     'gear',
     'maxSpeed',
-    'stateProps',
-    'lightsOn',
     'fuel',
-    'rpm'
+    'rpm',
+    'stateProps',
 ];
 
-alt.on('rebar:playerCharacterUpdated', (player: alt.Player, fieldName: keyof Character, value: any) => {
+alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
     if (!player || !player.valid) return;
-    if (!allowedPlayerKeys.includes(fieldName)) return;
+    if (!allowedPlayerKeys.includes(key)) return;
 
-    Rebar.player.useWebview(player).emit(HudEvents.toClient.updatePlayer, {
-        key: fieldName,
-        value: value
-    });
+    Rebar.player.useWebview(player).emit(HudEvents.toClient.updatePlayer, { key, value });
 });
 
-alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, fieldName: keyof Vehicle, value: any) => {
+alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value: any) => {
     if (!vehicle || !vehicle.valid) return;
-    if (!allowedVehicleKeys.includes(fieldName)) return;
+    if (!allowedVehicleKeys.includes(key)) return;
 
     const driver = vehicle.driver;
     if (!driver || !driver.valid) return;
 
-    Rebar.player.useWebview(driver).emit(HudEvents.toClient.updateVehicle, {
-        key: fieldName,
-        value: value
-    });
+    Rebar.player.useWebview(driver).emit(HudEvents.toClient.updateVehicle, { key, value });
 });
 
 alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
@@ -55,6 +51,32 @@ alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: 
 alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
     if (seat !== 0) return;    
     Rebar.player.useWebview(player).emit(HudEvents.toClient.toggleVehicle, false);
+});
+
+alt.on('playerWeaponChange', async (player: alt.Player, oldWeapon: number, newWeapon: number) => {
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid) return;
+
+    const weapon: alt.IWeapon & { ammo: number; totalAmmo: number } =  {
+        hash: newWeapon,
+        ammo: player.getAmmo(newWeapon),
+        totalAmmo: player.getAmmoMax(newWeapon),
+        components: player.currentWeaponComponents,
+        tintIndex: player.currentWeaponTintIndex
+    };
+
+    await document.set('weapon', weapon);
+});
+
+alt.on('playerDamage', async (victim: alt.Player, attacker: alt.Entity, healthDamage: number, armourDamage: number, weaponHash: number) => {
+    
+    const document = Rebar.document.character.useCharacter(victim);
+    if (!document.isValid) return;
+
+    await document.setBulk({
+        health: Math.max(99, victim.health - healthDamage),
+        armour: Math.max(0, victim.armour - armourDamage),
+    });
 });
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
@@ -82,6 +104,10 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
 
 function handleSkipCreate(player: alt.Player): void {
     Rebar.player.useWebview(player).show('MainHud', 'overlay');
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid) return;
+    const character = document.get();
+    Object.keys(character).forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toClient.updatePlayer, { key, value: character[key] }));
 }
 
 async function init() {
@@ -105,6 +131,5 @@ declare module '@Shared/types/vehicle.js' {
         maxSpeed?: number;
         rpm?: number;
         gear?: number;
-        lightsOn?: boolean;
     }
 }

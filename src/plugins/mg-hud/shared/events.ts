@@ -5,7 +5,6 @@ export const HudEvents = {
     toClient: {
         updatePlayer: 'hud:player:update',
         updateVehicle: 'hud:vehicle:update',
-        checkVehicle: 'hud:vehicle:check',
         toggleVehicle: 'hud:vehicle:visible'
     }
 };

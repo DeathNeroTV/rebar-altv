@@ -12,7 +12,7 @@ import * as Plugin from './api.js';
 
 const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
-const translate = useTranslate();
+const { t } = useTranslate('de');
 
 const sessions: Array<DiscordSession> = [];
 const serverConfig = Rebar.useServerConfig();
@@ -59,13 +59,13 @@ async function handleToken(player: alt.Player, token: string) {
     setSessionFinish(player);
 
     if (!token) {
-        player.kick(translate.t("discord.auth.token.failed"));
+        player.kick(t("discord.auth.token.failed"));
         return;
     }
 
     const currentUser = await getCurrentUser(token) as DiscordInfo | undefined;
     if ( !currentUser ) {
-        player.kick(translate.t("discord.auth.request.failed"));
+        player.kick(t("discord.auth.request.failed"));
         return;
     }
 
@@ -86,7 +86,7 @@ async function handleToken(player: alt.Player, token: string) {
     }
 
     if (!account) {
-        player.kick(translate.t("discord.auth.account.failed"));
+        player.kick(t("discord.auth.account.failed"));
         return;
     }
 
@@ -96,7 +96,7 @@ async function handleToken(player: alt.Player, token: string) {
     }
 
     if (account.banned) {
-        player.kick(account.reason || translate.t("discord.auth.banned.no.reason"));
+        player.kick(account.reason || t("discord.auth.banned.no.reason"));
         return;
     }
 
@@ -104,24 +104,24 @@ async function handleToken(player: alt.Player, token: string) {
         try {
             const guildMember = await getUserGuildMember(currentUser.id);
             if (!guildMember) {
-                player.kick(translate.t("discord.auth.guild.no.member"));
+                player.kick(t("discord.auth.guild.no.member"));
                 return;
             }
     
             if (DiscordAuthConfig.WHITELIST_ROLE_ID && DiscordAuthConfig.WHITELIST_ROLE_ID.length !== 0) {
                 const role = guildMember.roles.cache.get(DiscordAuthConfig.WHITELIST_ROLE_ID);
                 if (!role) {
-                    player.kick(translate.t("discord.auth.guild.no.whitelist"));
+                    player.kick(t("discord.auth.guild.no.whitelist"));
                     return;
                 }
             }
         } catch (error) {
             if (error.code === 10007) {  // Unknown Member
                 alt.log(`Discord API Error: Unknown Member for user ${currentUser.username}`);
-                player.kick(translate.t("discord.auth.guild.no.member"));
+                player.kick(t("discord.auth.guild.no.member"));
             } else {
                 alt.log(`Unexpected Discord API Error: ${error.message}`);
-                player.kick(translate.t("discord.auth.request.failed"));
+                player.kick(t("discord.auth.request.failed"));
             }
             return;
         }
@@ -141,7 +141,7 @@ function cleanupSessions() {
         const player = alt.Player.all.find((x) => x.id === sessions[i].id);
         if (player && player.valid && !sessions[i].finished) {
             alt.log(`Kicked ${player.name} for waiting too long to login.`);
-            player.kick(translate.t("discord.auth.expired.session"));
+            player.kick(t("discord.auth.expired.session"));
         }
 
         count += 1;
@@ -157,12 +157,12 @@ function cleanupSessions() {
 function setSessionFinish(player: alt.Player) {
     const sessionIndex = sessions.findIndex((x) => x.id === player.id);
     if (sessionIndex <= -1) {
-        player.kick(translate.t("discord.auth.no.session"));
+        player.kick(t("discord.auth.no.session"));
         return;
     }
 
     if (sessions[sessionIndex].finished) {
-        player.kick(translate.t("discord.auth.already.complete"));
+        player.kick(t("discord.auth.already.complete"));
         return;
     }
 
@@ -170,7 +170,7 @@ function setSessionFinish(player: alt.Player) {
 
 
     if (Date.now() > sessions[sessionIndex].expiration) {
-        player.kick(translate.t("discord.auth.expired.session"));
+        player.kick(t("discord.auth.expired.session"));
         return;
     }
 

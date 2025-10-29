@@ -44,7 +44,7 @@ const Internal = {
         // Start der Progress-Animation
         let progress = 0;
         reviver.emit(DeathEvents.toClient.reviveProgress, 0);
-        victim.emit(DeathEvents.toClient.startRevive);
+        victim.emit(DeathEvents.toClient.reviveProgress, 0);
 
         const interval = alt.setInterval(() => {
             if (!reviver.valid || !victim.valid) {
@@ -66,6 +66,7 @@ const Internal = {
             }
 
             reviver.emit(DeathEvents.toClient.reviveProgress, progress);
+            victim.emit(DeathEvents.toClient.reviveProgress, progress);
         }, DeathConfig.reviveTime / 20);
 
         ActiveRevives.set(charId, interval);
@@ -76,13 +77,19 @@ const Internal = {
         if (!victimData.isValid || !victimData.getField('isDead')) return;
 
         const charId = victimData.getField('_id');
+
+        if (TimeOfDeath.has(charId))
+            TimeOfDeath.delete(charId);
+
         if (ActiveRevives.has(charId)) {
-            alt.clearInterval(ActiveRevives.get(charId)!);
+            if (ActiveRevives.get(charId)!) 
+                alt.clearInterval(ActiveRevives.get(charId)!);
             ActiveRevives.delete(charId);
         }
 
         if (ActiveTimers.has(charId)) {
-            alt.clearTimeout(ActiveTimers.get(charId)!);
+            if (ActiveTimers.get(charId)!) 
+                alt.clearTimeout(ActiveTimers.get(charId)!);
             ActiveTimers.delete(charId);
         }
 
@@ -92,23 +99,28 @@ const Internal = {
 
     completeRevive(reviver: alt.Player, victim: alt.Player) {
         if (!victim || !victim.valid) return;
+        
         const victimData = Rebar.document.character.useCharacter(victim);
         if (!victimData.isValid || !victimData.getField('isDead')) return;
 
         const charId = victimData.getField('_id');
+
+        if (TimeOfDeath.has(charId))
+            TimeOfDeath.delete(charId);
+
         if (ActiveRevives.has(charId)) {
-            alt.clearInterval(ActiveRevives.get(charId)!);
+            if (ActiveRevives.get(charId)!) 
+                alt.clearInterval(ActiveRevives.get(charId)!);
             ActiveRevives.delete(charId);
         }        
 
         if (ActiveTimers.has(charId)) {
-            alt.clearTimeout(ActiveTimers.get(charId)!);
+            if (ActiveTimers.get(charId)!) 
+                alt.clearTimeout(ActiveTimers.get(charId)!);
             ActiveTimers.delete(charId);
         }
 
-        // Erfolgsmeldungen
         reviver.emit(DeathEvents.toClient.reviveComplete);
-        victim.emit(DeathEvents.toClient.reviveComplete);
         Internal.respawn(victim, victim.pos);
     },
 
@@ -119,50 +131,66 @@ const Internal = {
         if (!victimData.isValid || !victimData.getField('isDead')) return;
 
         const charId = victimData.getField('_id');
+        
+        if (TimeOfDeath.has(charId))
+            TimeOfDeath.delete(charId);
+
         if (ActiveRevives.has(charId)) {
-            alt.clearInterval(ActiveRevives.get(charId)!);
+            if (ActiveRevives.get(charId)!) 
+                alt.clearInterval(ActiveRevives.get(charId)!);
             ActiveRevives.delete(charId);
-        }
+        }        
 
         if (ActiveTimers.has(charId)) {
-            alt.clearTimeout(ActiveTimers.get(charId)!);
+            if (ActiveTimers.get(charId)!) 
+                alt.clearTimeout(ActiveTimers.get(charId)!);
             ActiveTimers.delete(charId);
         }
 
         const newPosition = pos ?? Internal.getClosestHospital(victim.pos);
-        victimData.set('isDead', false);
-        victim.spawn(newPosition.x, newPosition.y, newPosition.z, 0);
-        victim.clearBloodDamage();
-        Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
+
+        victimData.setBulk({ isDead: false, food: 100, water: 100, health: 125 });
+
+        Rebar.player.useWorld(victim).setScreenFade(3000);
+        victim.spawn(newPosition.x, newPosition.y, newPosition.z, 3000);
+
+        alt.setTimeout(() => {
+            Rebar.player.useWorld(victim).clearScreenFade(3000);
+            Rebar.player.useState(victim).apply({ health: 124 });
+            victim.clearBloodDamage();
+            Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
+        }, 3500);
     },
 
     handleDefaultDeath(victim: alt.Player, killer: alt.Player, weaponHash: number) {
         if (!victim || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid) return;
+        if (!victimData.isValid || victimData.getField('isDead')) return;
 
         const charId = victimData.getField('_id');
         victimData.set('isDead', true);
 
-        if (TimeOfDeath.has(charId)) {
-            TimeOfDeath.delete(charId);
-        }
         if (ActiveRevives.has(charId)) {
-            alt.clearInterval(ActiveRevives.get(charId));
+            if (ActiveRevives.get(charId)!) 
+                alt.clearInterval(ActiveRevives.get(charId)!);
             ActiveRevives.delete(charId);
         }
+
         if (ActiveTimers.has(charId)) {
-            alt.clearTimeout(ActiveTimers.get(charId));
+            if (ActiveTimers.get(charId)!) 
+                alt.clearTimeout(ActiveTimers.get(charId)!);
             ActiveTimers.delete(charId);
         }
 
-        TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
+        const deathTime = Date.now() + DeathConfig.respawnTime;
+        TimeOfDeath.set(charId, deathTime);
         victim.emit(DeathEvents.toClient.startTimer);
-        victim.emit(DeathEvents.toClient.updateTimer, TimeOfDeath[charId] - Date.now());
-        const interval = alt.setTimeout(() => 
-            victim.emit(DeathEvents.toClient.updateTimer, TimeOfDeath[charId] - Date.now())
-        , DeathConfig.respawnTime);
+        victim.emit(DeathEvents.toClient.updateTimer, deathTime);
+        const interval = alt.setInterval(() => {
+            victim.emit(DeathEvents.toClient.updateTimer, TimeOfDeath.get(charId) - Date.now());
+            ActiveTimers.delete(charId);
+        }, DeathConfig.respawnTime);
         ActiveTimers.set(charId, interval);
     },
 };

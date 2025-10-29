@@ -9,7 +9,7 @@ const { t } = useTranslate('de');
 const events = useEvents();
 
 // Core States
-const isDead = ref(true);
+const isDead = ref(false);
 const isBeingRevived = ref(false);
 const canRespawn = ref(false);
 const calledEMS = ref(false);
@@ -33,18 +33,27 @@ const formattedTime = computed(() => {
 
 const progress = computed(() => {
     if (totalTime.value === 0) return 0;
+    if (isReviving.value) return reviveProgress.value.toFixed(2);
     return ((timeLeft.value / totalTime.value) * 100).toFixed(2);
 });
 
-// --- Death Events (Victim) ---
+const resetData = () => {
+    isDead.value = false;
+    canRespawn.value = false;
+    calledEMS.value = false;
+    isBeingRevived.value = false;
+    isReviving.value = false;
+    reviveProgress.value = 0;
+};
+
 events.on(DeathEvents.toClient.startTimer, () => {
     isDead.value = true;
+    canRespawn.value = false;
 });
+
 events.on(DeathEvents.toClient.updateTimer, (ms: number) => {
     totalTime.value = ms;
     timeLeft.value = ms;
-    isDead.value = true;
-    canRespawn.value = false;
     if (interval) clearInterval(interval);
     interval = setInterval(() => {
         timeLeft.value -= 1000;
@@ -55,32 +64,32 @@ events.on(DeathEvents.toClient.updateTimer, (ms: number) => {
         }
     }, 1000);
 });
+
 events.on(DeathEvents.toClient.startRevive, () => {
     isBeingRevived.value = true;
 });
+
 events.on(DeathEvents.toClient.stopRevive, () => {
     isBeingRevived.value = false;
     isReviving.value = false;
     reviveProgress.value = 0;
 });
+
 events.on(DeathEvents.toClient.reviveProgress, (progress: number) => {
     if (!isReviving.value) isReviving.value = true;
     reviveProgress.value = progress;
 });
-events.on(DeathEvents.toClient.reviveComplete, () => {
-    isBeingRevived.value = false;
-    isReviving.value = false;
-    reviveProgress.value = 100;
-    isDead.value = false;
-});
-events.on(DeathEvents.toClient.respawned, () => {
-    isDead.value = false;
-    canRespawn.value = false;
-    calledEMS.value = false;
-});
+
 events.on(DeathEvents.toClient.confirmEms, () => {
     calledEMS.value = true;
 });
+
+events.on(DeathEvents.toClient.reviveComplete, () => {
+    isReviving.value = false;
+    reviveProgress.value = 0;
+});
+
+events.on(DeathEvents.toClient.respawned, resetData);
 </script>
 
 <template>
@@ -150,7 +159,7 @@ events.on(DeathEvents.toClient.confirmEms, () => {
                 </h1>
 
                 <div class="select-none text-gray-300 text-sm uppercase tracking-widest mb-4">
-                    Halte dich stabil – Systemübertragung aktiv
+                    Eine Person belebt dich wieder
                 </div>
 
                 <!-- Fortschrittsbalken -->

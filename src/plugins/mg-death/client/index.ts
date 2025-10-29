@@ -2,17 +2,61 @@ import * as alt from 'alt-client';
 import * as natives from 'natives';
 import { useRebarClient } from '@Client/index.js';
 import { DeathEvents } from '../shared/events.js';
+import { useClientApi } from '@Client/api/index.js';
 
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
 
-const NOTRUF_KEY = 0x47; // G
-const RESPAWN_KEY = 0x45; // E
-const REVIVE_KEY = 0x48; // H
-
 let canRespawn = false;
 let calledEMS = false;
 let isReviving = false;
+
+const keyBinds: KeyInfo[] = [
+    {
+        key: 0x45, // E
+        description: 'Lasse dich vom Rettungsteam abholen',
+        identifier: 'emergency-trigger',
+        keyDown: () => {
+            if (!canRespawn || !alt.Player.local.isDead) return;
+            alt.emitServer(DeathEvents.toServer.toggleRespawn);
+            canRespawn = false;
+            calledEMS = false;
+        },
+        allowIfDead: true,
+        restrictions: { isOnFoot: true }
+    },
+    {
+        key: 0x47, // G
+        description: 'Setze einen Notruf ab',
+        identifier: 'emergency-call',
+        keyDown: () => {
+            if (calledEMS || !alt.Player.local.isDead) return;
+            alt.emitServer(DeathEvents.toServer.callEms);
+            calledEMS = true;
+        },
+        allowIfDead: true,
+        restrictions: { isOnFoot: true }
+    },
+    {
+        key: 0x48, // H
+        description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
+        identifier: 'emergency-revive',
+        keyDown: () => {
+            if (isReviving || alt.Player.local.isDead) return;
+            const closest = getClosestPlayer(3.0);
+            if (closest && closest.isDead) {
+                alt.emitServer(DeathEvents.toServer.reviveTarget, closest);
+                isReviving = true;
+            }
+        },
+        restrictions: { isOnFoot: true }
+    }
+];
+
+alt.on('connectionComplete', async() => {
+    const keyBindApi = await useClientApi().getAsync('keyBinds-api', 30000);
+    keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
+});
 
 alt.onServer(DeathEvents.toClient.reviveProgress, (progress: number) => {
     view.emit(DeathEvents.toClient.reviveProgress, progress);
@@ -34,6 +78,7 @@ alt.onServer(DeathEvents.toClient.reviveComplete, () => {
 
 alt.onServer(DeathEvents.toClient.startTimer, () => {
     canRespawn = false;
+    view.emit(DeathEvents.toClient.startTimer);
 });
 
 alt.onServer(DeathEvents.toClient.updateTimer, (timeLeft: number) => {
@@ -41,35 +86,6 @@ alt.onServer(DeathEvents.toClient.updateTimer, (timeLeft: number) => {
     if (timeLeft <= 0) canRespawn = true;
 });
 
-alt.everyTick(() => {
-    // ⛑️ Notruf
-    if (!calledEMS && alt.Player.local.isDead && alt.isKeyDown(NOTRUF_KEY)) {
-        alt.emitServer(DeathEvents.toServer.callEms);
-        calledEMS = true;
-    }
-
-    // ☠️ Respawn
-    if (canRespawn && alt.Player.local.isDead && alt.isKeyDown(RESPAWN_KEY)) {
-        natives.doScreenFadeOut(3000);
-
-        alt.setTimeout(() => {
-            natives.doScreenFadeIn(3000);
-            alt.emitServer(DeathEvents.toServer.toggleRespawn);
-            canRespawn = false;
-            calledEMS = false;
-        }, 3100);
-    }
-
-    if (!isReviving && alt.isKeyDown(REVIVE_KEY)) {
-        const closest = getClosestPlayer(3.0);
-        if (closest && closest.isDead) {
-            alt.emitServer(DeathEvents.toServer.reviveTarget, closest);
-            isReviving = true;
-        }
-    }
-});
-
-// 🔍 Utility: Nächster Spieler
 function getClosestPlayer(radius: number): alt.Player | null {
     let closest: alt.Player | null = null;
     let minDist = radius;
