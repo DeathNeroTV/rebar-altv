@@ -5,6 +5,8 @@ import { HudEvents } from '../shared/events.js';
 import { Vehicle } from '@Shared/types/vehicle.js';
 
 const Rebar = useRebar();
+const api = Rebar.useApi();
+
 const allowedPlayerKeys: (keyof Character)[] = [
     'armour',
     'food',
@@ -78,19 +80,31 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
     });
 });
 
+function handleSkipCreate(player: alt.Player): void {
+    Rebar.player.useWebview(player).show('MainHud', 'overlay');
+}
+
+async function init() {
+    await alt.Utils.waitFor(() => api.isReady('character-creator-api'), 30000);
+    const charCreatorApi = api.get('character-creator-api');
+    charCreatorApi.onSkipCreate(handleSkipCreate);
+}
+
+init();
+
 declare module '@Shared/types/character.js' {
     export interface Character {
-        voiceRange: number;
-        weapon: (alt.IWeapon & { ammo: number; totalAmmo: number; });
+        voiceRange?: number;
+        weapon?: (alt.IWeapon & { ammo: number; totalAmmo: number; });
     }
 }
 
 declare module '@Shared/types/vehicle.js' {
     export interface Vehicle {
-        speed: number;
-        maxSpeed: number;
-        rpm: number;
-        gear: number;
-        lightsOn: boolean;
+        speed?: number;
+        maxSpeed?: number;
+        rpm?: number;
+        gear?: number;
+        lightsOn?: boolean;
     }
 }

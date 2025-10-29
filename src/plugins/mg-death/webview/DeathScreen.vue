@@ -9,7 +9,7 @@ const { t } = useTranslate('de');
 const events = useEvents();
 
 // Core States
-const isDead = ref(false);
+const isDead = ref(true);
 const isBeingRevived = ref(false);
 const canRespawn = ref(false);
 const calledEMS = ref(false);
@@ -85,7 +85,7 @@ events.on(DeathEvents.toClient.confirmEms, () => {
 
 <template>
     <transition name="fade">
-        <div v-if="isDead || isReviving" class="fixed inset-0 bg-black/70 flex items-center justify-center text-white z-50">
+        <div v-if="isDead || isReviving" class="fixed inset-0 bg-neutral-950/70 flex items-center justify-center text-gray-100 z-50">
             
             <!-- === Death HUD (Victim) === -->
             <div

@@ -21,7 +21,6 @@ export function useDiscord() {
     }
 }
 
-
 declare global {
     export interface ServerPlugin {
         ['discord-api']: ReturnType<typeof useDiscord>;
