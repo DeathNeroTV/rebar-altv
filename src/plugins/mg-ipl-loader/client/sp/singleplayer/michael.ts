@@ -1,8 +1,9 @@
 import * as natives from 'natives';
-import { SetIplPropState } from '../../lib/common.js';
+import { useIplLoaderApi } from '../../api.js';
+
+const api = useIplLoaderApi();
 
 export const Michael = {
-
     interiorId: 166657,
     garageId: 166401,
 
@@ -25,11 +26,13 @@ export const Michael = {
 
         set: function(style: string | string[], refresh: boolean = false) {
             Michael.style.clear(false);
-            SetIplPropState(Michael.interiorId, style, true, refresh);
+            if (Array.isArray(style)) style.forEach(name => api.setIplPropState(Michael.interiorId, name, true, refresh));
+            else api.setIplPropState(Michael.interiorId, style, true, refresh);
         },
 
         clear: function(refresh: boolean) {
-            SetIplPropState(Michael.interiorId, [...Michael.style.normal, ...Michael.style.moved], false, refresh);
+            Michael.style.normal.forEach(style => api.setIplPropState(Michael.interiorId, style, false, refresh));
+            Michael.style.moved.forEach(style => api.setIplPropState(Michael.interiorId, style, false, refresh));
         }
     },
 
@@ -39,18 +42,19 @@ export const Michael = {
 
         set: function(bed: string, refresh: boolean = false) {
             Michael.bed.clear(false);
-            SetIplPropState(Michael.interiorId, bed, true, refresh);
+            api.setIplPropState(Michael.interiorId, bed, true, refresh);
         },
         clear: function(refresh: boolean) {
-            SetIplPropState(Michael.interiorId, [Michael.bed.tidy, Michael.bed.messy], false, refresh);
+            api.setIplPropState(Michael.interiorId, Michael.bed.tidy, false, refresh);
+            api.setIplPropState(Michael.interiorId, Michael.bed.messy, false, refresh);
         }
     },
 
     garage: {
         scuba: 'V_Michael_Scuba',
 
-        enable: function(scuba: string | string[], state: boolean, refresh: boolean = false) {
-            SetIplPropState(Michael.garageId, scuba, state, refresh);
+        enable: function(scuba: string, state: boolean, refresh: boolean = false) {
+            api.setIplPropState(Michael.garageId, scuba, state, refresh);
         },
     },
 
@@ -62,7 +66,7 @@ export const Michael = {
         burgerShot: 'burgershot_yoga',
 
         enable: function(details: string, state: boolean, refresh: boolean = false) {
-            SetIplPropState(Michael.garageId, details, state, refresh);
+            api.setIplPropState(Michael.garageId, details, state, refresh);
         },
     },
 

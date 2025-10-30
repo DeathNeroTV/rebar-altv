@@ -1,9 +1,7 @@
 import { useIplLoaderApi } from '../../api.js';
-import { SetIplPropState } from '../../lib/common.js';
-import { Ammunitions } from '@Plugins/mg-ipl-loader/shared/interfaces.js';
 
 const api = useIplLoaderApi();
-export const Ammunition: Ammunitions = {
+export const Ammunition = {
     interiorId: [
         140289, // 249.8, -47.1, 70.0
         153857, // 844.0, -1031.5, 28.2
