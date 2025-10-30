@@ -7,7 +7,7 @@ export const DeathEvents = {
     },
     toClient: {
         startTimer: 'death:screen:timer:start',
-        updateTimer: 'death:screen:timer:update',
+        stopTimer: 'death:screen:timer:stop',
         startRevive: 'death:screen:revive:start',
         reviveProgress: 'death:screen:revive:progress',
         reviveComplete: 'death:screen:revive:complete',

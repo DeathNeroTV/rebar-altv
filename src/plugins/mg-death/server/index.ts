@@ -43,8 +43,8 @@ const Internal = {
 
         // Start der Progress-Animation
         let progress = 0;
-        reviver.emit(DeathEvents.toClient.reviveProgress, 0);
-        victim.emit(DeathEvents.toClient.reviveProgress, 0);
+        reviver.emit(DeathEvents.toClient.startRevive);
+        victim.emit(DeathEvents.toClient.startRevive);
 
         const interval = alt.setInterval(() => {
             if (!reviver.valid || !victim.valid) {
@@ -121,6 +121,7 @@ const Internal = {
         }
 
         reviver.emit(DeathEvents.toClient.reviveComplete);
+        victim.emit(DeathEvents.toClient.reviveComplete);
         Internal.respawn(victim, victim.pos);
     },
 
@@ -166,7 +167,7 @@ const Internal = {
         if (!victim || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid || victimData.getField('isDead')) return;
+        if (!victimData.isValid) return;
 
         const charId = victimData.getField('_id');
         victimData.set('isDead', true);
@@ -183,12 +184,10 @@ const Internal = {
             ActiveTimers.delete(charId);
         }
 
-        const deathTime = Date.now() + DeathConfig.respawnTime;
-        TimeOfDeath.set(charId, deathTime);
-        victim.emit(DeathEvents.toClient.startTimer);
-        victim.emit(DeathEvents.toClient.updateTimer, deathTime);
+        TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
+        victim.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
         const interval = alt.setInterval(() => {
-            victim.emit(DeathEvents.toClient.updateTimer, TimeOfDeath.get(charId) - Date.now());
+            victim.emit(DeathEvents.toClient.stopTimer);
             ActiveTimers.delete(charId);
         }, DeathConfig.respawnTime);
         ActiveTimers.set(charId, interval);
