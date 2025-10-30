@@ -2,7 +2,9 @@
 a game environment. Here's a breakdown of what the code is doing: */
 import * as alt from 'alt-client';
 import * as natives from 'natives';
+import { useIplLoaderApi } from '../api.js';
 
+const api = useIplLoaderApi();
 interface Interior {
     ipl?: string;
     coords?: alt.IVector3;
@@ -36,11 +38,10 @@ const interiors: Interior[] = [
     },
 ];
 
-alt.once('connectionComplete', () => {    
-    // Lade das IPL
+export function loadMapData() {
     interiors.forEach(data => {
         if (!data.ipl || !data.coords || !data.entitySets) return;
-        natives.requestIpl(data.ipl);
+        api.enableIpl(data.ipl, true); 
 
         // Ermittel den Interior-ID anhand der Koordinaten
         const interiorID = natives.getInteriorAtCoords(data.coords.x, data.coords.y, data.coords.z);
@@ -48,13 +49,10 @@ alt.once('connectionComplete', () => {
         // Prüfe, ob das Interior existiert
         if (natives.isValidInterior(interiorID)) {
             data.entitySets.forEach(entitySet => {
-                if (entitySet.enable) {
-                    natives.activateInteriorEntitySet(interiorID, entitySet.name);
-                    if (entitySet.color) natives.setInteriorEntitySetTintIndex(interiorID, entitySet.name, entitySet.color);
-                } else natives.deactivateInteriorEntitySet(interiorID, entitySet.name);
+                api.setIplPropState(interiorID, entitySet.name, entitySet.enable);
+                if (entitySet.color) api.setIplPropColor(interiorID, entitySet.name, entitySet.color);
             });
             natives.refreshInterior(interiorID);
         }
     });
-});
-
+}

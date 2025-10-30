@@ -2,7 +2,10 @@
 a game environment. Here's a breakdown of what the code is doing: */
 import * as alt from 'alt-client';
 import * as natives from 'natives';
+import { useIplLoaderApi } from '../api.js';
 
+
+const api = useIplLoaderApi();
 const rooms: string[] = [
     'v_gabz_mrpd_rm1', 'v_gabz_mrpd_rm2', 'v_gabz_mrpd_rm3', 'v_gabz_mrpd_rm4',
     'v_gabz_mrpd_rm5', 'v_gabz_mrpd_rm6', 'v_gabz_mrpd_rm7', 'v_gabz_mrpd_rm8',
@@ -14,19 +17,13 @@ const rooms: string[] = [
     'v_gabz_mrpd_rm29', 'v_gabz_mrpd_rm30', 'v_gabz_mrpd_rm31'
 ];
 
-alt.once('connectionComplete', () => {    
-    // Lade das IPL
-    natives.requestIpl('gabz_mrpd_milo_');
-
-    // Ermittel den Interior-ID anhand der Koordinaten
+export function loadMrpd() {   
+    api.enableIpl('gabz_mrpd_milo_', true);
     const interiorID = natives.getInteriorAtCoords(451.0129, -993.3741, 29.1718);
 
-    // Prüfe, ob das Interior existiert
     if (natives.isValidInterior(interiorID)) {
-        rooms.forEach(room => natives.activateInteriorEntitySet(interiorID, room));
-        natives.refreshInterior(interiorID);
-    } else {
-        alt.logError('Gabz MRPD Interior konnte nicht gefunden werden!');
-    }
-});
+        rooms.forEach(room => api.setIplPropState(interiorID, room, true));
+        api.refreshInterior(interiorID);
+    } else alt.logError('Gabz MRPD Interior konnte nicht gefunden werden!');
+}
 

@@ -1,24 +1,21 @@
 import * as alt from 'alt-client';
 import * as natives from 'natives';
+import { useIplLoaderApi } from '../api.js';
 
-alt.once('connectionComplete', () => {    
-    // Lade das IPL
-    natives.requestIpl('gabz_pillbox_milo_');
+const api = useIplLoaderApi();
+const defaultIpls: string[] = [
+    'rc12b_fixed',
+    'rc12b_default',
+    'rc12b_destroyed',
+    'rc12b_hospitalinterior_lod',
+    'rc12b_hospitalinterior'
+];
 
-    // Ermittel den Interior-ID anhand der Koordinaten
+export function loadPillbox() {    
     const interiorID = natives.getInteriorAtCoords(311.2546, -592.4204, 42.32737);
-
-    // Prüfe, ob das Interior existiert
+    api.enableIpl('gabz_pillbox_milo_', true);
     if (natives.isValidInterior(interiorID)) {
-        natives.removeIpl('rc12b_fixed');
-        natives.removeIpl('rc12b_destroyed');
-        natives.removeIpl('rc12b_default');
-        natives.removeIpl('rc12b_hospitalinterior_lod');
-        natives.removeIpl('rc12b_hospitalinterior');
-
-        natives.refreshInterior(interiorID);
-    } else {
-        alt.logError('Gabz MRPD Interior konnte nicht gefunden werden!');
-    }
-});
-
+        defaultIpls.forEach(iplName => api.enableIpl(iplName, false));
+        api.refreshInterior(interiorID);
+    } else alt.logError('Gabz Pillbox Hospital Interior konnte nicht gefunden werden!');
+}
