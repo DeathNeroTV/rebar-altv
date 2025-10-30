@@ -3,42 +3,69 @@ import * as natives from 'natives';
 import { TargetDefinition } from '../shared/interfaces.js';
 import { useRebarClient } from '@Client/index.js';
 import { TargetingEvents } from '../shared/events.js';
+import { useClientApi } from '@Client/api/index.js';
 
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
 
-let targets: TargetDefinition[] = [];
+let targets: TargetDefinition[] = [
+    { model: alt.hash('prop_atm_01'), options: [], type: 'model', id: 'prop_atm_01', radius: 5 },
+    { model: alt.hash('prop_atm_02'), options: [], type: 'model', id: 'prop_atm_02', radius: 5 },
+    { model: alt.hash('prop_atm_03'), options: [], type: 'model', id: 'prop_atm_03', radius: 5 },
+    { model: alt.hash('prop_fleeca_atm'), options: [], type: 'model', id: 'prop_fleeca_atm', radius: 5 },
+    { model: alt.hash('hw1_13_props_dump01alod1'), options: [], type: 'model', id: 'hw1_13_props_dump01alod1', radius: 5 },
+    { model: alt.hash('hw1_13_props_dump01alod'), options: [], type: 'model', id: 'hw1_13_props_dump01alod', radius: 5 },
+    { model: alt.hash('sc1_07_clinical_bin'), options: [], type: 'model', id: 'model_sc1_07_clinical_bin', radius: 5 },
+    { model: alt.hash('p_dumpster_t'), options: [], type: 'model', id: 'p_dumpster_t', radius: 5 }
+];
+
 let currentTarget: TargetDefinition | null = null;
 let isTargetingActive = false;
 
 const COLOR_ACTIVE = { r: 0, g: 180, b: 255, a: 255 }; // hellblau
 const COLOR_IDLE = { r: 255, g: 255, b: 255, a: 200 }; // weiß
 
+const keyBinds: KeyInfo[] = [
+    {
+        key: alt.KeyCode.Alt,
+        identifier: 'targeting-toggle-eye',
+        description: 'Zeige/Verstecke das dritte Auge',
+        keyDown: () => {
+            if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+            isTargetingActive = true;
+            view.emit(TargetingEvents.toClient.showTarget);
+        },
+        keyUp: () => {
+            if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+            isTargetingActive = false;
+            currentTarget = null;
+            view.emit(TargetingEvents.toClient.hideTarget);
+            Rebar.player.useControls().setControls(true);
+        },
+        restrictions: { isOnFoot: true }
+    },
+    {
+        key: alt.KeyCode.MouseRight,
+        identifier: 'targeting-trigger-menu',
+        description: 'Öffne das InteraktionsmenÜ',
+        keyDown: () => {
+            if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+            if (!currentTarget) return;
+            view.emit(TargetingEvents.toClient.openMenu, currentTarget.options || []);
+            view.showCursor(true);
+            Rebar.player.useControls().setControls(false);
+        },
+        restrictions: { isOnFoot: true }
+    },
+];
+
+alt.on('connectionComplete', async() => {
+    const keyBindApi = await useClientApi().getAsync('keyBinds-api', 30000);
+    keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
+});
+
 alt.onServer(TargetingEvents.toClient.listTargets, (list: TargetDefinition[]) => {
     targets = list;
-});
-
-alt.on('keydown', (key: alt.KeyCode) => {
-    if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen || Rebar.menus.isNativeMenuOpen || alt.isMenuOpen() || view.isAnyPageOpen()) return;
-    if (key === alt.KeyCode.Alt) {
-        isTargetingActive = true;
-        view.emit(TargetingEvents.toClient.showTarget);
-        return;
-    }
-
-    if (key === alt.KeyCode.MouseRight) {
-        if (!currentTarget) return;
-        view.emit(TargetingEvents.toClient.openMenu, currentTarget.options || []);
-        return;
-    }
-});
-
-alt.on('keyup', (key: alt.KeyCode) => {
-    if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen || Rebar.menus.isNativeMenuOpen || alt.isMenuOpen() || view.isAnyPageOpen()) return;
-    if (key !== alt.KeyCode.Alt) return;
-    isTargetingActive = false;
-    currentTarget = null;
-    view.emit(TargetingEvents.toClient.hideTarget);
 });
 
 alt.everyTick(() => {
@@ -124,13 +151,7 @@ function getScreenRaycastHit(): { entity: number; pos: alt.Vector3 } | null {
     const ray = natives.startExpensiveSynchronousShapeTestLosProbe(
         camPos.x, camPos.y, camPos.z, end.x, end.y, end.z, -1, player, 0
     );
-    const [hit, hitCoords, _surfaceNormal, entityHit] = natives.getShapeTestResult(ray) as unknown as [
-        number, number[], number[], number
-    ];
+    const [_, hit, hitCoords, _surfaceNormal, entityHit] = natives.getShapeTestResult(ray);
 
-    if (!hit) return null;
-    return {
-        entity: entityHit,
-        pos: new alt.Vector3(hitCoords[0], hitCoords[1], hitCoords[2])
-    };
+    return !hit ? null : { entity: entityHit, pos: hitCoords };
 }

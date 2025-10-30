@@ -20,9 +20,9 @@ import TargetMenu from './components/TargetMenu.vue';
 
 const events = useEvents();
 
-const hasTarget = ref(false);
-const isActive = ref(false);
-const showMenu = ref(false);
+const hasTarget = ref<boolean>(false);
+const isActive = ref<boolean>(false);
+const showMenu = ref<boolean>(false);
 const options = ref<TargetOption[]>([]);
 
 function handleShowTarget() {
@@ -39,8 +39,6 @@ function handleOpenMenu(target: { options: TargetOption[] }) {
     hasTarget.value = true;
     showMenu.value = true;
 }
-
-
 
 function handleHideTarget() {
     isActive.value = false;

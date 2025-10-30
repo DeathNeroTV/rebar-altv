@@ -13,7 +13,7 @@ let isReviving = false;
 
 const keyBinds: KeyInfo[] = [
     {
-        key: 0x45, // E
+        key: alt.KeyCode.E,
         description: 'Lasse dich vom Rettungsteam abholen',
         identifier: 'emergency-trigger',
         keyDown: () => {
@@ -26,7 +26,7 @@ const keyBinds: KeyInfo[] = [
         restrictions: { isOnFoot: true }
     },
     {
-        key: 0x47, // G
+        key: alt.KeyCode.G,
         description: 'Setze einen Notruf ab',
         identifier: 'emergency-call',
         keyDown: () => {
@@ -38,7 +38,7 @@ const keyBinds: KeyInfo[] = [
         restrictions: { isOnFoot: true }
     },
     {
-        key: 0x48, // H
+        key: alt.KeyCode.H,
         description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
         identifier: 'emergency-revive',
         keyDown: () => {
