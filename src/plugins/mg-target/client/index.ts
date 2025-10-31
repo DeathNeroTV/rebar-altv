@@ -8,17 +8,7 @@ import { useClientApi } from '@Client/api/index.js';
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
 
-let targets: TargetDefinition[] = [
-    { model: alt.hash('prop_atm_01'), options: [], type: 'model', id: 'prop_atm_01', radius: 5 },
-    { model: alt.hash('prop_atm_02'), options: [], type: 'model', id: 'prop_atm_02', radius: 5 },
-    { model: alt.hash('prop_atm_03'), options: [], type: 'model', id: 'prop_atm_03', radius: 5 },
-    { model: alt.hash('prop_fleeca_atm'), options: [], type: 'model', id: 'prop_fleeca_atm', radius: 5 },
-    { model: alt.hash('hw1_13_props_dump01alod1'), options: [], type: 'model', id: 'hw1_13_props_dump01alod1', radius: 5 },
-    { model: alt.hash('hw1_13_props_dump01alod'), options: [], type: 'model', id: 'hw1_13_props_dump01alod', radius: 5 },
-    { model: alt.hash('sc1_07_clinical_bin'), options: [], type: 'model', id: 'model_sc1_07_clinical_bin', radius: 5 },
-    { model: alt.hash('p_dumpster_t'), options: [], type: 'model', id: 'p_dumpster_t', radius: 5 }
-];
-
+let targets: TargetDefinition[] = [];
 let currentTarget: TargetDefinition | null = null;
 let isTargetingActive = false;
 
@@ -74,14 +64,20 @@ alt.everyTick(() => {
     const hit = getScreenRaycastHit();
     let matchedTarget: TargetDefinition | null = null;
 
-    if (hit) matchedTarget = findMatchingTarget(hit);
+    view.emit(TargetingEvents.toClient.hasTarget, hit);
 
+    if (hit) {
+        matchedTarget = findMatchingTarget(hit);
+
+        if (!matchedTarget) {
+            natives.drawDebugText(`Model: ${natives.getEntityModel(hit.entity)}`, hit.pos.x, hit.pos.y, hit.pos.z + 1, 255, 255, 255, 150);
+        }
+    }
+    
     if (matchedTarget && (!currentTarget || currentTarget.id !== matchedTarget.id)) {
         currentTarget = matchedTarget;
-        view.emit(TargetingEvents.toClient.hasTarget, true);
     } else if (!matchedTarget && currentTarget) {
         currentTarget = null;
-        view.emit(TargetingEvents.toClient.hasTarget, false);
     }
 
     drawAllTargetDots(matchedTarget);

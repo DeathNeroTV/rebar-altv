@@ -1,7 +1,7 @@
 export interface TargetOption {
     label: string;
-    event: string;
-    type: EventType;
+    event?: string;
+    type?: EventType;
     icon?: string;
     data?: Record<string, any>;
 }
@@ -16,7 +16,7 @@ export interface TargetDefinition {
     entityId?: number;
     position?: { x: number, y: number, z: number };
     radius?: number;
-    options: TargetOption[];
+    options?: TargetOption[];
 }
 
 export interface TargetingAPI {
