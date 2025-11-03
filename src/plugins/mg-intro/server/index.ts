@@ -14,7 +14,7 @@ app.component('font-awesome-icon', FontAwesomeIcon);
 */
 import * as alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
-import { introEvents } from '../shared/events.js';
+import { IntroEvents } from '../shared/events.js';
 import { invokeFinished } from './api.js';
 import { readdir } from "fs/promises";
 
@@ -33,11 +33,11 @@ const showIntro = async (player: alt.Player) => {
     Rebar.player.useWorld(player).freezeCamera(true);
 };
 
-alt.onClient(introEvents.toServer.start, async (player: alt.Player) => {
+alt.onClient(IntroEvents.toServer.start, async (player: alt.Player) => {
     await showIntro(player);
 });
 
-alt.onRpc(introEvents.toServer.request, async (player: alt.Player) => {
+alt.onRpc(IntroEvents.toServer.request, async (player: alt.Player) => {
     const getDirectories = async source => (await readdir(source, { withFileTypes: true }))
         .filter(dirent => dirent.isDirectory())
         .map(dirent => dirent.name);
@@ -46,7 +46,7 @@ alt.onRpc(introEvents.toServer.request, async (player: alt.Player) => {
     return result;
 });
 
-alt.onClient(introEvents.toServer.finished, (player: alt.Player) => {
+alt.onClient(IntroEvents.toServer.finished, (player: alt.Player) => {
     Rebar.player.useWebview(player).hide('Intro');
     Rebar.player.useWorld(player).clearScreenFade(0);
     Rebar.player.useWorld(player).enableControls();

@@ -1,4 +1,4 @@
-export const introEvents = {
+export const IntroEvents = {
     toServer: {
         start: 'mg-intro:start',
         request: 'mg-intro:load:plugins',

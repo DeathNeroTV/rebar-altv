@@ -17,6 +17,8 @@ resources = [
     'gabz_mrpd',
     'gabz_pdprops',
     'gabz_pillbox',
+    'majesty_mansion',
+    'vineyard_unclejust',
     'lsiar',
     'images',
     'fonts',

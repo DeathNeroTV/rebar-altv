@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { useEvents } from '@Composables/useEvents';
-import { introEvents } from '../shared/events';
+import { IntroEvents } from '../shared/events';
 import { useTranslate } from '@Shared/translate';
 import '@Plugins/mg-intro/translate/index';
 
@@ -29,7 +29,7 @@ const handleStart = async () => {
     progress.value = 0;
     targetProgress.value = 0;
 
-    const result = await events.emitServerRpc(introEvents.toServer.request);
+    const result = await events.emitServerRpc(IntroEvents.toServer.request);
 
     addons.value = result;
     isReady.value = true;
@@ -38,7 +38,7 @@ const handleStart = async () => {
         progress.value = 100;
         setTimeout(() => {
             visible.value = false;
-            events.emitServer(introEvents.toServer.finished);
+            events.emitServer(IntroEvents.toServer.finished);
         }, 1500);
         return;
     }
@@ -63,7 +63,7 @@ const handleStart = async () => {
             progress.value = 100;
             clearInterval(smoothInterval!);
             clearInterval(randomInterval!);
-            setTimeout(() => events.emitServer(introEvents.toServer.finished), 500);
+            setTimeout(() => events.emitServer(IntroEvents.toServer.finished), 500);
         }
     }, 16);
 };
