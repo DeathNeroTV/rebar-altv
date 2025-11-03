@@ -195,9 +195,13 @@ const Internal = {
 
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         victim.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
-        const interval = alt.setInterval(() => {
+        
+        const interval = alt.setTimeout(() => {
             victim.emit(DeathEvents.toClient.stopTimer);
+            alt.clearTimeout(interval);
+            ActiveTimers.delete(charId);
         }, DeathConfig.respawnTime);
+
         ActiveTimers.set(charId, interval);
         alt.log('[Death-Event] % wurde bewusstlos.', victimData.getField('name'));
     },
