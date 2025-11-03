@@ -4,24 +4,18 @@ import * as alt from 'alt-client';
 import * as SP from './sp/index.js';
 import * as GTAO from './gtao/index.js';
 import * as DLC from './dlc/index.js';
-
-import { loadMapData } from './mlos/gabz_mapdata.js';
-import { loadMrpd } from './mlos/gabz_mrpd.js';
-import { loadPillbox } from './mlos/gabz_pillbox.js';
+import * as MLO from './mlos/index.js';
 
 export type IplModule = {
     name: string;
     load: () => void;
 };
 
-// Registry erstellen
 export const IplRegistry: IplModule[] = [
     ...SP.modules,
     ...GTAO.modules,
     ...DLC.modules,
-    { name: 'gabz_mapdata', load: () => loadMapData() },
-    { name: 'gabz_mrpd', load: () => loadMrpd() },
-    { name: 'gabz_pillbox', load: () => loadPillbox() },
+    ...MLO.modules,
 ];
 
 alt.once('connectionComplete', () => {

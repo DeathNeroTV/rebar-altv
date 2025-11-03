@@ -3,6 +3,12 @@ import { useRebar } from '@Server/index.js';
 import { Character } from '@Shared/types/character.js';
 import { HudEvents } from '../shared/events.js';
 import { Vehicle } from '@Shared/types/vehicle.js';
+import { DateTimeDay } from 'alt-server';
+import { DateTimeMonth } from 'alt-server';
+import { DateTimeHour } from 'alt-server';
+import { DateTimeMinute } from 'alt-server';
+import { DateTimeSecond } from 'alt-server';
+import { HudConfig } from '../shared/config.js';
 
 const Rebar = useRebar();
 const api = Rebar.useApi();
@@ -31,6 +37,20 @@ alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character
     if (!allowedPlayerKeys.includes(key)) return;
 
     Rebar.player.useWebview(player).emit(HudEvents.toClient.updatePlayer, { key, value });
+});
+
+alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
+    alt.Player.all.forEach((player: alt.Player) => {
+        const now: Date = new Date(Date.now()); 
+        const day: DateTimeDay = now.getDay() as DateTimeDay;
+        const month: DateTimeDay = now.getDay() as DateTimeMonth;
+        const year: number = now.getFullYear();
+        const h: DateTimeHour = hour as DateTimeHour;
+        const m: DateTimeMinute = minute as DateTimeMinute;
+        const s: DateTimeSecond = second as DateTimeSecond;
+        player.setDateTime(day, month, year, h, m, s);
+        Rebar.player.useWebview(player).emit(HudEvents.toClient.syncTime, hour, minute, second);
+    });
 });
 
 alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value: any) => {
@@ -115,6 +135,19 @@ async function init() {
     const charCreatorApi = api.get('character-creator-api');
     charCreatorApi.onSkipCreate(handleSkipCreate);
 }
+
+alt.setInterval(() => {
+    const timeService = Rebar.services.useTimeService();
+    const time = timeService.getTime();
+    let totalSeconds = time.second + time.minute * 60 + time.hour * 3600;
+    totalSeconds += HudConfig.timePerSecond;
+
+    const ingameHours = Math.floor(totalSeconds / 3600) % 24;
+    const ingameMinutes = Math.floor((totalSeconds % 3600) / 60);
+    const ingameSeconds = Math.floor(totalSeconds % 60);
+
+    timeService.setTime(ingameHours, ingameMinutes, ingameSeconds);
+}, 1000);
 
 init();
 

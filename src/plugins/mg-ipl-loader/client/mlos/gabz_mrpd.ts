@@ -23,6 +23,7 @@ export function loadMrpd() {
 
     if (natives.isValidInterior(interiorID)) {
         rooms.forEach(room => api.setIplPropState(interiorID, room, true));
+        natives.pinInteriorInMemory(interiorID);
         api.refreshInterior(interiorID);
     } else alt.logError('Gabz MRPD Interior konnte nicht gefunden werden!');
 }

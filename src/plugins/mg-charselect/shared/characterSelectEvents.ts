@@ -9,6 +9,6 @@ export const CharacterSelectEvents = {
     toClient: {
         handleError: 'character:select:username:handle:error',
         populateCharacters: 'character:select:populate',
-        toggleControls: 'character:select:toggle:controls',
+        toggleCamera: 'character:select:toggle:camera',
     },
 };

@@ -53,8 +53,8 @@
             <div v-else class="w-full text-center flex flex-row gap-1 justify-start items-center backdrop-blur-sm"></div>
 
             <!-- Icons & Time -->
-            <div class="w-fit flex flex-col gap-1">
-                <div class="flex text-center justify-end gap-0.5">
+            <div class="w-fit flex flex-col gap-1.5">
+                <div class="flex text-center justify-end gap-1">
                     <div class="relative w-8 h-8 flex items-center justify-center backdrop-blur-sm border-t border-b">
                         <div class="absolute bottom-0 left-0 w-full h-full bg-transparent"></div>
                         <div class="relative flex flex-1 items-center place-content-center">{{ data.id }}</div>
@@ -72,9 +72,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="w-full h-7 border-t border-b text-center items-center backdrop-blur-sm flex flex-1 gap-1">
+                <div class="w-full h-7 px-1 border-t border-b text-center items-center justify-between backdrop-blur-sm flex flex-1 gap-1">
                     <font-awesome-icon :icon="['fas', 'clock']" class="text-lg text-gray-100" />
-                    {{ actualTime }}
+                    <span class="w-full">{{ actualTime }}</span>
                 </div>
             </div>
         </div>
@@ -83,10 +83,10 @@
 
 <script lang="ts" setup>
     import { Character } from '@Shared/types';
-    import { ref, computed } from 'vue';
+    import { computed } from 'vue';
     import { getNameFromHash } from '../composables/weaponHashes';
-
-    const props = defineProps<{ isVisible: boolean; data: Partial<Character>; }>();
+    
+    const props = defineProps<{ isVisible: boolean; data: Partial<Character>; actualTime: string; }>();
 
     const getWeapon = computed(() => {
         return props.data.weapon ? {
@@ -100,6 +100,4 @@
         };
     });
 
-    const actualTime = ref<string>('');
-    setInterval(() => (actualTime.value = `${new Date().toLocaleTimeString()}`), 100);
 </script>

@@ -1,7 +1,7 @@
 import * as alt from 'alt-client';
 import { distance2d } from '../../shared/utility/vector.js';
 
-export const Commands = {
+const Commands = {
     pos: () => {
         return alt.Player.local.pos;
     },

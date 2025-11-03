@@ -10,10 +10,10 @@ export function useIplLoaderApi() {
         if (Array.isArray(iplName)) {
             iplName.forEach(name => {                
                 if (state) {
-                    natives.requestIpl(name);
+                    alt.requestIpl(name);
                     alt.log(`[IPL] Aktiviert: ${name}`);
                 } else {
-                    natives.removeIpl(name);
+                    alt.removeIpl(name);
                     alt.log(`[IPL] Entfernt: ${name}`);
                 }
             });
@@ -21,10 +21,10 @@ export function useIplLoaderApi() {
         }
 
         if (state) {
-            natives.requestIpl(iplName);
+            alt.requestIpl(iplName);
             alt.log(`[IPL] Aktiviert: ${iplName}`);
         } else {
-            natives.removeIpl(iplName);
+            alt.removeIpl(iplName);
             alt.log(`[IPL] Entfernt: ${iplName}`);
         }
     }

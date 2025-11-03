@@ -9,7 +9,7 @@ setBulk({
         'death.callEMS': 'Press G to make an emergency call.',
         'death.emsCalled': 'The emergency call has been made.',
         'death.pressEToRespawn': 'Press E to be picked up by the helicopter.',
-        'death.beingRevived': 'You are being revived...',
+        'death.beingRevived': 'Resuscitation underway...',
     },
     de: {
         'death.downed': 'Notfallsystem',
@@ -18,6 +18,6 @@ setBulk({
         'death.callEMS': 'Drücke G, um einen Notruf abzusetzen',
         'death.emsCalled': 'Der Notruf wurde abgesetzt',
         'death.pressEToRespawn': 'Drücke E, um mit dem Helikopter abgeholt zu werden',
-        'death.beingRevived': 'Du wirst wiederbelebt...',
+        'death.beingRevived': 'Reanimation im Gange...',
     }
 });

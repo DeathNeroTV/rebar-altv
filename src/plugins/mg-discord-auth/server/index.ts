@@ -21,6 +21,7 @@ const sections = [
     'disableVehicleSeatSwap',
     'disableAmbientNoise',
     'disableWeaponRadial',
+    'disableCriticalHits',
     'disablePistolWhip',
     'hideHealthArmour',
     'hideAreaName',
@@ -64,7 +65,7 @@ async function handleToken(player: alt.Player, token: string) {
     }
 
     const currentUser = await getCurrentUser(token) as DiscordInfo | undefined;
-    if ( !currentUser ) {
+    if (!currentUser) {
         player.kick(t("discord.auth.request.failed"));
         return;
     }
@@ -187,7 +188,13 @@ function setAccount(player: alt.Player, account: Account) {
     Plugin.invokeLogin(player, account);
 }
 
+async function init() {
+    const introApi = await Rebar.useApi().getAsync('mg-intro-api', 30000);    
+    introApi.onFinished(handleConnect);
+    
+    alt.onClient(DiscordAuthEvents.toServer.connected, handleConnect);
+    alt.onClient(DiscordAuthEvents.toServer.pushToken, handleToken);
+    alt.setInterval(cleanupSessions, 5000);
+}
 
-alt.on('playerConnect', handleConnect);
-alt.onClient(DiscordAuthEvents.toServer.pushToken, handleToken);
-alt.setInterval(cleanupSessions, 5000);
+init();

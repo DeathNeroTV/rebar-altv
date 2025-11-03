@@ -30,14 +30,14 @@ const pages = computed(() => {
 <template>
     <div class="fixed right-0 top-0">
         <div v-if="showToolbar" class="items-center justify-center p-4">
-            <div class="flex w-72 flex-col rounded-md bg-neutral-950 p-4 shadow-lg">
+            <div class="flex w-72 flex-col rounded bg-neutral-100 p-4 shadow-lg">
                 <div class="max-h-[calc(100vh-7rem)] overflow-y-auto">
                     <div class="flex flex-col gap-2">
                         <div
                             v-for="(pageName, index) in pages"
                             :key="index"
-                            class="flex w-full justify-between rounded-md p-2 text-gray-100 hover:cursor-pointer hover:opacity-50"
-                            :class="isVisible(pageName) ? ['bg-green-500'] : ['bg-red-500']"
+                            class="flex w-full justify-between rounded p-2 hover:cursor-pointer hover:opacity-50"
+                            :class="isVisible(pageName) ? ['bg-green-200'] : ['bg-red-200']"
                             @click="togglePage(pageName)"
                         >
                             <span class="text-sm font-bold">{{ pageName }}</span>
@@ -45,7 +45,7 @@ const pages = computed(() => {
                     </div>
                 </div>
                 <div
-                    class="mt-2 rounded-md p-2 text-right text-sm font-bold text-gray-100 hover:text-neutral-900 hover:cursor-pointer hover:bg-neutral-200"
+                    class="mt-2 rounded p-2 text-right text-sm font-bold text-neutral-600 hover:cursor-pointer hover:bg-neutral-200"
                     @click="showToolbar = false"
                 >
                     Close
@@ -54,7 +54,7 @@ const pages = computed(() => {
         </div>
         <div v-else @click="showToolbar = true" class="p-4">
             <div
-                class="rounded-md bg-neutral-950 px-2 py-1 text-sm font-bold shadow text-gray-100 hover:text-neutral-900 hover:cursor-pointer hover:bg-neutral-200"
+                class="rounded-md bg-neutral-100 px-2 py-1 text-sm font-bold shadow hover:cursor-pointer hover:bg-neutral-200"
             >
                 &lt;
             </div>

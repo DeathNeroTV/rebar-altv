@@ -14,7 +14,10 @@ const ActiveRevives: Map<string, number> = new Map();
 
 const Internal = {
     handleSelectCharacter(player: alt.Player, character: Character) {
+        if (!player || !player.valid) return;
+
         Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
+        Rebar.player.useState(player).sync();
     },
 
     getClosestHospital(pos: alt.IVector3): alt.IVector3 {
@@ -125,7 +128,7 @@ const Internal = {
         Internal.respawn(victim, victim.pos);
     },
 
-    respawn(victim: alt.Player, pos?: alt.IVector3) {
+    async respawn(victim: alt.Player, pos?: alt.IVector3) {
         if (!victim || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
@@ -149,17 +152,23 @@ const Internal = {
         }
 
         const newPosition = pos ?? Internal.getClosestHospital(victim.pos);
-
-        victimData.setBulk({ isDead: false, food: 100, water: 100, health: 125 });
-
+        await victimData.setBulk({ 
+            isDead: false, 
+            food: 100, 
+            water: 100, 
+            health: 124,
+            pos: new alt.Vector3(newPosition),
+            rot: victim.rot,
+            dimension: victim.dimension
+        });
         Rebar.player.useWorld(victim).setScreenFade(3000);
-        victim.spawn(newPosition.x, newPosition.y, newPosition.z, 3000);
+        victim.spawn(newPosition.x, newPosition.y, newPosition.z, 2900);
+        Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
 
         alt.setTimeout(() => {
             Rebar.player.useWorld(victim).clearScreenFade(3000);
-            Rebar.player.useState(victim).apply({ health: 124 });
+            Rebar.player.useState(victim).sync();
             victim.clearBloodDamage();
-            Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
         }, 3500);
     },
 
@@ -167,7 +176,7 @@ const Internal = {
         if (!victim || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid) return;
+        if (!victimData.isValid()) return;
 
         const charId = victimData.getField('_id');
         victimData.set('isDead', true);
@@ -188,9 +197,9 @@ const Internal = {
         victim.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
         const interval = alt.setInterval(() => {
             victim.emit(DeathEvents.toClient.stopTimer);
-            ActiveTimers.delete(charId);
         }, DeathConfig.respawnTime);
         ActiveTimers.set(charId, interval);
+        alt.log('[Death-Event] % wurde bewusstlos.', victimData.getField('name'));
     },
 };
 

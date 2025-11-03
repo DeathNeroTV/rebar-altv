@@ -41,8 +41,10 @@ async function saveAppearance(player: alt.Player, appearance: Appearance) {
     Rebar.player.useNative(player).invoke('displayRadar', true);
     player.deleteMeta(sessionKey);
     await characterDoc.set('appearance', appearance);
-    Rebar.player.usePlayerAppearance(player).update();
-    Rebar.player.useClothing(player).update();
+
+    Rebar.player.usePlayerAppearance(player).sync();
+    Rebar.player.useClothing(player).sync();
+    
     player.emit(CharacterCreatorEvents.toClient.toggleControls, true);
     player.visible = true;
     invokeCreate(player);

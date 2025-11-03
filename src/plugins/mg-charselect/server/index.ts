@@ -22,9 +22,9 @@ const db = Rebar.database.useDatabase();
 const sessionKey = 'can-select-character';
 const { t } = useTranslate('de');
 
-
 async function showSelection(player: alt.Player, attempts = 0) {
-    player.emit(CharacterSelectEvents.toClient.toggleControls, false);
+    player.emit(CharacterSelectEvents.toClient.toggleCamera, false);
+    Rebar.player.useWorld(player).disableControls();
 
     if (attempts > MAX_ATTEMPTS) {
         player.kick();
@@ -154,13 +154,23 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
         return;
     }
 
+    Rebar.document.character.useCharacterBinder(player).bind(character);
+    Rebar.player.useWebview(player).hide('CharacterSelect');
+    Rebar.player.useWorld(player).enableControls();
+    
+    player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
     player.dimension = 0;
+
+    if (character.appearance) {
+        player.visible = true;
+        Rebar.player.usePlayerAppearance(player).sync();
+    }
+
+    Rebar.player.useClothing(player).sync();
+
     player.frozen = false;
     player.deleteMeta(sessionKey);
 
-    Rebar.document.character.useCharacterBinder(player, true).bind(character);
-    player.emit(CharacterSelectEvents.toClient.toggleControls, true);
-    Rebar.player.useWebview(player).hide('CharacterSelect');
     invokeSelect(player, character);
 }
 

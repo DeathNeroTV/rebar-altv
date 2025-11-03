@@ -3,7 +3,7 @@ import * as natives from 'natives';
 import { useIplLoaderApi } from '../api.js';
 
 const api = useIplLoaderApi();
-const defaultIpls: string[] = [
+const apiNames: string[] = [
     'rc12b_fixed',
     'rc12b_default',
     'rc12b_destroyed',
@@ -14,8 +14,10 @@ const defaultIpls: string[] = [
 export function loadPillbox() {    
     const interiorID = natives.getInteriorAtCoords(311.2546, -592.4204, 42.32737);
     api.enableIpl('gabz_pillbox_milo_', true);
+    api.enableIpl('gabz_pillbox_dlc_milo_', true);
     if (natives.isValidInterior(interiorID)) {
-        defaultIpls.forEach(iplName => api.enableIpl(iplName, false));
+        api.enableIpl(apiNames, false);
+        natives.pinInteriorInMemory(interiorID);
         api.refreshInterior(interiorID);
     } else alt.logError('Gabz Pillbox Hospital Interior konnte nicht gefunden werden!');
 }
