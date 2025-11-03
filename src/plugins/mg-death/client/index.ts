@@ -68,22 +68,22 @@ alt.onServer(DeathEvents.toClient.startRevive, () => {
 
 alt.onServer(DeathEvents.toClient.stopRevive, () => {
     view.emit(DeathEvents.toClient.stopRevive);
-    isReviving = false;
+    if (isReviving) isReviving = false;
 });
 
 alt.onServer(DeathEvents.toClient.reviveComplete, () => {
     view.emit(DeathEvents.toClient.reviveComplete);
-    isReviving = false;
+    if (isReviving) isReviving = false;
 });
 
 alt.onServer(DeathEvents.toClient.startTimer, (timeLeft: number) => {
     view.emit(DeathEvents.toClient.startTimer, timeLeft);
-    canRespawn = false;
+    if (canRespawn) canRespawn = false;
 });
 
 alt.onServer(DeathEvents.toClient.stopTimer, () => {
     view.emit(DeathEvents.toClient.stopTimer, 0);
-    canRespawn = true;
+    if (!canRespawn) canRespawn = true;
 });
 
 function getClosestPlayer(radius: number): alt.Player | null {
