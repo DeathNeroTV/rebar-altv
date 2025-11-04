@@ -203,7 +203,7 @@ const Internal = {
         }, DeathConfig.respawnTime);
 
         ActiveTimers.set(charId, interval);
-        alt.log('[Death-Event] % wurde bewusstlos.', victimData.getField('name'));
+        alt.log('[Death-Event]', `${victimData.getField('name').replaceAll('_', ' ')} wurde bewusstlos.`);
     },
 };
 

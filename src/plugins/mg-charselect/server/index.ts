@@ -222,6 +222,7 @@ async function handleLogin(player: alt.Player) {
 async function handleLogout(player: alt.Player) {
     if (player.hasMeta(sessionKey)) return;
     Rebar.player.useState(player).save();
+    Rebar.document.character.useCharacterBinder(player).unbind();
     await handleLogin(player);
 }
 
