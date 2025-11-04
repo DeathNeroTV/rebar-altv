@@ -84,7 +84,7 @@ onMounted(() => {
         <Sidebar :active="activePage" @navigate="setActivePage" @logout="logout" :language ="AdminConfig.language" @spamming="spamming" />
         
         <!-- Main Content -->
-        <div class="w-full h-full flex flex-col bg-neutral-900/95">
+        <div class="w-full h-full flex flex-col bg-neutral-950/95">
             <!-- Content -->
             <main class="flex-1 overflow-y-auto p-6">
                 <component :is="activeComponent" @navigate="setActivePage" :language ="AdminConfig.language" />
