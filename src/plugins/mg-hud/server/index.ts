@@ -40,7 +40,10 @@ alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character
 });
 
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
-    alt.Player.all.forEach((player: alt.Player) => {
+    const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
+    players.forEach((player: alt.Player) => {
+        if (Rebar.player.useWebview(player).isReady('Hud', 'overlay')) return;
+
         const now: Date = new Date(Date.now()); 
         const day: DateTimeDay = now.getDay() as DateTimeDay;
         const month: DateTimeDay = now.getDay() as DateTimeMonth;

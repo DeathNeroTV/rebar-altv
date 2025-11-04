@@ -48,9 +48,13 @@
     const openSection = (section: string) => emits('navigate', section);
 
     onMounted(async () => {
-        const result = await events.emitServerRpc(AdminEvents.toServer.request.stats);
+        const result: { [key: string]: number; } = await events.emitServerRpc(AdminEvents.toServer.request.stats);
         if (!result) return;
-        stats.value = result;
+        for (const key in result) {
+            const index = stats.value.findIndex(stat => stat.id === key);
+            if (index === -1) continue;
+            stats.value[index].value = result[key];
+        }
     });
 </script>
 

@@ -69,6 +69,7 @@ const spamming = () => {
         }, i * delayStep);
     }
 };
+
 const setActivePage = (page: string) => activePage.value = page;
 const logout = () => events.emitServer(AdminEvents.toServer.logout);
 
@@ -79,11 +80,11 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="w-full h-full flex flex-row bg-neutral-900 text-gray-100">
+    <div class="w-screen h-screen flex flex-row bg-transparent text-gray-100">
         <Sidebar :active="activePage" @navigate="setActivePage" @logout="logout" :language ="AdminConfig.language" @spamming="spamming" />
         
         <!-- Main Content -->
-        <div class="w-full h-full flex flex-col bg-transparent border-l-2 border-neutral-900">
+        <div class="w-full h-full flex flex-col bg-neutral-900/95">
             <!-- Content -->
             <main class="flex-1 overflow-y-auto p-6">
                 <component :is="activeComponent" @navigate="setActivePage" :language ="AdminConfig.language" />

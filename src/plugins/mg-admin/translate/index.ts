@@ -3,6 +3,7 @@ const { setBulk } = useTranslate();
 
 setBulk({
     en: {
+        'admin.keyBind.desc': 'Open the admin menu',
         'admin.panel.error': 'Unknown error',
         'admin.panel.noRights': 'No rights to do that',
         'admin.panel.noAccount': 'No account found',
@@ -23,6 +24,7 @@ setBulk({
         'admin.panel.dashboard.whitelist.reject': 'Reject',
     },
     de: {
+        'admin.keyBind.desc': 'Öffne das Admin-Menü',
         'admin.panel.error': 'Unbekannter Fehler',
         'admin.panel.noRights': 'Keine Berechtigung dies zu tun',
         'admin.panel.noAccount': 'Kein Benutzerkonto gefunden',

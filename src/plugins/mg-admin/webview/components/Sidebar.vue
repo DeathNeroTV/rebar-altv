@@ -43,7 +43,7 @@ const navigate = (page: string) => emits('navigate', page);
 </script>
 
 <template>
-    <aside class="w-20 h-full bg-neutral-900 shadow-lg flex flex-col gap-1 justify-center items-center select-none border-r border-neutral-800">
+    <aside class="w-20 h-full bg-neutral-900 flex flex-col gap-1 justify-center items-center select-none border-r border-neutral-800">
         <img src="../../images/mg-admin-logo.png" class="p-2 w-18 h-18 cursor-pointer transition-transform hover:scale-90" :disabled="isInUse" alt="" @click="logoClick"/>
         <nav class="w-full h-full flex flex-col gap-3 p-2 items-center justify-start">
             <SidebarItem icon="id-card" :label="t('admin.panel.dashboard.whitelist.title')" id="whitelist" :active="active === 'whitelist'" @click="navigate('whitelist')" />
@@ -61,7 +61,7 @@ const navigate = (page: string) => emits('navigate', page);
                 >
                     <font-awesome-icon :icon="['fas', 'power-off']" class="text-2xl hover:text-red-500"/>
                 </button>
-                <div class="absolute left-20 top-1/2 -translate-y-1/2 bg-neutral-800 ring-2 ring-neutral-700 text-gray-100 px-4 py-2 min-w-48 rounded-full text-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity shadow-lg whitespace-nowrap z-50">
+                <div class="absolute left-20 top-1/2 -translate-y-1/2 bg-neutral-700 ring-2 ring-neutral-600 text-gray-100 px-2 py-1 min-w-48 rounded-full text-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity shadow-lg whitespace-nowrap z-50">
                     {{ t('admin.panel.logout') }}
                 </div>
             </div>
