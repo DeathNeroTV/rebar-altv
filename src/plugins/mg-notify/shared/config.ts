@@ -6,7 +6,6 @@ export const MGNotifications: MGNotification = {
     labelSound: true,
     enableRebarSelector: true,
     duration: 10000,
-    darkMode: false,
-    position: 'right-center',
+    position: 'top-left',
     textlabelPosition: 'right-center',
 };

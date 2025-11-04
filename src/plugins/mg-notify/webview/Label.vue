@@ -2,18 +2,12 @@
     <div :class="labelPositionClass">
         <Transition :name="transitionLabelName" tag="div">
             <div v-if="labels">
-                <div
-                    class="iphone-notification mx-auto mb-2 w-full rounded-lg bg-opacity-80 p-4 shadow-lg"
-                    :class="MGNotifications.darkMode ? 'bg-black' : 'bg-gray-100'"
-                >
+                <div class="iphone-notification mx-auto mb-2 w-full rounded-lg bg-opacity-80 p-4 shadow-lg bg-neutral-900">
                     <div class="iphone-title flex w-full items-center gap-x-2">
                         <span class="rounded-md bg-[#169399] px-2 text-lg font-semibold text-white">
                             {{ labels.keyToPress }}
                         </span>
-                        <span
-                            class="text-lg font-semibold"
-                            :class="MGNotifications.darkMode ? 'text-white' : 'text-black'"
-                        >
+                        <span class="text-lg font-semibold text-gray-100">
                             {{ labels.label }}
                         </span>
                     </div>

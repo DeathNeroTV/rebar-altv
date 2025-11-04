@@ -27,7 +27,6 @@ export interface MGNotification {
     labelSound: boolean;
     enableRebarSelector: boolean;
     duration: number;
-    darkMode: boolean;
     position: keyof LabelPositionsT;
     textlabelPosition: keyof LabelPositionsT;
 }

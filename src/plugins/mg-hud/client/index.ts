@@ -8,6 +8,10 @@ import { HudConfig } from '../shared/config.js';
 const Rebar = useRebarClient();
 const api = useClientApi();
 const view = Rebar.webview.useWebview();
+const keyBindApi = await api.getAsync('keyBinds-api');
+
+const msPerGameSecond = 1000 / HudConfig.timePerSecond;
+const msPerGameMinute = msPerGameSecond * 60;
 
 const keyBind: KeyInfo = {
     description: 'Mauszeiger de-/aktivieren',
@@ -25,13 +29,8 @@ const keyBind: KeyInfo = {
     }
 };
 
-alt.on('connectionComplete', async() => {
-    const msPerGameSecond = 1000 / HudConfig.timePerSecond;
-    const msPerGameMinute = msPerGameSecond * 60;
-    alt.setMsPerGameMinute(msPerGameMinute);
-    const keyBindApi = await api.getAsync('keyBinds-api');
-    keyBindApi.add(keyBind);
-});
+alt.setMsPerGameMinute(msPerGameMinute);
+keyBindApi.add(keyBind);
 
 alt.everyTick(() => {
     alt.nextTick(() => {

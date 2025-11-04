@@ -21,6 +21,7 @@
         food: 0,
         water: 0,
         voiceRange: 0,
+        isDead: false,
     });
     const vehicleStats = reactive<Partial<Vehicle>>({
         speed: 0,

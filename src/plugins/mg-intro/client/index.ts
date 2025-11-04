@@ -5,5 +5,5 @@ import { IntroEvents } from '../shared/events.js';
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
 
-alt.on('connectionComplete', () => view.show('Intro', 'page'));
+view.show('Intro', 'page');
 view.onWebviewReady(() => alt.emitServer(IntroEvents.toServer.start));

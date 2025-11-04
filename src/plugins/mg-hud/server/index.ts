@@ -123,9 +123,9 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
 });
 
 function handleSkipCreate(player: alt.Player): void {
-    Rebar.player.useWebview(player).show('MainHud', 'overlay');
     const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid) return;
+    if (!document.isValid()) return;
+    Rebar.player.useWebview(player).show('Hud', 'overlay');
     const character = document.get();
     Object.keys(character).forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value: character[key] }));
 }
