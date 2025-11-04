@@ -13,28 +13,28 @@
     const stats = ref<DashboardStat[]>([
         {
             id: 'whitelist',
-            title: t('admin.panel.dashboard.whitelist'),
+            title: t('admin.panel.dashboard.whitelist.title'),
             value: 0,
             icon: 'id-card',
             color: 'from-purple-600 to-purple-800',
         },
         {
             id: 'players',
-            title: t('admin.panel.dashboard.players'),
+            title: t('admin.panel.dashboard.players.title'),
             value: 0,
             icon: 'users',
             color: 'from-green-600 to-green-800',
         },
         {
             id: 'vehicles',
-            title: t('admin.panel.dashboard.vehicles'),
+            title: t('admin.panel.dashboard.vehicles.title'),
             value: 0,
             icon: 'car',
             color: 'from-blue-600 to-blue-800',
         },
         {
             id: 'jobs',
-            title: t('admin.panel.dashboard.jobs'),
+            title: t('admin.panel.dashboard.jobs.title'),
             value: 0,
             icon: 'briefcase',
             color: 'from-yellow-600 to-yellow-800',

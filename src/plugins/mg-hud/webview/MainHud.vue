@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-    import { reactive, ref } from 'vue';
-    import { HudEvents } from '../shared/events';
+    import { onMounted, reactive, ref } from 'vue';
+    
     import { useEvents } from '@Composables/useEvents';
     import { Character, Vehicle } from '@Shared/types';
 
+    import { HudEvents } from '@Plugins/mg-hud/shared/events';
+    import { CharacterSelectEvents } from '@Plugins/mg-charselect/shared/characterSelectEvents';
+
     import PlayerHud from './components/PlayerHud.vue';
     import VehicleHud from './components/VehicleHud.vue';
-    import { CharacterSelectEvents } from '@Plugins/mg-charselect/shared/characterSelectEvents';
 
     const events = useEvents();
 
@@ -29,33 +31,37 @@
         stateProps: { engineOn: true, lightState: 1 }
     });
 
-    function handlePlayerPayload(payload: { key: string, value: any }) {
+    const handlePlayerPayload = (payload: { key: string, value: any }) => {
         if (!payload) return;
         playerStats[payload.key] = payload.value;
-    }
+    };
 
-    function handleVehiclePayload(payload: { key: string, value: any }) {
+    const handleVehiclePayload = (payload: { key: string, value: any }) => {
         if (!payload) return;
         vehicleStats[payload.key] = payload.value;
-    }
+    };
 
-    function handleVisibility(value: boolean) {
+    const handleVisibility = (value: boolean) => {
         isVisible.value = value;
-        events.emitClient(HudEvents.toClient.toggleVehicle, value);
-    }
+        events.emitClient(HudEvents.toWebview.toggleVehicle, value);
+    };
 
-    function relog() {
+    const relog = () => {
         events.emitServer(CharacterSelectEvents.toServer.logoutCharacter);
-    }
+    };
 
-    events.on(HudEvents.toClient.syncTime, (hour: number, minute: number, second: number) => {
-        const formattedHour = hour.toString().padStart(2, '0');
-        const formattedMinute = minute.toString().padStart(2, '0');
-        actualTime.value = `${formattedHour}:${formattedMinute}`;
-    });
-    events.on(HudEvents.toClient.toggleVehicle, handleVisibility);
-    events.on(HudEvents.toClient.updatePlayer, handlePlayerPayload);
-    events.on(HudEvents.toClient.updateVehicle, handleVehiclePayload);
+    const init = () => {
+        events.on(HudEvents.toWebview.syncTime, (hour: number, minute: number, second: number) => {
+            const formattedHour = hour.toString().padStart(2, '0');
+            const formattedMinute = minute.toString().padStart(2, '0');
+            actualTime.value = `${formattedHour}:${formattedMinute}`;
+        });
+        events.on(HudEvents.toWebview.toggleVehicle, handleVisibility);
+        events.on(HudEvents.toWebview.updatePlayer, handlePlayerPayload);
+        events.on(HudEvents.toWebview.updateVehicle, handleVehiclePayload);
+    };
+
+    onMounted(init);
 </script>
 
 <template>

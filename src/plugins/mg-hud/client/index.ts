@@ -29,7 +29,7 @@ alt.on('connectionComplete', async() => {
     const msPerGameSecond = 1000 / HudConfig.timePerSecond;
     const msPerGameMinute = msPerGameSecond * 60;
     alt.setMsPerGameMinute(msPerGameMinute);
-    const keyBindApi = await api.getAsync('keyBinds-api', 3000);
+    const keyBindApi = await api.getAsync('keyBinds-api');
     keyBindApi.add(keyBind);
 });
 
@@ -51,6 +51,3 @@ alt.everyTick(() => {
 
     alt.emitServer(HudEvents.toServer.updateFuel, { rpm, gear, speed: speedKmh, maxSpeed });
 });
-
-
-

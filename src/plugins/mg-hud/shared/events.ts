@@ -1,11 +1,12 @@
 export const HudEvents = {
     toServer: {
-        updateFuel: 'hud:vehicle:fuel'
+        updateFuel: 'mg-hud:vehicle:fuel',
+        sendLabelDataToServer: 'mg-hud:send:data:from:webview'
     },
-    toClient: {
-        syncTime: 'hud:sync:time',
-        updatePlayer: 'hud:player:update',
-        updateVehicle: 'hud:vehicle:update',
-        toggleVehicle: 'hud:vehicle:visible'
-    }
+    toWebview: {
+        syncTime: 'mg-hud:sync:time',
+        updatePlayer: 'mg-hud:player:update',
+        updateVehicle: 'mg-hud:vehicle:update',
+        toggleVehicle: 'mg-hud:vehicle:visible',
+    },
 };

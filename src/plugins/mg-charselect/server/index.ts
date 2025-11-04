@@ -233,8 +233,7 @@ async function handleDisconnect(player: alt.Player, reason: string) {
 
 // --- Init ---
 async function init() {
-    await alt.Utils.waitFor(() => api.isReady('discord-auth-api'), 30000);
-    const discordAuthApi = api.get('discord-auth-api');
+    const discordAuthApi = await api.getAsync('discord-auth-api');
     discordAuthApi.onLogin(handleLogin);
     discordAuthApi.onLogout(handleLogout);
     alt.onClient(CharacterSelectEvents.toServer.submitUsername, handleUsernameSubmit);

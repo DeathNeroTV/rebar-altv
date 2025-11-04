@@ -36,7 +36,7 @@ alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character
     if (!player || !player.valid) return;
     if (!allowedPlayerKeys.includes(key)) return;
 
-    Rebar.player.useWebview(player).emit(HudEvents.toClient.updatePlayer, { key, value });
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
 });
 
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
@@ -49,7 +49,7 @@ alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
         const m: DateTimeMinute = minute as DateTimeMinute;
         const s: DateTimeSecond = second as DateTimeSecond;
         player.setDateTime(day, month, year, h, m, s);
-        Rebar.player.useWebview(player).emit(HudEvents.toClient.syncTime, hour, minute, second);
+        Rebar.player.useWebview(player).emit(HudEvents.toWebview.syncTime, hour, minute, second);
     });
 });
 
@@ -60,17 +60,17 @@ alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value:
     const driver = vehicle.driver;
     if (!driver || !driver.valid) return;
 
-    Rebar.player.useWebview(driver).emit(HudEvents.toClient.updateVehicle, { key, value });
+    Rebar.player.useWebview(driver).emit(HudEvents.toWebview.updateVehicle, { key, value });
 });
 
 alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
     if (seat !== 0) return;
-    Rebar.player.useWebview(player).emit(HudEvents.toClient.toggleVehicle, true);
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, true);
 });
 
 alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
     if (seat !== 0) return;    
-    Rebar.player.useWebview(player).emit(HudEvents.toClient.toggleVehicle, false);
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, false);
 });
 
 alt.on('playerWeaponChange', async (player: alt.Player, oldWeapon: number, newWeapon: number) => {
@@ -127,7 +127,7 @@ function handleSkipCreate(player: alt.Player): void {
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid) return;
     const character = document.get();
-    Object.keys(character).forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toClient.updatePlayer, { key, value: character[key] }));
+    Object.keys(character).forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value: character[key] }));
 }
 
 async function init() {

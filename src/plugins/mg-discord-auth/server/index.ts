@@ -189,7 +189,7 @@ function setAccount(player: alt.Player, account: Account) {
 }
 
 async function init() {
-    const introApi = await Rebar.useApi().getAsync('mg-intro-api', 30000);    
+    const introApi = await Rebar.useApi().getAsync('mg-intro-api');    
     introApi.onFinished(handleConnect);
     
     alt.onClient(DiscordAuthEvents.toServer.connected, handleConnect);

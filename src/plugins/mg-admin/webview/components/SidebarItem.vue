@@ -11,8 +11,8 @@
     <div class="relative group w-full items-center text-center">
         <button
             @click="$emit('click')"
-            class="p-3 text-center ring-2 hover:bg-neutral-800 hover:ring-[#008736] transition text-gray-100 rounded-full items-center"
-            :class="active ? 'ring-[#008736] bg-neutral-800 font-semibold' : 'ring-neutral-700 bg-neutral-900'"
+            class="p-3 text-center hover:bg-neutral-800 hover:ring-[#008736] transition text-gray-100 rounded-full items-center justify-center"
+            :class="active ? 'ring-2 ring-[#008736] bg-neutral-800 font-semibold' : 'bg-neutral-900'"
         >
             <font-awesome-icon :icon="['fas', icon]" class="text-2xl" />
         </button>

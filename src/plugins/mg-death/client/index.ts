@@ -54,7 +54,7 @@ const keyBinds: KeyInfo[] = [
 ];
 
 alt.on('connectionComplete', async() => {
-    const keyBindApi = await useClientApi().getAsync('keyBinds-api', 30000);
+    const keyBindApi = await useClientApi().getAsync('keyBinds-api');
     keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
 });
 
