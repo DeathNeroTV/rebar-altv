@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, PointElement, LinearScale, CategoryScale } from 'chart.js'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 import { useEvents } from '@Composables/useEvents'
 import { useTranslate } from '@Shared/translate'
@@ -13,8 +13,9 @@ const { language } = defineProps({ language: String });
 
 const { t } = useTranslate(language);
 const events = useEvents();
-const CHECK_INTERVAL = 10 * 60 * 1000;
+const CHECK_INTERVAL = 1 * 60 * 1000;
 
+let interval: NodeJS.Timeout | null;
 const labels = ref<string[]>([])
 const cpuData = ref<number[]>([])
 const ramData = ref<number[]>([])
@@ -69,7 +70,9 @@ const chartOptions = {
 }
 
 onMounted(async () => {
-    setInterval(async () => {
+    if (interval) clearInterval(interval);
+
+    interval = setInterval(async () => {
         const stats = await events.emitServerRpc(AdminEvents.toServer.request.usage) ?? {
             cpuUsage: 50,
             ramUsage: 50,
@@ -90,10 +93,17 @@ onMounted(async () => {
         diskData.value.push(stats.diskUsage)
     }, CHECK_INTERVAL);
 })
+
+onUnmounted(() => {
+    if (interval) {
+        clearInterval(interval);
+        interval = null;
+    }
+});
 </script>
 
 <template>
-    <div class="select-none bg-neutral-900/50 px-5 pt-5 pb-10 rounded-2xl shadow-lg overflow-hidden">
+    <div class="min-w-full max-w-full select-none bg-neutral-900/50 px-5 pt-5 pb-10 rounded-2xl shadow-lg overflow-hidden">
         <h2 class="text-xl font-semibold text-gray-100">{{ t('admin.panel.monitoring.title') }}</h2>
         <Line :data="chartData" :options="chartOptions" />
     </div>

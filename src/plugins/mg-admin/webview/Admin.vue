@@ -78,7 +78,7 @@ const logout = () => events.emitServer(AdminEvents.toServer.logout);
 onMounted(() => {
     audio.value.pause();
     audio.value.currentTime = 0;
-})
+});
 </script>
 
 <template>

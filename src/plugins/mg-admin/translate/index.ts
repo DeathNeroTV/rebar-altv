@@ -59,7 +59,7 @@ setBulk({
         'admin.panel.dashboard.garages.title': 'Garagen',
         'admin.panel.dashboard.shops.title': 'Geschäfte',
         'admin.panel.dashboard.doors.title': 'Türen',
-        'admin.panel.dashboard.houses.title': 'Häuser, Wohnungen, Hotels',
+        'admin.panel.dashboard.houses.title': 'Wohnräume',
         'admin.panel.dashboard.whitelist.title': 'Whitelist-Anfragen',
         'admin.panel.dashboard.whitelist.desc': 'Überprüfe und verwalte eingehende Whitelist-Anfragen.',
         'admin.panel.dashboard.whitelist.noRequests': 'Keine offenen Anfragen',

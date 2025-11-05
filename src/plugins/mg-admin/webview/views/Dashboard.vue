@@ -38,33 +38,35 @@ onMounted(async() => await init());
 </script>
 
 <template>
-    <div class="w-full h-full p-6 flex flex-col gap-5 justify-between text-gray-100">
+    <div class="w-full h-full p-5 flex flex-col gap-5 justify-between text-gray-100">
         <div>
             <h1 class="text-3xl font-semibold">{{ t('admin.panel.statistics.title') }}</h1>
             <p class="text-gray-400">{{ t('admin.panel.statistics.subtitle') }}</p>
         </div>
 
-        <!-- 🧭 Übersichtskarten -->
-        <div class="min-h-2/3 max-h-2/3 grid xl:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-5 overflow-y-scroll">
-            <div
-                v-for="stat in list"
-                :key="stat.id"
-                @click="navigate(stat.id)"
-                class="cursor-pointer group relative bg-gradient-to-br from-emerald-600/40 to-emerald-800/30 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1 border border-neutral-800 hover:border-emerald-600/70 backdrop-blur-sm"
-            >
-                <div class="flex flex-col gap-4">
+        <!-- 🧭 Übersichtskarten (kompakte vertikale Liste) -->
+        <div class="w-full max-w-full h-1/2 max-h-1/2 overflow-y-auto overflow-x-hidden">            
+            <div class="grid grid-cols-4 gap-5">
+                <div
+                    v-for="stat in list"
+                    :key="stat.id"
+                    @click="navigate(stat.id)"
+                    class="cursor-pointer group relative bg-gradient-to-br from-emerald-600/40 to-emerald-800/30 rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 border border-neutral-800"
+                >
                     <div class="flex justify-between items-center">
-                        <font-awesome-icon :icon="['fas', stat.icon]" class="text-2xl opacity-80 text-emerald-400" />
-                        <span class="text-4xl font-bold text-gray-100 tracking-tight">{{ stat.value }}</span>
+                        <div class="flex items-center gap-3">
+                            <font-awesome-icon :icon="['fas', stat.icon]" class="text-xl text-gray-100 opacity-80" />
+                            <span class="text-lg font-medium text-gray-200">{{ stat.title }}</span>
+                        </div>
+                        <span class="text-2xl font-bold text-gray-100">{{ stat.value }}</span>
                     </div>
-                    <div class="text-lg font-medium text-gray-200">{{ stat.title }}</div>
-                </div>
 
-                <!-- Hover Overlay -->
-                <div class="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 rounded-2xl flex items-center justify-center transition">
-                    <span class="text-emerald-400 text-lg font-semibold">
-                        {{ t('admin.panel.goto.section') }}
-                    </span>
+                    <!-- Hover Overlay -->
+                    <div class="absolute inset-0 bg-neutral-950/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 rounded-xl flex items-center justify-center transition">
+                        <span class="text-gray-100 text-lg font-semibold">
+                            {{ t('admin.panel.goto.section') }}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
