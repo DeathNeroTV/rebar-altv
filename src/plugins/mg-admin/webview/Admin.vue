@@ -1,9 +1,9 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useEvents } from '@Composables/useEvents';
 
 import Sidebar from './components/Sidebar.vue';
-import Dashboard from './components/Dashboard.vue';
+import Dashboard from './views/Dashboard.vue';
 import WhitelistManager from './views/WhitelistManager.vue';
 import PlayerManager from './views/PlayerManager.vue';
 import VehicleManager from './views/VehicleManager.vue';
@@ -12,12 +12,14 @@ import Settings from './views/Settings.vue';
 import GarageManager from './views/GarageManager.vue';
 import { AdminEvents } from '../shared/events';
 import { AdminConfig } from '../shared/config';
+import { DashboardStat } from '../shared/interfaces';
 
 const events = useEvents();
 
 const activePage = ref<string>('dashboard');
 const audio = ref<HTMLAudioElement>(new Audio('../sounds/anti-spam.ogg'));
 const spamList = ref<{ id: number; top: string; left: string }[]>([]);
+const infos = reactive<DashboardStat[]>(AdminConfig.infos);
 
 const pages = {
     dashboard: Dashboard,
@@ -81,12 +83,12 @@ onMounted(() => {
 
 <template>
     <div class="w-screen h-screen flex flex-row bg-transparent text-gray-100">
-        <Sidebar :active="activePage" @navigate="setActivePage" @logout="logout" :language ="AdminConfig.language" @spamming="spamming" />
+        <Sidebar :active="activePage" @navigate="setActivePage" @logout="logout" :language ="AdminConfig.language" :sections="infos" @spamming="spamming" />
         
         <!-- Main Content -->
-        <div class="w-full h-full flex flex-col bg-neutral-950/95">
+        <div class="flex flex-1 flex-col bg-neutral-950/95">
             <!-- Content -->
-            <main class="flex-1 overflow-y-auto p-6">
+            <main class="flex-1 overflow-y-auto">
                 <component :is="activeComponent" @navigate="setActivePage" :language ="AdminConfig.language" />
             </main>
         </div>
@@ -96,7 +98,7 @@ onMounted(() => {
                 <div
                     v-for="spam in spamList"
                     :key="spam.id"
-                    class="fixed text-red-500 text-6xl font-extrabold select-none pointer-events-none opacity-90 animate-bounce-fast"
+                    class="fixed text-red-500/90 text-6xl font-extrabold select-none pointer-events-none animate-bounce-fast"
                     :style="{ top: spam.top, left: spam.left }"
                 >
                     🧠 SPAM!

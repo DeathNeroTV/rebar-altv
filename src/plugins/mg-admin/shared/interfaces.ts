@@ -3,9 +3,14 @@ export interface DashboardStat {
     title: string;
     value: number;
     icon: string;
-    color: string;
 };
 
+export interface SidebarInfo {
+    icon: string;
+    label: string;
+    id: string;
+    color: string;
+}
 export interface WhitelistEntry {
     _id: string;
     username: string;

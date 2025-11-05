@@ -8,17 +8,17 @@ import { AdminConfig } from '../shared/config.js';
 import '../translate/index.js';
 import { CollectionNames } from '@Server/document/shared.js';
 
+import * as os from 'os';
+import * as disk from 'diskusage';
+import * as path from 'path';
+import { DashboardStat } from '../shared/interfaces.js';
+
+
 const { t }  = useTranslate(AdminConfig.language);
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 
-const stats = {
-    whitelist: 0,
-    accounts: 0,
-    players: 0,
-    vehicles: 0,
-    jobs: 0,
-};
+const stats: DashboardStat[] = AdminConfig.infos;
 
 alt.onClient(AdminEvents.toServer.login, (player: alt.Player) => {
     const accDocument = Rebar.document.account.useAccount(player);
@@ -70,14 +70,41 @@ alt.onRpc(AdminEvents.toServer.request.stats, async () => {
     const accounts = await db.getAll(CollectionNames.Accounts);
     const vehicles = await db.getAll(CollectionNames.Vehicles);
     
-    stats.players = accounts.length;
-    stats.vehicles = vehicles.length;
-
+    const playerIndex = stats.findIndex(data => data.id === 'players');
+    const vehicleIndex = stats.findIndex(data => data.id === 'vehicles');
+    if (playerIndex !== -1) stats[playerIndex].value = accounts.length;
+    if (vehicleIndex !== -1) stats[vehicleIndex].value = vehicles.length;
     return stats;
 });
 
 alt.onRpc(AdminEvents.toServer.request.whitelist, () => {
     return {};
+});
+
+alt.onRpc(AdminEvents.toServer.request.usage, async () => {
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const ramUsage = ((1 - freeMem / totalMem) * 100).toFixed(2);
+
+    const cpuLoad = os.loadavg()[0] * 10;
+    const cpuUsage = Math.min(Math.max(cpuLoad, 0), 100);
+
+    const drivePath = os.platform() === 'win32' ? 'C:' : '/';
+
+    let diskUsage = '0';
+    try {
+        const { available, total } = await disk.check(drivePath);
+        diskUsage = ((1 - available / total) * 100).toFixed(2);
+    } catch (err) {
+        alt.logWarning(`[Admin] Fehler beim Abrufen der Festplattennutzung: ${err.message}`);
+        diskUsage = '0';
+    }
+
+    return {
+        cpuUsage: Number(cpuUsage),
+        ramUsage: Number(ramUsage),
+        diskUsage: Number(diskUsage),
+    };
 });
 
 function isMemberOfAllowedGroups(player: alt.Player) {

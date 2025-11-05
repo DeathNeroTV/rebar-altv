@@ -5,9 +5,7 @@ import { useTranslate } from '@Shared/translate';
 import { useEvents } from '@Composables/useEvents';
 import { AdminEvents } from '@Plugins/mg-admin/shared/events';
 
-const props = defineProps<{
-    language: 'de' | 'en';
-}>();
+const { language } = defineProps({ language: String });
 
 const emits = defineEmits<{
     (e: 'approve', discordId: string): void;
@@ -15,27 +13,25 @@ const emits = defineEmits<{
     (e: 'request'): void;
 }>();
 
-const { t } = useTranslate(props.language);
+const { t } = useTranslate(language);
 const events = useEvents();
 
-const whitelistRequests = ref<WhitelistEntry[]>([]);
+const entries = ref<WhitelistEntry[]>([]);
 
 const approveRequest = (discordId: string) => emits('approve', discordId);
 const rejectRequest = (discordId: string) => emits('reject', discordId);
 
-onMounted(async () => {
-    whitelistRequests.value = await events.emitServerRpc(AdminEvents.toServer.request.whitelist);
-});
+onMounted(async () => entries.value = await events.emitServerRpc(AdminEvents.toServer.request.whitelist) ?? []);
 
 </script>
 
 <template>
-    <div class="p-6 text-gray-100 flex flex-col gap-6 select-none">
+    <div class="p-6 text-gray-100 flex flex-col gap-6 select-none w-full h-full">
         <h1 class="text-3xl font-semibold mb-2">{{ t('admin.panel.dashboard.whitelist.title') }}</h1>
         <p class="text-gray-100 mb-6">{{ t('admin.panel.dashboard.whitelist.desc') }}</p>
 
-        <div v-if="whitelistRequests.length > 0" class="grid grid-cols-4 gap-6">
-            <div v-for="entry in whitelistRequests" :key="entry.code" class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex-col justify-between shadow-md hover:shadow-xl transition-all hover:-translate-y-1">
+        <div v-if="entries.length > 0" class="grid grid-cols-4 gap-6">
+            <div v-for="entry in entries" :key="entry.code" class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex-col justify-between shadow-md hover:shadow-xl transition-all hover:-translate-y-1">
                 <!-- Header -->
                 <div class="flex flex-col gap-2 mb-3">
                     <div class="flex items-center justify-between">
@@ -73,12 +69,13 @@ onMounted(async () => {
             </div>
         </div>
         <!-- Leerer Zustand -->
-        <div
-            v-else
-            class="text-center text-gray-500 py-20 bg-neutral-900 border border-neutral-800 rounded-2xl"
-        >
-            <font-awesome-icon :icon="['fas', 'inbox']" class="text-4xl mb-4 opacity-60" />
-            <p class="text-lg">Keine offenen Whitelist-Anfragen</p>
+        <div v-else class="w-full h-full">
+            <div
+                class="relative top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-fit h-fit p-5 text-center items-center justify-center text-gray-500 py-5 bg-neutral-900/25 border border-neutral-700/95 rounded-2xl"
+            >
+                <font-awesome-icon :icon="['fas', 'inbox']" class="text-4xl mb-4 opacity-60" />
+                <p class="text-lg">{{ t('admin.panel.dashboard.whitelist.noRequests') }}</p>
+            </div>
         </div>
     </div>
 </template>

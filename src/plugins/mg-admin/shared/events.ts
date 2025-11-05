@@ -8,6 +8,7 @@ export const AdminEvents = {
         login: 'mg-admin:login',
         logout: 'mg-admin:logout',
         request: {
+            usage: 'mg-admin:request:usage',
             stats: 'mg-admin:request:stats',
             whitelist: 'mg-admin:request:whitelist'
         }

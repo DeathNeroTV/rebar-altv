@@ -1,15 +1,12 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { useTranslate } from '@Shared/translate';
+import { DashboardStat, SidebarInfo } from '@Plugins/mg-admin/shared/interfaces';
 
 import SidebarItem from './SidebarItem.vue';
 
 const isInUse = ref<boolean>(false);
-
-const props = defineProps<{
-  active: string;
-  language: string;
-}>();
+const { active, sections, language } = defineProps({ active: String, sections: Array<DashboardStat>, language: String });
 
 const emits = defineEmits<{
     (e: 'navigate', page: string): void;
@@ -20,7 +17,7 @@ const emits = defineEmits<{
 const logoClickCount = ref<number>(0);
 let clickTimeout: NodeJS.Timeout | null = null;
 
-const { t } = useTranslate(props.language);
+const { t } = useTranslate(language);
 
 const logoClick = () => {
     if (isInUse.value) return;
@@ -29,7 +26,7 @@ const logoClick = () => {
     logoClickCount.value++;
 
     if (clickTimeout) clearTimeout(clickTimeout);
-    clickTimeout = setTimeout(() => (logoClickCount.value = 0), 200);
+    clickTimeout = setTimeout(() => (logoClickCount.value = 0), 300);
 
     if (logoClickCount.value >= 5) {
         isInUse.value = true;
@@ -43,18 +40,15 @@ const navigate = (page: string) => emits('navigate', page);
 </script>
 
 <template>
-    <aside class="w-20 h-full bg-neutral-950/95 flex flex-col gap-1 justify-center items-center select-none border-r border-neutral-800">
-        <img src="../../images/mg-admin-logo.png" class="p-2 w-18 h-18 cursor-pointer transition-transform hover:scale-90" :disabled="isInUse" alt="" @click="logoClick"/>
-        <nav class="w-full h-full flex flex-col gap-3 p-2 items-center justify-start">
-            <SidebarItem icon="id-card" :label="t('admin.panel.dashboard.whitelist.title')" id="whitelist" :active="active === 'whitelist'" @click="navigate('whitelist')" />
-            <SidebarItem icon="users" :label="t('admin.panel.dashboard.players.title')" id="players" :active="active === 'players'" @click="navigate('players')" />
-            <SidebarItem icon="car" :label="t('admin.panel.dashboard.vehicles.title')" id="vehicles" :active="active === 'vehicles'" @click="navigate('vehicles')" />
-            <SidebarItem icon="briefcase" :label="t('admin.panel.dashboard.jobs.title')" id="jobs" :active="active === 'jobs'" @click="navigate('jobs')" />
+    <aside class="w-24 min-h-full max-h-full bg-neutral-950/95 flex flex-col gap-2 justify-center items-center select-none border-r border-neutral-800">
+        <img src="../../images/mg-admin-logo-1.png" class="w-full cursor-pointer transition-transform hover:scale-90" :disabled="isInUse" alt="" @click="logoClick"/>
+        <nav class="w-full h-full flex flex-col gap-3 p-2 items-center justify-start overflow-y-auto">
+            <SidebarItem v-for="data, index in sections" :icon="data.icon" :label="data.title" :id="data.id"  :active="active === data.id" @click="navigate(data.id)" />
         </nav>
 
-        <div class="p-3 min-h-fit max-h-fit flex flex-col gap-3 items-center justify-center text-center">
+        <div class="min-h-fit max-h-fit flex flex-col gap-3 items-center justify-center text-center">
             <SidebarItem icon="cog" :label="t('admin.panel.dashboard.settings.title')" id="settings" :active="active === 'settings'"@click="navigate('settings')" />
-            <div class="relative group w-full items-center text-center">                
+            <div class="relative group w-full min-h-fit max-h-fit items-center text-center">                
                 <button
                     @click="emits('logout')"
                     class="p-3 text-center hover:font-semibold hover:bg-neutral-900/95 bg-transparent transition text-gray-100 rounded-full items-center hover:text-red-500"
@@ -68,3 +62,8 @@ const navigate = (page: string) => emits('navigate', page);
         </div>
     </aside>
 </template>
+
+<style scoped>
+/* 🌑 Allgemeine Scrollbar für dunkle Oberflächen */
+aside nav::-webkit-scrollbar {display:none; }
+</style>
