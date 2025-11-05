@@ -3,7 +3,6 @@ import { useRebar } from '@Server/index.js';
 import * as Utility from '@Shared/utility/index.js';
 import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
-import { Character } from '@Shared/types/character.js';
 
 const Rebar = useRebar();
 const api = Rebar.useApi();
@@ -13,10 +12,41 @@ const ActiveTimers: Map<string, number> = new Map();
 const ActiveRevives: Map<string, number> = new Map();
 
 const Internal = {
-    handleSelectCharacter(player: alt.Player, character: Character) {
+    handleSkipCreate(player: alt.Player) {
+        if (!player || !player.valid) return;
+
+        const document = Rebar.document.character.useCharacter(player);
+        if (!document.isValid()) return;
+
         Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
-        alt.log('[mg-death]', `Spieler ${character.name.replaceAll('_', ' ')} ist bewusstlos: ${character.isDead || character.health <= 99 ? 'JA' : 'NEIN'}`);
-        Rebar.player.useState(player).apply(character);
+        
+
+        if (document.getField('isDead')) {
+            const charId = document.getField('_id');
+            if (ActiveRevives.has(charId)) {
+                if (ActiveRevives.get(charId)!) 
+                    alt.clearInterval(ActiveRevives.get(charId)!);
+                ActiveRevives.delete(charId);
+            }
+
+            if (ActiveTimers.has(charId)) {
+                if (ActiveTimers.get(charId)!) 
+                    alt.clearTimeout(ActiveTimers.get(charId)!);
+                ActiveTimers.delete(charId);
+            }
+
+            TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
+            player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
+
+            const interval = alt.setTimeout(() => {
+                player.emit(DeathEvents.toClient.stopTimer);
+                alt.clearTimeout(interval);
+                ActiveTimers.delete(charId);
+            }, DeathConfig.respawnTime);
+
+            ActiveTimers.set(charId, interval);
+            alt.log('[mg-death][SkipCreate]', `${document.getField('name').replaceAll('_', ' ')} wurde bewusstlos.`);
+        }
     },
 
     getClosestHospital(pos: alt.IVector3): alt.IVector3 {
@@ -32,7 +62,7 @@ const Internal = {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid || !victimData.getField('isDead')) return;
+        if (!victimData.isValid() || !victimData.getField('isDead')) return;
 
         const charId = victimData.getField('_id');
 
@@ -47,6 +77,10 @@ const Internal = {
         let progress = 0;
         reviver.emit(DeathEvents.toClient.startRevive);
         victim.emit(DeathEvents.toClient.startRevive);
+
+        Rebar.player.useNative(reviver).invoke('taskTurnPedToFaceEntity', reviver.id, victim.id, 0);
+        Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_def', 'cpr_pumpchest', 49, 0, 0, -1.0);
+        Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_def', 'cpr_pumpchest', 49, 0, 0, -1.0);
 
         const interval = alt.setInterval(() => {
             if (!reviver.valid || !victim.valid) {
@@ -122,6 +156,9 @@ const Internal = {
             ActiveTimers.delete(charId);
         }
 
+        Rebar.player.useAnimation(victim).clear();
+        Rebar.player.useAnimation(reviver).clear();
+
         reviver.emit(DeathEvents.toClient.reviveComplete);
         victim.emit(DeathEvents.toClient.reviveComplete);
         Internal.respawn(victim, victim.pos);
@@ -172,8 +209,8 @@ const Internal = {
         }, 3500);
     },
 
-    handleDeath(victim: alt.Player, killer: alt.Entity, weaponHash: number) {
-        if (!victim?.valid || !killer?.valid) return;
+    handleDeath(victim: alt.Player, killer: null | alt.Entity, weaponHash: number) {
+        if (!victim || victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
         if (!victimData.isValid() || victimData.getField('isDead')) return;
@@ -203,14 +240,13 @@ const Internal = {
         }, DeathConfig.respawnTime);
 
         ActiveTimers.set(charId, interval);
-        alt.log('[Death-Event]', `${victimData.getField('name').replaceAll('_', ' ')} wurde bewusstlos.`);
+        alt.log('[mg-death][PlayerDeath]', `${victimData.getField('name').replaceAll('_', ' ')} wurde bewusstlos.`);
     },
 };
 
 async function init() {
-    await alt.Utils.waitFor(() => api.isReady('character-select-api'), 30000);
-    const charSelectApi = api.get('character-select-api');
-    charSelectApi.onSelect(Internal.handleSelectCharacter);
+    const charEditorApi = await api.getAsync('character-creator-api');
+    charEditorApi.onSkipCreate(Internal.handleSkipCreate);
 
     // Server Events
     alt.on('playerDeath', Internal.handleDeath);

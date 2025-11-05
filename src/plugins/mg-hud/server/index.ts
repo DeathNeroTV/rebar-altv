@@ -94,12 +94,14 @@ alt.on('playerWeaponChange', (player: alt.Player, oldWeapon: number, newWeapon: 
 alt.on('playerDamage', (victim: alt.Player, attacker: alt.Entity, healthDamage: number, armourDamage: number, weaponHash: number) => {
     
     const document = Rebar.document.character.useCharacter(victim);
-    if (!document.isValid()) return;
+    if (!document.isValid() || document.getField('isDead')) return;
 
     document.setBulk({
-        health: Math.max(99, victim.health - healthDamage),
-        armour: Math.max(0, victim.armour - armourDamage),
+        health: Math.max(99, victim.health),
+        armour: Math.max(0, victim.armour),
     });
+
+    alt.log('[PlayerDamage]', `${document.getField('name').replaceAll('_', ' ')} hat Schaden erlitten.`);
 });
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
@@ -168,8 +170,7 @@ function handleSkipCreate(player: alt.Player): void {
 }
 
 async function init() {
-    await alt.Utils.waitFor(() => api.isReady('character-creator-api'), 30000);
-    const charCreatorApi = api.get('character-creator-api');
+    const charCreatorApi = await api.getAsync('character-creator-api');
     charCreatorApi.onSkipCreate(handleSkipCreate);
 }
 

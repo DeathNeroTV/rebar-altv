@@ -40,10 +40,7 @@ async function showSelection(player: alt.Player, attempts = 0) {
         return;
     }
 
-    const characters = await db.getMany<Character>(
-        { account_id: accDocument.getField('_id') },
-        CollectionNames.Characters,
-    );
+    const characters = await accDocument.getCharacters();
 
     if (CharacterSelectConfig.maxCharacters == 1 && characters.length == 1) {
         handleSpawnCharacter(player, characters[0]._id);
@@ -150,22 +147,12 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
         return;
     }
 
-    Rebar.document.character.useCharacterBinder(player).bind(character);
+    Rebar.document.character.useCharacterBinder(player, true).bind(character);
     Rebar.player.useWebview(player).hide('CharacterSelect');
     Rebar.player.useWorld(player).enableControls();
-    
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
-    player.pos = new alt.Vector3(character.pos);
-    player.dimension = 0;
-
-    if (character.appearance) {
-        player.visible = true;
-        Rebar.player.usePlayerAppearance(player).sync();
-    }
-
-    Rebar.player.useClothing(player).sync();
-
     player.frozen = false;
+    player.invincible = false;
     player.deleteMeta(sessionKey);
 
     invokeSelect(player, character);
@@ -209,6 +196,7 @@ async function handleLogin(player: alt.Player) {
     player.pos = SpawnPos;
     player.health = 200;
     player.frozen = true;
+    player.invincible = true;
     player.visible = false;
     await alt.Utils.wait(500);
 
