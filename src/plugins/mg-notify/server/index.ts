@@ -27,7 +27,7 @@ const sendCharacterNotification = (
         icon: type,
         title: t(titleKey),
         subtitle: t(subtitleKey),
-        message: t(messageKey, { name: playerData.name }),
+        message: t(messageKey, { name: playerData.name.replaceAll('_', ' ') }),
     });
 };
 

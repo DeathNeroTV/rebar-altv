@@ -15,7 +15,7 @@ const ActiveRevives: Map<string, number> = new Map();
 const Internal = {
     handleSelectCharacter(player: alt.Player, character: Character) {
         if (!player || !player.valid) return;
-
+        player.health = 200;
         Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
         Rebar.player.useState(player).sync();
     },

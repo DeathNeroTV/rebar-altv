@@ -32,11 +32,7 @@ const keyBind: KeyInfo = {
 alt.setMsPerGameMinute(msPerGameMinute);
 keyBindApi.add(keyBind);
 
-alt.everyTick(() => {
-    alt.nextTick(() => {
-        if (!alt.getConfigFlag(alt.ConfigFlag.DisableIdleCamera)) 
-            alt.setConfigFlag(alt.ConfigFlag.DisableIdleCamera, true);
-    });
+alt.setInterval(() => {
     const player = alt.Player.local;
     const vehicle = player.vehicle;
 
@@ -49,4 +45,17 @@ alt.everyTick(() => {
     const maxSpeed = natives.getVehicleEstimatedMaxSpeed(vehicle.scriptID) * 3.6;
 
     alt.emitServer(HudEvents.toServer.updateFuel, { rpm, gear, speed: speedKmh, maxSpeed });
-});
+}, 100);
+
+alt.setInterval(() => {
+    if (!alt.getConfigFlag(alt.ConfigFlag.DisableIdleCamera)) 
+        alt.setConfigFlag(alt.ConfigFlag.DisableIdleCamera, true);
+
+    const player = alt.Player.local;    
+    const isMoving = natives.getEntitySpeed(player.scriptID) > 0.0;
+    const isJumping = natives.isPedJumping(player.scriptID)
+    const isSprinting = natives.isPedSprinting(player.scriptID) || natives.isPedRunning(player.scriptID);
+    const isShooting = natives.isPedShooting(player.scriptID);
+
+    alt.emitServer(HudEvents.toServer.updateStats, { isSprinting, isMoving, isJumping, isShooting });
+}, 100);

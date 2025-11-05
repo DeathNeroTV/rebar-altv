@@ -4,7 +4,6 @@ import { useTranslate } from '@Shared/translate.js';
 import { Character } from '@Shared/types/character.js';
 import { CollectionNames } from '@Server/document/shared.js';
 
-
 import { invokeSelect } from './api.js';
 import { CharacterSelectConfig } from '../shared/config.js';
 import { CharacterSelectEvents } from '../shared/characterSelectEvents.js';
@@ -221,15 +220,23 @@ async function handleLogin(player: alt.Player) {
 
 async function handleLogout(player: alt.Player) {
     if (player.hasMeta(sessionKey)) return;
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return;
     Rebar.player.useState(player).save();
+    alt.log('[Logout]', `Die Daten von ${document.getField('name').replace('_', ' ')} wurden gespeichert.`);
+
     Rebar.document.character.useCharacterBinder(player).unbind();
     await handleLogin(player);
 }
 
 // --- Disconnect ---
-async function handleDisconnect(player: alt.Player, reason: string) {
+function handleDisconnect(player: alt.Player, reason: string) {
     if (player.hasMeta(sessionKey)) return;
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return;
+
     Rebar.player.useState(player).save();
+    alt.log('[Disconnect]', `Die Daten von ${document.getField('name').replace('_', ' ')} wurden gespeichert.`);
 }
 
 // --- Init ---

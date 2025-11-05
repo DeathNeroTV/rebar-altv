@@ -14,6 +14,7 @@ const Rebar = useRebar();
 const api = Rebar.useApi();
 
 const allowedPlayerKeys: (keyof Character)[] = [
+    'id',
     'armour',
     'food',
     'water',
@@ -33,17 +34,16 @@ const allowedVehicleKeys: (keyof Vehicle)[] = [
 ];
 
 alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
-    if (!player || !player.valid) return;
     if (!allowedPlayerKeys.includes(key)) return;
-
     Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
+
+    if (key !== 'isDead') return;
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updateDead, value);
 });
 
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
     players.forEach((player: alt.Player) => {
-        if (Rebar.player.useWebview(player).isReady('Hud', 'overlay')) return;
-
         const now: Date = new Date(Date.now()); 
         const day: DateTimeDay = now.getDay() as DateTimeDay;
         const month: DateTimeDay = now.getDay() as DateTimeMonth;
@@ -76,9 +76,9 @@ alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: num
     Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, false);
 });
 
-alt.on('playerWeaponChange', async (player: alt.Player, oldWeapon: number, newWeapon: number) => {
+alt.on('playerWeaponChange', (player: alt.Player, oldWeapon: number, newWeapon: number) => {
     const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid) return;
+    if (!document.isValid()) return;
 
     const weapon: alt.IWeapon & { ammo: number; totalAmmo: number } =  {
         hash: newWeapon,
@@ -88,25 +88,23 @@ alt.on('playerWeaponChange', async (player: alt.Player, oldWeapon: number, newWe
         tintIndex: player.currentWeaponTintIndex
     };
 
-    await document.set('weapon', weapon);
+    document.set('weapon', weapon);
 });
 
-alt.on('playerDamage', async (victim: alt.Player, attacker: alt.Entity, healthDamage: number, armourDamage: number, weaponHash: number) => {
+alt.on('playerDamage', (victim: alt.Player, attacker: alt.Entity, healthDamage: number, armourDamage: number, weaponHash: number) => {
     
     const document = Rebar.document.character.useCharacter(victim);
-    if (!document.isValid) return;
+    if (!document.isValid()) return;
 
-    await document.setBulk({
+    document.setBulk({
         health: Math.max(99, victim.health - healthDamage),
         armour: Math.max(0, victim.armour - armourDamage),
     });
 });
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
-    if (!player.vehicle?.valid) return;
-
     const vehicleData = Rebar.document.vehicle.useVehicle(player.vehicle);
-    if (!vehicleData.isValid) return;
+    if (!vehicleData.isValid()) return;
 
     let consumption = 0.0004;
     consumption += Math.pow(data.rpm, 1.8) * 0.002;
@@ -123,6 +121,42 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
         speed: data.speed,
         maxSpeed: data.maxSpeed
     });
+});
+
+alt.onClient(HudEvents.toServer.updateStats, (player: alt.Player, data: { isSprinting: boolean, isMoving: boolean, isJumping: boolean, isShooting: boolean }) => {
+    const playerData = Rebar.document.character.useCharacter(player);
+    if (!playerData.isValid() || playerData.getField('isDead')) return;
+
+    let food = playerData.getField('food') || 100;
+    let water = playerData.getField('water') || 100;
+    let health = playerData.getField('health') || 200;
+    let multiplier = 1;
+
+    if (data.isSprinting || data.isMoving || data.isJumping || data.isShooting) {
+        multiplier += (data.isSprinting ? HudConfig.actionMultipliers.sprinting : 0);
+        multiplier += (data.isMoving ? HudConfig.actionMultipliers.moving : 0);
+        multiplier += (data.isJumping ? HudConfig.actionMultipliers.jumping : 0);
+        multiplier += (data.isShooting ? HudConfig.actionMultipliers.shooting : 0);
+    }
+
+    const foodDrain = playerData.getField('isDead') ? 0 : HudConfig.baseDrain.food * multiplier;
+    const waterDrain = playerData.getField('isDead') ? 0 : HudConfig.baseDrain.water * multiplier;
+
+    food = Math.max(food - foodDrain, 0);
+    water = Math.max(water - waterDrain, 0);
+    
+    if (food <= 0) {
+        const damage = 0.25;
+        health = Math.max(health - damage, 0);
+    }
+
+    if (water <= 0) {
+        const damage = 0.25;
+        health = Math.max(health - damage, 99);
+    }
+
+    playerData.setBulk({ food, water, health });
+    Rebar.player.useState(player).apply({ health });
 });
 
 function handleSkipCreate(player: alt.Player): void {

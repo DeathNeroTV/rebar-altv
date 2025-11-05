@@ -1,7 +1,32 @@
 <script setup lang="ts">
+import { useEvents } from '@Composables/useEvents';
+import { HudEvents } from '@Plugins/mg-hud/shared/events';
 import { Vehicle } from '@Shared/types';
+import { onMounted, reactive } from 'vue';
 
-defineProps<{ data: Partial<Vehicle>; isVisible: boolean }>();
+const events = useEvents();
+
+let isVisible = reactive<Boolean>(false);
+const data = reactive<Partial<Vehicle>>({
+    speed: 0,
+    gear: 0,
+    fuel: 0,
+    rpm: 0,
+    maxSpeed: 0,
+    stateProps: { engineOn: true, lightState: 1 }
+});
+
+onMounted(() => {
+    events.on(HudEvents.toWebview.toggleVehicle, (value: boolean) => {
+        isVisible = value;
+        events.emitClient(HudEvents.toWebview.toggleVehicle, value);
+    });
+    events.on(HudEvents.toWebview.updateVehicle, (payload: { key: string, value: any }) => {
+        if (!payload) return;
+        data[payload.key] = payload.value;
+    });
+});
+
 </script>
 
 <template>

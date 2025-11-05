@@ -17,7 +17,7 @@ const keyBinds: KeyInfo[] = [
         description: 'Lasse dich vom Rettungsteam abholen',
         identifier: 'emergency-trigger',
         keyDown: () => {
-            if (!canRespawn || !alt.Player.local.isDead) return;
+            if (!canRespawn || isReviving || !alt.Player.local.isDead) return;
             alt.emitServer(DeathEvents.toServer.toggleRespawn);
             canRespawn = false;
             calledEMS = false;
@@ -30,7 +30,7 @@ const keyBinds: KeyInfo[] = [
         description: 'Setze einen Notruf ab',
         identifier: 'emergency-call',
         keyDown: () => {
-            if (calledEMS || !alt.Player.local.isDead) return;
+            if (calledEMS || isReviving || !alt.Player.local.isDead) return;
             alt.emitServer(DeathEvents.toServer.callEms);
             calledEMS = true;
         },
@@ -53,10 +53,8 @@ const keyBinds: KeyInfo[] = [
     }
 ];
 
-alt.on('connectionComplete', async() => {
-    const keyBindApi = await useClientApi().getAsync('keyBinds-api');
-    keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
-});
+const keyBindApi = await useClientApi().getAsync('keyBinds-api');
+keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
 
 alt.onServer(DeathEvents.toClient.reviveProgress, (progress: number) => {
     view.emit(DeathEvents.toClient.reviveProgress, progress);

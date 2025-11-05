@@ -1,5 +1,5 @@
 <template>
-    <div v-if="isVisible" class="w-fit h-fit flex flex-col gap-1 bg-neutral-950/25 text-white p-2 rounded-br-lg select-none pointer-events-none">
+    <div v-if="!data.isDead" class="w-fit h-fit flex flex-col gap-1 bg-neutral-950/25 text-white p-2 rounded-br-lg select-none pointer-events-none">
         <!-- Horizontal Armor and Health Bars -->
         <div class="w-full h-full flex flex-col gap-1">
         
@@ -17,14 +17,14 @@
                         v-for="i in 12"
                         :key="'armor-fg-linear-' + i"
                         class="flex-1 h-full"
-                        :class="{ 'bg-gray-100': i <= Math.ceil((props.data.armour ?? 0) / (100 / 12)) }"
+                        :class="{ 'bg-gray-100': i <= Math.ceil((data.armour) / (100 / 12)) }"
                     ></div>
                 </div>
             </div>
 
             <!-- Health Bar -->
             <div class="relative h-2 bg-neutral-950/25 backdrop-blur-sm">
-                <div class="absolute top-0 left-0 h-full bg-green-700" :style="{ width: (data.health - 100) + '%' }"></div>
+                <div class="absolute top-0 left-0 h-full bg-green-700" :style="{ width: Math.max(0, data.health - 100) + '%' }"></div>
             </div>
         </div>
 
@@ -82,22 +82,45 @@
 </template>
 
 <script lang="ts" setup>
-    import { Character } from '@Shared/types';
-    import { computed } from 'vue';
+    import { computed, onMounted, ref } from 'vue';
     import { getNameFromHash } from '../composables/weaponHashes';
-    
-    const props = defineProps<{ isVisible: boolean; data: Partial<Character>; actualTime: string; }>();
+    import { useEvents } from '@Composables/useEvents';
+    import { HudEvents } from '@Plugins/mg-hud/shared/events';
+    import { Character } from '@Shared/types';
+
+    const events = useEvents();
+
+    const data = ref<Partial<Character>>({
+        id: 1,
+        health: 0,
+        armour: 0,
+        food: 0,
+        water: 0,
+        voiceRange: 0,
+        isDead: false,
+    });
+
+    let actualTime = ref<String>('00:00');
 
     const getWeapon = computed(() => {
-        return props.data.weapon ? {
-            weaponName: getNameFromHash(props.data.weapon.hash),
-            currentAmmo: props.data.weapon.ammo,
-            totalAmmo: props.data.weapon.totalAmmo
+        return data.value.weapon ? {
+            weaponName: getNameFromHash(data.value.weapon.hash),
+            currentAmmo: data.value.weapon.ammo,
+            totalAmmo: data.value.weapon.totalAmmo
         } : {
             weaponName: 'weapon_unarmed',
             currentAmmo: 1,
             totalAmmo: 1
         };
+    });
+
+    onMounted(() => {  
+        events.on(HudEvents.toWebview.syncTime, (hour: number, minute: number, second: number) => {
+            const formattedHour = hour.toString().padStart(2, '0');
+            const formattedMinute = minute.toString().padStart(2, '0');
+            actualTime.value = `${formattedHour}:${formattedMinute}`;
+        });
+        events.on(HudEvents.toWebview.updatePlayer, (payload: { key: string, value: any }) => data.value[payload.key] = payload.value);
     });
 
 </script>
