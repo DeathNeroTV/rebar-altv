@@ -15,7 +15,7 @@ const ActiveRevives: Map<string, number> = new Map();
 const Internal = {
     handleSelectCharacter(player: alt.Player, character: Character) {
         Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
-        alt.log('[mg-death]', `Spieler ${character.name.replaceAll('_', ' ')} ist bewusstlos: ${character.isDead ? 'JA' : 'NEIN'}`);
+        alt.log('[mg-death]', `Spieler ${character.name.replaceAll('_', ' ')} ist bewusstlos: ${character.isDead || character.health <= 99 ? 'JA' : 'NEIN'}`);
         Rebar.player.useState(player).apply(character);
     },
 
