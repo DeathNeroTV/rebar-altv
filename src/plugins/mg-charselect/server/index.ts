@@ -56,7 +56,7 @@ async function showSelection(player: alt.Player, attempts = 0) {
     const result = await webview.isReady('CharacterSelect', 'page');
     if (!result) {
         attempts++;
-        await showSelection(player, attempts);
+        showSelection(player, attempts);
         return;
     }
 
@@ -128,20 +128,17 @@ async function handleUsernameSubmit(player: alt.Player, first: string, last: str
         return;
     }
 
-    await showSelection(player);
+    showSelection(player);
 }
 
 async function getCharacter(player: alt.Player, id: string): Promise<Character | undefined> {
-    if (!player.getMeta(sessionKey)) {
-        return undefined;
-    }
+    if (!player.getMeta(sessionKey)) return undefined;
 
     const accDocument = Rebar.document.account.useAccount(player);
-    if (!accDocument) {
-        return undefined;
-    }
+    if (!accDocument) return undefined;
 
-    return await db.get<Character>({ account_id: accDocument.getField('_id'), _id: id }, CollectionNames.Characters);
+    const characters = await accDocument.getCharacters();
+    return characters.find(char => char._id === id);
 }
 
 async function handleSpawnCharacter(player: alt.Player, id: string) {
@@ -158,6 +155,7 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
     Rebar.player.useWorld(player).enableControls();
     
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
+    player.pos = new alt.Vector3(character.pos);
     player.dimension = 0;
 
     if (character.appearance) {
@@ -209,13 +207,14 @@ async function handleLogin(player: alt.Player) {
     player.model = 'mp_m_freemode_01';
     player.spawn(SpawnPos);
     player.pos = SpawnPos;
+    player.health = 200;
     player.frozen = true;
     player.visible = false;
     await alt.Utils.wait(500);
 
     player.dimension = player.id + 1;
     player.setMeta(sessionKey, true);
-    await showSelection(player);
+    showSelection(player);
 }
 
 async function handleLogout(player: alt.Player) {
@@ -226,7 +225,7 @@ async function handleLogout(player: alt.Player) {
     alt.log('[Logout]', `Die Daten von ${document.getField('name').replace('_', ' ')} wurden gespeichert.`);
 
     Rebar.document.character.useCharacterBinder(player).unbind();
-    await handleLogin(player);
+    handleLogin(player);
 }
 
 // --- Disconnect ---

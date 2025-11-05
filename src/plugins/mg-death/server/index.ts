@@ -14,10 +14,9 @@ const ActiveRevives: Map<string, number> = new Map();
 
 const Internal = {
     handleSelectCharacter(player: alt.Player, character: Character) {
-        if (!player || !player.valid) return;
-        player.health = 200;
         Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
-        Rebar.player.useState(player).sync();
+        alt.log('[mg-death]', `Spieler ${character.name.replaceAll('_', ' ')} ist bewusstlos: ${character.isDead ? 'JA' : 'NEIN'}`);
+        Rebar.player.useState(player).apply(character);
     },
 
     getClosestHospital(pos: alt.IVector3): alt.IVector3 {
@@ -128,7 +127,7 @@ const Internal = {
         Internal.respawn(victim, victim.pos);
     },
 
-    async respawn(victim: alt.Player, pos?: alt.IVector3) {
+    respawn(victim: alt.Player, pos?: alt.IVector3) {
         if (!victim || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
@@ -152,7 +151,7 @@ const Internal = {
         }
 
         const newPosition = pos ?? Internal.getClosestHospital(victim.pos);
-        await victimData.setBulk({ 
+        victimData.setBulk({ 
             isDead: false, 
             food: 100, 
             water: 100, 
@@ -161,6 +160,7 @@ const Internal = {
             rot: victim.rot,
             dimension: victim.dimension
         });
+
         Rebar.player.useWorld(victim).setScreenFade(3000);
         victim.spawn(newPosition.x, newPosition.y, newPosition.z, 2900);
         Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
@@ -172,11 +172,11 @@ const Internal = {
         }, 3500);
     },
 
-    handleDefaultDeath(victim: alt.Player, killer: alt.Player, weaponHash: number) {
-        if (!victim || !victim.valid) return;
+    handleDeath(victim: alt.Player, killer: alt.Entity, weaponHash: number) {
+        if (!victim?.valid || !killer?.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid()) return;
+        if (!victimData.isValid() || victimData.getField('isDead')) return;
 
         const charId = victimData.getField('_id');
         victimData.set('isDead', true);
@@ -213,7 +213,7 @@ async function init() {
     charSelectApi.onSelect(Internal.handleSelectCharacter);
 
     // Server Events
-    alt.on('playerDeath', Internal.handleDefaultDeath);
+    alt.on('playerDeath', Internal.handleDeath);
 
     // Client Events
     alt.onClient(DeathEvents.toServer.reviveTarget, Internal.revivePlayer);
@@ -227,20 +227,6 @@ async function init() {
         
         //TODO: handle ems notification to all medics
         Rebar.player.useWebview(player).emit(DeathEvents.toClient.confirmEms);
-    });
-
-    alt.onClient(DeathEvents.toServer.toggleRespawn, (player: alt.Player) => {
-        const victimData = Rebar.document.character.useCharacter(player);
-        if (!victimData) return;
-
-        const character = victimData.get();
-        if (!character.isDead) return;
-
-        const newPosition = Internal.getClosestHospital(player.pos);
-        victimData.set('isDead', false);
-        player.spawn(newPosition.x, newPosition.y, newPosition.z, 0);
-        player.clearBloodDamage();
-        Rebar.player.useWebview(player).emit(DeathEvents.toClient.respawned);
     });
 }
 
