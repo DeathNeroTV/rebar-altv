@@ -58,7 +58,7 @@ alt.onServer(DeathEvents.toClient.reviveProgress, (progress: number) => {
     view.emit(DeathEvents.toClient.reviveProgress, progress);
 });
 
-alt.onServer(DeathEvents.toClient.startRevive, () => {
+alt.onServer(DeathEvents.toClient.startRevive, () => {    
     view.emit(DeathEvents.toClient.startRevive);
 });
 
@@ -82,14 +82,19 @@ alt.onServer(DeathEvents.toClient.stopTimer, () => {
     if (!canRespawn) canRespawn = true;
 });
 
-alt.onServer(DeathEvents.toClient.animation.play, (player: alt.Player, animDict: string, animName: string, easeIn: number = 8.0, easeOut: number = 8.0, duration: number = -1, flags: number = 8, playBackRate: number = 1.0) => {
-    if (!natives.hasAnimDictLoaded(animDict)) 
+alt.onServer(DeathEvents.toClient.animation.play, async (animDict: string, animName: string, player: alt.Player | alt.LocalPlayer = alt.Player.local) => {
+    natives.clearPedTasksImmediately(player);
+    if (!natives.hasAnimDictLoaded(animDict)) {
         natives.requestAnimDict(animDict);
+        while (!natives.hasAnimDictLoaded(animDict)) {
+            await alt.Utils.wait(10);
+        }
+    }
 
-    natives.taskPlayAnim(player, animDict, animName, easeIn, easeOut, duration, flags, playBackRate, false, false, false);
+    natives.taskPlayAnim(player, animDict, animName, 8.0, -8.0, -1, 1, 1.0, true, true, true);
 });
 
-alt.onServer(DeathEvents.toClient.animation.stop, (player: alt.Player) => {
+alt.onServer(DeathEvents.toClient.animation.stop, (player: alt.Player | alt.LocalPlayer = alt.Player.local) => {
     natives.clearPedTasksImmediately(player);
     natives.clearPedTasks(player);
 });
