@@ -42,12 +42,11 @@ const keyBinds: KeyInfo[] = [
         description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
         identifier: 'emergency-revive',
         keyDown: () => {
+            const closest = alt.Utils.getClosestPlayer({ pos: alt.Player.local.pos, range: 3.0 });
             if (isReviving || alt.Player.local.isDead) return;
-            const closest = getClosestPlayer(3.0);
-            if (closest && closest.isDead) {
-                alt.emitServer(DeathEvents.toServer.reviveTarget, closest);
-                isReviving = true;
-            }
+            if (!closest || closest.valid || !closest.isDead) return;
+            alt.emitServer(DeathEvents.toServer.reviveTarget, closest);
+            isReviving = true;
         },
         restrictions: { isOnFoot: true }
     }
@@ -99,23 +98,3 @@ alt.onServer(DeathEvents.toClient.animation.stop, (player: alt.Player) => {
     const scriptID = alt.Player.local.id === player.id ? alt.Player.local.scriptID : player.scriptID;
     natives.clearPedTasks(scriptID);
 });
-
-function getClosestPlayer(radius: number): alt.Player | null {
-    let closest: alt.Player | null = null;
-    let minDist = radius;
-    let players = [...alt.Player.all];
-    for (const player of players) {
-        if (!player.valid || player.id === alt.Player.local.id) continue;
-        const dist = natives.getDistanceBetweenCoords(
-            player.pos.x, player.pos.y, player.pos.z,
-            alt.Player.local.pos.x, alt.Player.local.pos.y, alt.Player.local.pos.z,
-            true
-        );
-        if (dist < minDist) {
-            closest = player;
-            minDist = dist;
-        }
-    }
-
-    return closest;
-}
