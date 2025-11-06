@@ -51,10 +51,10 @@ const Internal = {
         victim.emit(DeathEvents.toClient.startRevive);
         victim.spawn(victim.pos);
         victim.health = 124;
-        victim.clearTasks();
-
-        alt.emitAllClients(DeathEvents.toClient.animation.play, reviver.id, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest');
-        alt.emitAllClients(DeathEvents.toClient.animation.play, victim.id, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest');
+       
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, victim);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, reviver, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle');
+        alt.emitAllClients(DeathEvents.toClient.animation.play, victim, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle');
 
         const interval = alt.setInterval(() => {
             if (!reviver.valid || !victim.valid) { 
@@ -169,7 +169,7 @@ const Internal = {
         if (TimeOfDeath.has(charId)) return;
 
         await document.set('isDead', true);
-        alt.emitAllClients(DeathEvents.toClient.animation.play, player.id, 'dead', 'dead_e', 8.0, -8.0, 0, 1, 1.0);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, player, 'dead', 'dead_e');
 
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());

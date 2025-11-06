@@ -41,14 +41,14 @@ const navigate = (page: string) => emits('navigate', page);
 
 <template>
     <aside class="w-20 min-h-full max-h-full bg-neutral-950/95 flex flex-col gap-2 justify-center items-center select-none border-r border-neutral-800">
-        <img src="../../images/mg-admin-logo-1.png" class="w-full cursor-pointer transition-transform hover:scale-90" :disabled="isInUse" alt="" @click="logoClick"/>
+        <img src="../../images/mg-admin-logo-1.png" class="my-5 w-full cursor-pointer transition-transform hover:scale-90" :disabled="isInUse" alt="" @click="logoClick"/>
         <nav class="w-full h-full flex flex-col gap-3 p-2 items-center overflow-y">
             <template v-for="data in sections">
                 <SidebarItem :icon="data.icon" :label="data.title" :id="data.id" :active="active === data.id" @click="navigate(data.id)" />
             </template>
         </nav>
 
-        <div class="pb-2 h-fit max-h-fit flex flex-col gap-3 items-center justify-center text-center">
+        <div class="mb-5 h-fit max-h-fit flex flex-col gap-3 items-center justify-center text-center">
             <SidebarItem icon="cog" :label="t('admin.panel.dashboard.settings.title')" id="settings" :active="active === 'settings'"@click="navigate('settings')" />
             <div class="relative group w-full min-h-fit max-h-fit items-center text-center">                
                 <button

@@ -84,21 +84,20 @@ alt.onServer(DeathEvents.toClient.stopTimer, () => {
     if (!canRespawn) canRespawn = true;
 });
 
-alt.onServer(DeathEvents.toClient.animation.play, async (scriptID: number, animDict: string, animName: string, easeIn: number = 8.0, easeOut: number = 8.0, duration: number = -1.0, flags: number = 9, playBackRate: number = 1.0) => {
-    natives.clearPedTasks(scriptID);
+alt.onServer(DeathEvents.toClient.animation.play, async (player: alt.Player, animDict: string, animName: string, easeIn: number = 1.0, easeOut: number = 1.0, duration: number = -1, flags: number = 9, playBackRate: number = 1.0) => {
+    natives.clearPedTasks(player.scriptID);
     if (!natives.hasAnimDictLoaded(animDict)) {
         natives.requestAnimDict(animDict);
         while (!natives.hasAnimDictLoaded(animDict)) {
             await alt.Utils.wait(10);
         }
     }
-    natives.taskPlayAnim(scriptID, animDict, animName, easeIn, easeOut, duration, flags, playBackRate, false, false, false);
+    natives.taskPlayAnim(player.scriptID, animDict, animName, easeIn, easeOut, duration, flags, playBackRate, false, false, false);
 });
 
-alt.onServer(DeathEvents.toClient.animation.stop, (scriptID: number) => {
-    natives.clearPedTasks(scriptID);
+alt.onServer(DeathEvents.toClient.animation.stop, (player: alt.Player) => {
+    natives.clearPedTasks(player.scriptID);
 });
-
 
 function getClosestPlayer(radius: number): alt.Player | null {
     let closest: alt.Player | null = null;

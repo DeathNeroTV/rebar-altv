@@ -1,7 +1,7 @@
 import * as alt from 'alt-server';
 import { useWebview } from '@Server/player/webview.js';
 import { NotifyEvents } from '../../shared/events.js';
-import { AllPlayerLabels, Label, Notification, NotificationTypes } from '../../shared/interface.js';
+import { AllPlayerLabels, Label, Notification, NotificationTypes, VueNotification } from '../../shared/interface.js';
 import { useRebar } from '@Server/index.js';
 import { MGNotifications } from '../../shared/config.js';
 
@@ -20,10 +20,10 @@ class InternalFunctions {
  * @param player The player to send the notification to.
  * @param notification The notification object containing icon, title, message, etc.
  */
-export function sendNotification(player: alt.Player, notification: Notification) {
+export function sendNotification(player: alt.Player, notification: VueNotification) {
     const view = useWebview(player);
 
-    const notificationToSend: Notification = {
+    const notificationToSend: VueNotification = {
         duration: MGNotifications.duration,
         oggFile: 'notification',
         ...notification,
