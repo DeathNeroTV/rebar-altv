@@ -11,6 +11,8 @@ const TimeOfDeath: Map<string, number> = new Map();
 const ActiveTimers: Map<string, number> = new Map();
 const ActiveRevives: Map<string, { reviver: alt.Player; victim: alt.Player; interval: number }> = new Map();
 
+type AnimInfo = { player: alt.Player; animDict: string; animName: string };
+
 const Internal = {
     handleSkipCreate(player: alt.Player) {
         if (!player || !player.valid) return;
@@ -30,13 +32,27 @@ const Internal = {
             });
 
             if (!deadPlayer || !deadPlayer.valid) continue;
-            player.emit(DeathEvents.toClient.animation.play, 'missfinale_c1@', 'lying_dead_player0', deadPlayer);
+
+            player.emit(DeathEvents.toClient.animation.play, {
+                animDict: 'missfinale_c1@',
+                animName: 'cpr_pumpchest',
+                player: deadPlayer
+            });
         }
 
         for (const [_, data] of ActiveRevives.entries()) {
             if (!data.victim || !data.victim.valid || !data.reviver || !data.reviver.valid) continue;
-            player.emit(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', data.reviver);
-            player.emit(DeathEvents.toClient.animation.play, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', data.victim);
+            const reviverInfo: AnimInfo = {
+                animDict: 'mini@cpr@char_a@cpr_str',
+                animName: 'cpr_pumpchest',
+                player: data.reviver
+            };
+            const victimInfo: AnimInfo = {
+                animDict: 'mini@cpr@char_b@cpr_str',
+                animName: 'cpr_pumpchest',
+                player: data.victim
+            };
+            player.emit(DeathEvents.toClient.animation.play, reviverInfo, victimInfo);
         }
     },
 
@@ -71,10 +87,18 @@ const Internal = {
         let progress = 0;
         reviver.emit(DeathEvents.toClient.startRevive);
         victim.emit(DeathEvents.toClient.startRevive);
-        victim.spawn(victim.pos);
 
-        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', reviver, victim);
-        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', victim);
+        const reviverInfo: AnimInfo = {
+            animDict: 'mini@cpr@char_a@cpr_str',
+            animName: 'cpr_pumpchest',
+            player: reviver
+        };
+        const victimInfo: AnimInfo = {
+            animDict: 'mini@cpr@char_b@cpr_str',
+            animName: 'cpr_pumpchest',
+            player: victim
+        };
+        alt.emitAllClients(DeathEvents.toClient.animation.play, reviverInfo, victimInfo);
 
         const interval = alt.setInterval(() => {
             if (!reviver || !victim || !reviver.valid || !victim.valid) { 
@@ -119,14 +143,14 @@ const Internal = {
         }
 
         if (data.victim  && data.victim.valid) {
+            data.victim.emit(DeathEvents.toClient.reviveComplete);
+            
             const document = Rebar.document.character.useCharacter(data.victim);
             if (document.isValid()) 
                 await document.setBulk({ health: 124, isDead: false, water: 100, food: 100, pos: data.victim.pos, dimension: data.victim.dimension });
 
             Rebar.player.useWorld(data.victim).setScreenFade(3000);
             Rebar.player.useWebview(data.victim).emit(DeathEvents.toClient.respawned);
-
-            data.victim.emit(DeathEvents.toClient.reviveComplete);
 
             alt.setTimeout(() => {
                 ActiveRevives.delete(charId);
@@ -187,7 +211,12 @@ const Internal = {
         if (TimeOfDeath.has(charId)) return;
 
         await document.set('isDead', true);
-        alt.emitAllClients(DeathEvents.toClient.animation.play, 'missfinale_c1@', 'lying_dead_player0', player);
+
+        alt.emitAllClients(DeathEvents.toClient.animation.play, {
+            player,
+            animDict: 'missfinale_c1@', 
+            animName: 'lying_dead_player0'
+        });
 
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());

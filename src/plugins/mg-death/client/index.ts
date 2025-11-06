@@ -51,6 +51,8 @@ const keyBinds: KeyInfo[] = [
     }
 ];
 
+type AnimInfo = { player: alt.Player | alt.LocalPlayer; animDict: string; animName: string };
+
 const keyBindApi = await useClientApi().getAsync('keyBinds-api');
 keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
 
@@ -65,41 +67,42 @@ async function loadAnimDict(dict: string): Promise<void> {
     }
 }
 
-async function playAnimation(player: alt.Player | alt.LocalPlayer, dict: string, name: string, flags: number = 1, blendInSpeed: number = 1.0, blendOutSpeed: number = -1.0, duration: number = -1, playbackRate: number = 1.0) {
-    if (!player || !player.valid) return;
+async function playAnimation(playerInfo: AnimInfo, flags: number = 1, blendInSpeed: number = 1.0, blendOutSpeed: number = -1.0, duration: number = -1, playbackRate: number = 1.0) {
+    if (!playerInfo.player || !playerInfo.player.valid) return;
 
-    await loadAnimDict(dict);
+    await loadAnimDict(playerInfo.animDict);
 
-    natives.clearPedTasksImmediately(player);
-    natives.taskPlayAnim(player, dict, name, blendInSpeed, blendOutSpeed, duration, flags, playbackRate, false, false, false);
+    natives.clearPedTasksImmediately(playerInfo.player);
+    natives.taskPlayAnim(playerInfo.player, playerInfo.animDict, playerInfo.animName, blendInSpeed, blendOutSpeed, duration, flags, playbackRate, false, false, false);
 }
 
-async function moveToAndPlayAnimation(player: alt.Player | alt.LocalPlayer, target: alt.Player, animDict: string, animName: string) {
-    if (!target || !target.valid) return;
+async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo) {
+    if (!playerInfo.player || !playerInfo.player.valid) return;
 
     // Brustkoordinaten des Zielspielers
-    const chestPos = natives.getPedBoneCoords(target, 24816, 0, 0, 0);
+    const chestPos = natives.getPedBoneCoords(playerInfo.player, 24816, 0, 0, 0);
 
     // Spieler läuft zum Brustkorb
-    natives.taskGoStraightToCoord(player, chestPos.x, chestPos.y, chestPos.z, 1.2, -1, 0.0, 0.0);
+    natives.taskGoStraightToCoord(playerInfo.player, chestPos.x, chestPos.y, chestPos.z, 1.2, -1, 0.0, 0.0);
 
     let attempts = 0;
     // Warten bis Spieler <= 1 Meter vom Brustkorb entfernt ist oder max. 200 Versuche
-    while (player.pos.distanceTo(chestPos) > 1.0 && attempts < 200) {
-        await alt.Utils.wait(1);
+    while (playerInfo.player.pos.distanceTo(chestPos) > 0.5 && attempts < 200) {
+        await alt.Utils.wait(10);
         attempts++;
     }
 
-    natives.clearPedTasks(player);
+    natives.clearPedTasks(playerInfo.player);
 
     // Spieler auf das Ziel ausrichten
-    const dx = chestPos.x - player.pos.x;
-    const dy = chestPos.y - player.pos.y;
+    const dx = chestPos.x - playerInfo.player.pos.x;
+    const dy = chestPos.y - playerInfo.player.pos.y;
     const heading = Math.atan2(dy, dx) * (180 / Math.PI);
-    natives.setEntityHeading(player, heading - 90);
+    natives.setEntityHeading(playerInfo.player, heading - 90);
 
     // Animation abspielen
-    await playAnimation(player, animDict, animName);
+    await playAnimation(playerInfo);
+    await playAnimation(targetInfo);
 }
 
 function stopAnimation(player: alt.Player | alt.LocalPlayer) {
@@ -107,11 +110,11 @@ function stopAnimation(player: alt.Player | alt.LocalPlayer) {
     natives.clearPedTasksImmediately(player);
 }
 
-alt.onServer(DeathEvents.toClient.animation.play, async (animDict: string, animName: string, player: alt.Player | alt.LocalPlayer, target?: alt.Player) => {
-    if (!player || !player.valid) return;
+alt.onServer(DeathEvents.toClient.animation.play, async (playerInfo: AnimInfo, targetInfo?: AnimInfo) => {
+    if (!playerInfo.player || !playerInfo.player.valid) return;
 
-    if (target) await moveToAndPlayAnimation(player, target, animDict, animName);
-    else await playAnimation(player, animDict, animName);
+    if (targetInfo) await moveToAndPlayAnimation(playerInfo, targetInfo);
+    else await playAnimation(playerInfo);
 });
 
 alt.onServer(DeathEvents.toClient.animation.stop, (target: alt.Player | alt.LocalPlayer) => {
