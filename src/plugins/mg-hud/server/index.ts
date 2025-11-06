@@ -52,7 +52,7 @@ alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character
     if (!allowedPlayerKeys.includes(key)) return;
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
-    
+
     Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
 
     if (key !== 'isDead') return;
@@ -124,12 +124,12 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
 });
 
 alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { isSprinting: boolean, isMoving: boolean, isJumping: boolean, isShooting: boolean }) => {
-    const playerData = Rebar.document.character.useCharacter(player);
-    if (!playerData.isValid()) return;
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return;
 
-    let food = playerData.getField('food') || 100;
-    let water = playerData.getField('water') || 100;
-    let health = playerData.getField('health') || 200;
+    let food = document.getField('food') || 100;
+    let water = document.getField('water') || 100;
+    let health = document.getField('health') || 200;
     let multiplier = 1;
 
     if (data.isSprinting || data.isMoving || data.isJumping || data.isShooting) {
@@ -139,8 +139,9 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
         multiplier += (data.isShooting ? HudConfig.actionMultipliers.shooting : 0);
     }
 
-    const foodDrain = playerData.getField('isDead') ? 0 : HudConfig.baseDrain.food * multiplier;
-    const waterDrain = playerData.getField('isDead') ? 0 : HudConfig.baseDrain.water * multiplier;
+    const id = document.getField('id');
+    const foodDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain.food * multiplier;
+    const waterDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain.water * multiplier;
 
     food = Math.max(food - foodDrain, 0);
     water = Math.max(water - waterDrain, 0);
@@ -155,7 +156,7 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
         health = Math.max(health - damage, 99);
     }
 
-    await playerData.setBulk({ food, water, health });
+    await document.setBulk({ id, food, water, health });
 });
 
 function handleSkipCreate(player: alt.Player): void {
