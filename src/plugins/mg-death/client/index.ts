@@ -84,6 +84,16 @@ alt.onServer(DeathEvents.toClient.stopTimer, () => {
     if (!canRespawn) canRespawn = true;
 });
 
+alt.onServer(DeathEvents.toClient.animation.play, (target: alt.Player, animDict: string, animName: string, easeIn: number = 8.0, easeOut: number = -8.0, duration: number = -1.0, flags: number = 1, playBackRate: number = 1.0) => {
+    natives.clearPedTasks(target.scriptID);
+    natives.taskPlayAnim(target.scriptID, animDict, animName, easeIn, easeOut, duration, flags, playBackRate, false, false, false);
+});
+
+alt.onServer(DeathEvents.toClient.animation.stop, (target: alt.Player) => {
+    natives.clearPedTasks(target.scriptID);
+});
+
+
 function getClosestPlayer(radius: number): alt.Player | null {
     let closest: alt.Player | null = null;
     let minDist = radius;

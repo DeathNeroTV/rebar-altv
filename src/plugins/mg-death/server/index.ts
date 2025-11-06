@@ -49,19 +49,18 @@ const Internal = {
         let progress = 0;
         reviver.emit(DeathEvents.toClient.startRevive);
         victim.emit(DeathEvents.toClient.startRevive);
+        victim.spawn(victim.pos);
+        victim.health = 124;
+        victim.clearTasks();
 
-        reviver.playAnimation('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 8.0, -8.0, DeathConfig.reviveTime, 1, 1.0, true, true, true);
-        victim.playAnimation('mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 8.0, -8.0, DeathConfig.reviveTime, 1, 1.0, true, true, true);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, reviver, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 8.0, -8.0, DeathConfig.reviveTime, 1, 1.0);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, victim, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 8.0, -8.0, DeathConfig.reviveTime, 1, 1.0);
 
         const interval = alt.setInterval(() => {
-            if (!reviver.valid || !victim.valid) {
-                Internal.stopRevive(reviver, victim);
-                return;
-            }
-
-            const distNow = Utility.vector.distance(reviver.pos, victim.pos);
-            if (distNow > 3.5) {
-                Internal.stopRevive(reviver, victim);
+            if (!reviver.valid || !victim.valid) { 
+                alt.clearInterval(interval);
+                if (ActiveRevives.has(charId))
+                    ActiveRevives.delete(charId);
                 return;
             }
 
@@ -79,37 +78,7 @@ const Internal = {
         ActiveRevives.set(charId, interval);
     },
 
-    stopRevive(reviver: alt.Player, victim: alt.Player) {
-        if (!reviver || !victim || !reviver.valid || !victim.valid) return;
-
-        const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid()) return;
-
-        const charId = victimData.getField('_id');
-
-        if (TimeOfDeath.has(charId))
-            TimeOfDeath.delete(charId);
-
-        if (ActiveRevives.has(charId)) {
-            if (ActiveRevives.get(charId)!) 
-                alt.clearInterval(ActiveRevives.get(charId)!);
-            ActiveRevives.delete(charId);
-        }
-
-        if (ActiveTimers.has(charId)) {
-            if (ActiveTimers.get(charId)!) 
-                alt.clearTimeout(ActiveTimers.get(charId)!);
-            ActiveTimers.delete(charId);
-        }
-
-        Rebar.player.useWebview(reviver).emit(DeathEvents.toClient.stopRevive);
-        Rebar.player.useWebview(victim).emit(DeathEvents.toClient.stopRevive);
-
-        victim.clearTasks();
-        reviver.clearTasks();
-    },
-
-    completeRevive(reviver: alt.Player, victim: alt.Player) {
+    async completeRevive(reviver: alt.Player, victim: alt.Player) {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
         
         const victimData = Rebar.document.character.useCharacter(victim);
@@ -132,19 +101,23 @@ const Internal = {
             ActiveTimers.delete(charId);
         }
 
-        victim.clearTasks();
-        reviver.clearTasks();
+        Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
+        Rebar.player.useState(victim).apply({ health: 124, dimension: victim.dimension, isDead: false, pos: victim.pos });
+        await victimData.setBulk({ health: 124, isDead: false, water: 100, food: 100 });
+
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, victim);
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver);
 
         reviver.emit(DeathEvents.toClient.reviveComplete);
         victim.emit(DeathEvents.toClient.reviveComplete);
-        Internal.respawn(victim, victim.pos);
+
     },
 
-    async respawn(player: alt.Player, pos?: alt.IVector3) {
+    async respawn(player: alt.Player) {
         if (!player || !player.valid) return;
 
         const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid || !document.getField('isDead')) return;
+        if (!document.isValid() || !document.getField('isDead')) return;
 
         const charId = document.getField('_id');
         
@@ -163,19 +136,11 @@ const Internal = {
             ActiveTimers.delete(charId);
         }
 
-        const newPosition = pos ?? Internal.getClosestHospital(player.pos);
-        await document.setBulk({ 
-            isDead: false, 
-            food: 100, 
-            water: 100, 
-            health: 124,
-            pos: new alt.Vector3(newPosition),
-            rot: player.rot,
-            dimension: player.dimension
-        });
+        const pos = Internal.getClosestHospital(player.pos);
+        await document.setBulk({ isDead: false, food: 100, water: 100, health: 124, pos, dimension: player.dimension });
 
         Rebar.player.useWorld(player).setScreenFade(3000);
-        player.spawn(newPosition.x, newPosition.y, newPosition.z, 2900);
+        player.spawn(pos.x, pos.y, pos.z, 2900);
         Rebar.player.useWebview(player).emit(DeathEvents.toClient.respawned);
 
         alt.setTimeout(() => {
@@ -195,6 +160,13 @@ const Internal = {
         if (TimeOfDeath.has(charId)) return;
 
         await document.set('isDead', true);
+
+        player.spawn(player.pos);
+        player.health = 124;
+        player.clearTasks();
+
+        alt.emitAllClients(DeathEvents.toClient.animation.play, player, 'dead', 'dead_e', 8.0, -8.0, DeathConfig.respawnTime, 1, 1.0);
+
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
         
