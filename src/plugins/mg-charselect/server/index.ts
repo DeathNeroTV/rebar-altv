@@ -150,7 +150,7 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
     Rebar.player.useWorld(player).enableControls();
     
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
-
+    player.pos = new alt.Vector3(character.pos);
     player.dimension = 0;
     player.frozen = false;
     player.invincible = false;
