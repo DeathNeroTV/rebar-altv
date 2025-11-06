@@ -38,9 +38,6 @@ const Internal = {
 
         const charId = victimData.getField('_id');
 
-        // Abbruch, falls schon ein Revive läuft
-        if (ActiveRevives.has(charId)) return;
-
         // Entfernung prüfen
         const distance = Utility.vector.distance(reviver.pos, victim.pos);
         if (distance > 3) return;
@@ -94,7 +91,7 @@ const Internal = {
             if (ActiveRevives.get(charId)!) 
                 alt.clearInterval(ActiveRevives.get(charId)!);
             ActiveRevives.delete(charId);
-        }        
+        }
 
         if (ActiveTimers.has(charId)) {
             if (ActiveTimers.get(charId)!) 
@@ -107,14 +104,12 @@ const Internal = {
         Rebar.player.useWorld(victim).setScreenFade(3000);
         Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
 
-        alt.emitAllClients(DeathEvents.toClient.animation.stop, victim);
-        alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver);
-
         reviver.emit(DeathEvents.toClient.reviveComplete);
         victim.emit(DeathEvents.toClient.reviveComplete);
 
         alt.setTimeout(() => {
             alt.emitAllClients(DeathEvents.toClient.animation.stop, victim);
+            alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver);
             Rebar.player.useWorld(victim).clearScreenFade(3000);
             Rebar.player.useState(victim).sync();
             victim.clearBloodDamage();

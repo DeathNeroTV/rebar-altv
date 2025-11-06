@@ -15,7 +15,6 @@ import '../translate/index.js';
 const { t } = useTranslate('de');
 const sessionKey = 'can-change-appearance';
 const Rebar = useRebar();
-const api = Rebar.useApi();
 
 export async function showAppearanceMenu(player: alt.Player) {
     player.setMeta(sessionKey, true);
@@ -60,8 +59,8 @@ function handleCharacterSelect(player: alt.Player, document: Character) {
 }
 
 async function init() {
-    await alt.Utils.waitFor(() => api.isReady('character-select-api'), 30000);
-    api.get('character-select-api').onSelect(handleCharacterSelect);
+    const charSelectApi = await Rebar.useApi().getAsync('character-select-api');
+    charSelectApi.onSelect(handleCharacterSelect);
     alt.onClient(CharacterCreatorEvents.toServer.saveAppearance, saveAppearance);
 }
 
