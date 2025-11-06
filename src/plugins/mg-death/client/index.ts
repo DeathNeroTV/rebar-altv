@@ -74,14 +74,43 @@ async function playAnimation(player: alt.Player | alt.LocalPlayer, dict: string,
     natives.taskPlayAnim(player, dict, name, blendInSpeed, blendOutSpeed, duration, flags, playbackRate, false, false, false);
 }
 
+async function moveToAndPlayAnimation(player: alt.Player | alt.LocalPlayer, target: alt.Player, animDict: string, animName: string, flags: number = 1, distance: number = 0.8) {
+    if (!target || !target.valid) return;
+    const targetPos = target.pos;
+    const forward = natives.getEntityForwardVector(target);
+    const chestOffset = {
+        x: targetPos.x - forward.x * distance,
+        y: targetPos.y - forward.y * distance,
+        z: targetPos.z
+    };
+
+    natives.taskGoStraightToCoord(player, chestOffset.x, chestOffset.y, chestOffset.z, 1.2, -1, 0.0, 0.0);
+    
+    let attempts = 0;
+    while (player.pos.distanceTo(chestOffset) > 0.4 && attempts < 200) {
+        await alt.Utils.wait(25);
+        attempts++;
+    }
+    natives.clearPedTasks(player);
+
+    const dx = targetPos.x - player.pos.x;
+    const dy = targetPos.y - player.pos.y;
+    const heading = Math.atan2(dy, dx) * (180 / Math.PI);
+    natives.setEntityHeading(player, heading - 90);
+
+    await playAnimation(player, animDict, animName, flags);
+}
+
 function stopAnimation(player: alt.Player | alt.LocalPlayer) {
     if (!player || !player.valid) return;
     natives.clearPedTasksImmediately(player);
 }
 
-alt.onServer(DeathEvents.toClient.animation.play, async (animDict: string, animName: string, target: alt.Player | alt.LocalPlayer) => {
-    if (!target || !target.valid) return;
-    await playAnimation(target, animDict, animName, 1);
+alt.onServer(DeathEvents.toClient.animation.play, async (animDict: string, animName: string, player: alt.Player | alt.LocalPlayer, target?: alt.Player) => {
+    if (!player || !player.valid) return;
+
+    if (target) await moveToAndPlayAnimation(player, target, animDict, animName);
+    else await playAnimation(player, animDict, animName);
 });
 
 alt.onServer(DeathEvents.toClient.animation.stop, (target: alt.Player | alt.LocalPlayer) => {

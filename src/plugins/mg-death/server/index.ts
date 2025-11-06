@@ -73,7 +73,7 @@ const Internal = {
         victim.emit(DeathEvents.toClient.startRevive);
         victim.spawn(victim.pos);
 
-        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', reviver);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', reviver, victim);
         alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', victim);
 
         const interval = alt.setInterval(() => {

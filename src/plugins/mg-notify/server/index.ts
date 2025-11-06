@@ -44,7 +44,7 @@ const handleCharacterCreated = (player: alt.Player) => {
 const handleCharacterCreateSkip = (player: alt.Player) => {
     sendCharacterNotification(
         player,
-        NotificationTypes.INFO,
+        NotificationTypes.SUCCESS,
         'notification.character.welcomeback.title',
         'notification.character.welcomeback.subtitle',
         'notification.character.welcomeback.message',
