@@ -49,14 +49,22 @@ const Internal = {
         return sortedByDistance[0];
     },
 
-    revivePlayer(reviver: alt.Player) {
-        if (!reviver || !reviver.valid) return;
-
-        const victim = alt.Utils.getClosestPlayer({ pos: reviver.pos, range: 3.0 });
-        if (!victim || !victim.valid) return;
+    startRevive(reviver: alt.Player, victim: alt.Player) {
+        if (!reviver || !reviver.valid) {
+            alt.logWarning('[mg-death][StartRevive]', 'Spieler nicht gefunden.');
+            return;
+        }
+        
+        if (!victim || !victim.valid) {
+            alt.logWarning('[mg-death][StartRevive]', 'Keine bewusstlose Person gefunden.');
+            return;
+        }
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid() || !victimData.getField('isDead')) return;
+        if (!victimData.isValid() || !victimData.getField('isDead')) {
+            alt.logWarning('[mg-death][StartRevive]', 'Spieler ist nicht bewusstlos.');
+            return;
+        }
 
         const victimId = victimData.getField('_id');
 
@@ -205,7 +213,7 @@ async function init() {
     alt.on('playerDeath', Internal.handleDeath);
 
     // Client Events
-    alt.onClient(DeathEvents.toServer.toggleRevive, Internal.revivePlayer);
+    alt.onClient(DeathEvents.toServer.toggleRevive, Internal.startRevive);
     alt.onClient(DeathEvents.toServer.toggleRespawn, Internal.respawn);
     alt.onClient(DeathEvents.toServer.toggleEms, (player: alt.Player) => {
         const victimData = Rebar.document.character.useCharacter(player);
