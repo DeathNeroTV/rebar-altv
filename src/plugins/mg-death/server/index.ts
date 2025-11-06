@@ -70,8 +70,8 @@ const Internal = {
         victim.emit(DeathEvents.toClient.startRevive);
         victim.spawn(victim.pos);
 
-        Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle', 1, 1.0, -1.0, 1.0);
-        Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle', 1, 1.0, -1.0, 1.0);
+        Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle', 8, 1.0, -1.0, 1.0);
+        Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle', 8, 1.0, -1.0, 1.0);
 
         const interval = alt.setInterval(() => {
             if (!reviver || !victim || !reviver.valid || !victim.valid) { 
@@ -185,8 +185,7 @@ const Internal = {
         if (TimeOfDeath.has(charId)) return;
 
         await document.set('isDead', true);
-
-        alt.emitAllClients(DeathEvents.toClient.animation.play, 'missfinale_c1@', 'lying_dead_player0', player);
+        Rebar.player.useAnimation(player).playInfinite('missfinale_c1@', 'lying_dead_player0', 8, 1.0, -1.0, 1.0);
 
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
