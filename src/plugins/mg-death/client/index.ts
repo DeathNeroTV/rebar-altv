@@ -59,8 +59,8 @@ async function loadAnimDict(dict: string): Promise<void> {
 
     natives.requestAnimDict(dict);
     let attempts = 0;
-    while (!natives.hasAnimDictLoaded(dict) && attempts < 100) {
-        await alt.Utils.wait(10);
+    while (!natives.hasAnimDictLoaded(dict) && attempts < 200) {
+        await alt.Utils.wait(1);
         attempts++;
     }
 }
@@ -76,28 +76,29 @@ async function playAnimation(player: alt.Player | alt.LocalPlayer, dict: string,
 
 async function moveToAndPlayAnimation(player: alt.Player | alt.LocalPlayer, target: alt.Player, animDict: string, animName: string) {
     if (!target || !target.valid) return;
-    const targetPos = target.pos;
-    const forward = natives.getEntityForwardVector(target);
-    const chestOffset = {
-        x: targetPos.x - forward.x * 0.8,
-        y: targetPos.y - forward.y * 0.8,
-        z: targetPos.z
-    };
 
-    natives.taskGoStraightToCoord(player, chestOffset.x, chestOffset.y, chestOffset.z, 1.2, -1, 0.0, 0.0);
-    
+    // Brustkoordinaten des Zielspielers
+    const chestPos = natives.getPedBoneCoords(target, 24816, 0, 0, 0);
+
+    // Spieler läuft zum Brustkorb
+    natives.taskGoStraightToCoord(player, chestPos.x, chestPos.y, chestPos.z, 1.2, -1, 0.0, 0.0);
+
     let attempts = 0;
-    while (player.pos.distanceTo(chestOffset) > 1.4 && attempts < 200) {
-        await alt.Utils.wait(25);
+    // Warten bis Spieler <= 1 Meter vom Brustkorb entfernt ist oder max. 200 Versuche
+    while (player.pos.distanceTo(chestPos) > 1.0 && attempts < 200) {
+        await alt.Utils.wait(1);
         attempts++;
     }
+
     natives.clearPedTasks(player);
 
-    const dx = targetPos.x - player.pos.x;
-    const dy = targetPos.y - player.pos.y;
+    // Spieler auf das Ziel ausrichten
+    const dx = chestPos.x - player.pos.x;
+    const dy = chestPos.y - player.pos.y;
     const heading = Math.atan2(dy, dx) * (180 / Math.PI);
     natives.setEntityHeading(player, heading - 90);
 
+    // Animation abspielen
     await playAnimation(player, animDict, animName);
 }
 
