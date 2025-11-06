@@ -53,8 +53,8 @@ const Internal = {
         victim.health = 124;
         victim.clearTasks();
 
-        alt.emitAllClients(DeathEvents.toClient.animation.play, reviver, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 8.0, -8.0, -1, 1, 1.0);
-        alt.emitAllClients(DeathEvents.toClient.animation.play, victim, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 8.0, -8.0, -1, 1, 1.0);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, reviver.id, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 8.0, -8.0, -1, 1, 1.0);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, victim.id, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 8.0, -8.0, -1, 1, 1.0);
 
         const interval = alt.setInterval(() => {
             if (!reviver.valid || !victim.valid) { 
@@ -107,8 +107,8 @@ const Internal = {
         victim.spawn(victim.pos.x, victim.pos.y, victim.pos.z, 2900);
         Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
 
-        alt.emitAllClients(DeathEvents.toClient.animation.stop, victim);
-        alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver);
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, victim.id);
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver.id);
 
         reviver.emit(DeathEvents.toClient.reviveComplete);
         victim.emit(DeathEvents.toClient.reviveComplete);
