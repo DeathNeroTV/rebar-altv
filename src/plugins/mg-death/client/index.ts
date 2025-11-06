@@ -74,20 +74,20 @@ async function playAnimation(player: alt.Player | alt.LocalPlayer, dict: string,
     natives.taskPlayAnim(player, dict, name, blendInSpeed, blendOutSpeed, duration, flags, playbackRate, false, false, false);
 }
 
-async function moveToAndPlayAnimation(player: alt.Player | alt.LocalPlayer, target: alt.Player, animDict: string, animName: string, flags: number = 1, distance: number = 0.8) {
+async function moveToAndPlayAnimation(player: alt.Player | alt.LocalPlayer, target: alt.Player, animDict: string, animName: string) {
     if (!target || !target.valid) return;
     const targetPos = target.pos;
     const forward = natives.getEntityForwardVector(target);
     const chestOffset = {
-        x: targetPos.x - forward.x * distance,
-        y: targetPos.y - forward.y * distance,
+        x: targetPos.x - forward.x * 0.8,
+        y: targetPos.y - forward.y * 0.8,
         z: targetPos.z
     };
 
     natives.taskGoStraightToCoord(player, chestOffset.x, chestOffset.y, chestOffset.z, 1.2, -1, 0.0, 0.0);
     
     let attempts = 0;
-    while (player.pos.distanceTo(chestOffset) > 0.4 && attempts < 200) {
+    while (player.pos.distanceTo(chestOffset) > 1.4 && attempts < 200) {
         await alt.Utils.wait(25);
         attempts++;
     }
@@ -98,7 +98,7 @@ async function moveToAndPlayAnimation(player: alt.Player | alt.LocalPlayer, targ
     const heading = Math.atan2(dy, dx) * (180 / Math.PI);
     natives.setEntityHeading(player, heading - 90);
 
-    await playAnimation(player, animDict, animName, flags);
+    await playAnimation(player, animDict, animName);
 }
 
 function stopAnimation(player: alt.Player | alt.LocalPlayer) {
