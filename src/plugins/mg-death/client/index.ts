@@ -81,20 +81,3 @@ alt.onServer(DeathEvents.toClient.stopTimer, () => {
     view.emit(DeathEvents.toClient.stopTimer, 0);
     if (!canRespawn) canRespawn = true;
 });
-
-alt.onServer(DeathEvents.toClient.animation.play, async (animDict: string, animName: string, player: alt.Player | alt.LocalPlayer = alt.Player.local) => {
-    natives.clearPedTasksImmediately(player);
-    if (!natives.hasAnimDictLoaded(animDict)) {
-        natives.requestAnimDict(animDict);
-        while (!natives.hasAnimDictLoaded(animDict)) {
-            await alt.Utils.wait(10);
-        }
-    }
-
-    natives.taskPlayAnim(player, animDict, animName, 8.0, -8.0, -1, 1, 1.0, true, true, true);
-});
-
-alt.onServer(DeathEvents.toClient.animation.stop, (player: alt.Player | alt.LocalPlayer = alt.Player.local) => {
-    natives.clearPedTasksImmediately(player);
-    natives.clearPedTasks(player);
-});

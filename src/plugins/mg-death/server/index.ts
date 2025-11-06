@@ -69,13 +69,12 @@ const Internal = {
         reviver.emit(DeathEvents.toClient.startRevive);
         victim.emit(DeathEvents.toClient.startRevive);
         victim.spawn(victim.pos);
-        victim.health = 124;
-        
-        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle', reviver);
-        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle', victim);
+
+        Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle', 1, 1.0, -1.0, 1.0);
+        Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle', 1, 1.0, -1.0, 1.0);
 
         const interval = alt.setInterval(() => {
-            if (!reviver.valid || !victim.valid) { 
+            if (!reviver || !victim || !reviver.valid || !victim.valid) { 
                 alt.clearInterval(interval);
                 if (ActiveRevives.has(victimId))
                     ActiveRevives.delete(victimId);
@@ -84,7 +83,7 @@ const Internal = {
 
             progress += 5;
 
-            if (progress >= 100) {
+            if (progress > 100) {
                 Internal.completeRevive(victimId);
                 return;
             }
@@ -109,12 +108,11 @@ const Internal = {
         if (!ActiveRevives.has(charId)) return;
 
         const data = ActiveRevives.get(charId);
-        if (data.interval) 
-            alt.clearInterval(data.interval);
+        if (data.interval) alt.clearInterval(data.interval);
 
         if (data.reviver && data.reviver.valid) {
             data.reviver.emit(DeathEvents.toClient.reviveComplete);
-            alt.setTimeout(() => alt.emitAllClients(DeathEvents.toClient.animation.stop, data.reviver), 3500);
+            alt.setTimeout(() => data.reviver.clearTasks(), 3500);
         }
 
         if (data.victim  && data.victim.valid) {
@@ -126,11 +124,13 @@ const Internal = {
             Rebar.player.useWebview(data.victim).emit(DeathEvents.toClient.respawned);
 
             data.victim.emit(DeathEvents.toClient.reviveComplete);
-            alt.setTimeout(() => {                
-                alt.emitAllClients(DeathEvents.toClient.animation.stop, data.victim);
+
+            alt.setTimeout(() => {
+                data.victim.clearTasks();
                 Rebar.player.useWorld(data.victim).clearScreenFade(3000);
                 Rebar.player.useState(data.victim).sync();
                 data.victim.clearBloodDamage();
+                ActiveRevives.delete(charId);
             }, 3500);
         }
     },
