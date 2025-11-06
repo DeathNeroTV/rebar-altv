@@ -169,7 +169,7 @@ const Internal = {
         if (TimeOfDeath.has(charId)) return;
 
         await document.set('isDead', true);
-        alt.emitAllClients(DeathEvents.toClient.animation.play, player, 'dead', 'dead_e', 8.0, -8.0, -1, 1, 1.0);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, player.id, 'dead', 'dead_e', 8.0, -8.0, -1, 1, 1.0);
 
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
