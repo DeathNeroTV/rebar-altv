@@ -31,7 +31,7 @@ const keyBinds: KeyInfo[] = [
         identifier: 'emergency-call',
         keyDown: () => {
             if (calledEMS || isReviving || !alt.Player.local.isDead) return;
-            alt.emitServer(DeathEvents.toServer.callEms);
+            alt.emitServer(DeathEvents.toServer.toggleEms);
             calledEMS = true;
         },
         allowIfDead: true,
@@ -42,9 +42,7 @@ const keyBinds: KeyInfo[] = [
         description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
         identifier: 'emergency-revive',
         keyDown: () => {
-            const closest = alt.Utils.getClosestPlayer({ range: 3.0 });
-            if (isReviving || alt.Player.local.isDead || !closest || !closest.valid || !closest.isDead) return;
-            alt.emitServer(DeathEvents.toServer.reviveTarget, closest);
+            alt.emitServer(DeathEvents.toServer.toggleRevive);
             isReviving = true;
         },
         restrictions: { isOnFoot: true }
@@ -53,6 +51,42 @@ const keyBinds: KeyInfo[] = [
 
 const keyBindApi = await useClientApi().getAsync('keyBinds-api');
 keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
+
+async function loadAnimDict(dict: string): Promise<void> {
+    if (natives.hasAnimDictLoaded(dict)) return;
+
+    natives.requestAnimDict(dict);
+    let attempts = 0;
+    while (!natives.hasAnimDictLoaded(dict) && attempts < 100) {
+        await alt.Utils.wait(10);
+        attempts++;
+    }
+}
+
+async function playAnimation(player: alt.Player | alt.LocalPlayer, dict: string, name: string, flags: number = 1, blendInSpeed: number = 8.0, blendOutSpeed: number = -8.0, duration: number = -1, playbackRate: number = 1.0) {
+    if (!player || !player.valid) return;
+
+    await loadAnimDict(dict);
+
+    natives.clearPedTasksImmediately(player);
+    natives.taskPlayAnim(player, dict, name, blendInSpeed, blendOutSpeed, duration, flags, playbackRate, false, false, false);
+}
+
+function stopAnimation(player: alt.Player | alt.LocalPlayer) {
+    if (!player || !player.valid) return;
+    natives.clearPedTasksImmediately(player);
+}
+
+alt.onServer(DeathEvents.toClient.animation.play, async (animDict: string, animName: string, target: alt.Player | alt.LocalPlayer) => {
+    if (!target || !target.valid) return;
+
+    await playAnimation(target, animDict, animName, 1);
+});
+
+alt.onServer(DeathEvents.toClient.animation.stop, (target: alt.Player | alt.LocalPlayer) => {
+    if (!target || !target.valid) return;
+    stopAnimation(target);
+});
 
 alt.onServer(DeathEvents.toClient.reviveProgress, (progress: number) => {
     view.emit(DeathEvents.toClient.reviveProgress, progress);

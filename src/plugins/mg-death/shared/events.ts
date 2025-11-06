@@ -1,9 +1,9 @@
 export const DeathEvents = {
     toServer: {
-        toggleRespawn: 'mg-death:screen:respawn',
-        callEms: 'mg-death:screen:call:ems',
         startRevive: 'mg-death:screen:revive:start',
-        reviveTarget: 'mg-death:screen:revive:target',
+        toggleRespawn: 'mg-death:toggle:respawn',
+        toggleEms: 'mg-death:toggle:ems',
+        toggleRevive: 'mg-death:toggle:revive',
     },
     toClient: {
         animation: { play: 'mg-death:animation:play', stop: 'mg-death:animation:stop' },

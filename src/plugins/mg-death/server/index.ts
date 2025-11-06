@@ -19,28 +19,24 @@ const Internal = {
         if (!document.isValid()) return;
 
         Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
-        Internal.syncDeathAndReviveStates(player);
+        Internal.handleSyncDeathsAndRevives(player);
     },
 
-    syncDeathAndReviveStates(player: alt.Player) {
-        // 1️⃣ Tote Spieler synchronisieren
+    handleSyncDeathsAndRevives(player: alt.Player) {
         for (const [charId] of TimeOfDeath.entries()) {
-            if (ActiveRevives.has(charId)) continue;
             const deadPlayer = [...alt.Player.all].find(p => {
                 const doc = Rebar.document.character.useCharacter(p);
-                if (!doc.isValid()) return false;
-                return doc.getField('_id') === charId;
+                return doc.isValid() && !ActiveRevives.has(charId) && doc.getField('_id') === charId;
             });
 
             if (!deadPlayer || !deadPlayer.valid) continue;
             player.emit(DeathEvents.toClient.animation.play, 'missfinale_c1@', 'lying_dead_player0', deadPlayer);
         }
 
-        // 2️⃣ Laufende Revives synchronisieren
         for (const [_, data] of ActiveRevives.entries()) {
-            if (!data.victim || !data.reviver || !data.victim.valid || !data.reviver.valid) continue;
-            player.emit(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle');
-            player.emit(DeathEvents.toClient.animation.play, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle', data.victim);
+            if (!data.victim || !data.victim.valid || !data.reviver || !data.reviver.valid) continue;
+            player.emit(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', data.reviver);
+            player.emit(DeathEvents.toClient.animation.play, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', data.victim);
         }
     },
 
@@ -53,16 +49,16 @@ const Internal = {
         return sortedByDistance[0];
     },
 
-    revivePlayer(reviver: alt.Player, victim: alt.Player) {
-        if (!reviver || !victim || !reviver.valid || !victim.valid) return;
+    revivePlayer(reviver: alt.Player) {
+        if (!reviver || !reviver.valid) return;
+
+        const victim = alt.Utils.getClosestPlayer({ pos: reviver.pos, range: 3.0 });
+        if (!victim || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid()) return;
+        if (!victimData.isValid() || !victimData.getField('isDead')) return;
 
         const victimId = victimData.getField('_id');
-
-        const distance = Utility.vector.distance(reviver.pos, victim.pos);
-        if (distance > 3) return;
 
         // Start der Progress-Animation
         let progress = 0;
@@ -70,8 +66,8 @@ const Internal = {
         victim.emit(DeathEvents.toClient.startRevive);
         victim.spawn(victim.pos);
 
-        Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle', 8, 1.0, -1.0, 1.0);
-        Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle', 8, 1.0, -1.0, 1.0);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest', reviver);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest', victim);
 
         const interval = alt.setInterval(() => {
             if (!reviver || !victim || !reviver.valid || !victim.valid) { 
@@ -112,7 +108,7 @@ const Internal = {
 
         if (data.reviver && data.reviver.valid) {
             data.reviver.emit(DeathEvents.toClient.reviveComplete);
-            alt.setTimeout(() => Rebar.player.useAnimation(data.reviver).clear(), 3500);
+            alt.setTimeout(() => alt.emitAllClients(DeathEvents.toClient.animation.stop, data.reviver), 3500);
         }
 
         if (data.victim  && data.victim.valid) {
@@ -129,7 +125,7 @@ const Internal = {
                 ActiveRevives.delete(charId);
                 if (!data.victim || !data.victim.valid) return;
                 
-                Rebar.player.useAnimation(data.victim).clear();
+                alt.emitAllClients(DeathEvents.toClient.animation.stop, data.victim);
                 Rebar.player.useWorld(data.victim).clearScreenFade(3000);
                 Rebar.player.useState(data.victim).sync();
                 data.victim.clearBloodDamage();
@@ -185,7 +181,7 @@ const Internal = {
         if (TimeOfDeath.has(charId)) return;
 
         await document.set('isDead', true);
-        Rebar.player.useAnimation(player).playInfinite('missfinale_c1@', 'lying_dead_player0', 8, 1.0, -1.0, 1.0);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, 'missfinale_c1@', 'lying_dead_player0', player);
 
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
@@ -209,9 +205,9 @@ async function init() {
     alt.on('playerDeath', Internal.handleDeath);
 
     // Client Events
-    alt.onClient(DeathEvents.toServer.reviveTarget, Internal.revivePlayer);
+    alt.onClient(DeathEvents.toServer.toggleRevive, Internal.revivePlayer);
     alt.onClient(DeathEvents.toServer.toggleRespawn, Internal.respawn);
-    alt.onClient(DeathEvents.toServer.callEms, (player: alt.Player) => {
+    alt.onClient(DeathEvents.toServer.toggleEms, (player: alt.Player) => {
         const victimData = Rebar.document.character.useCharacter(player);
         if (!victimData) return;
 
