@@ -115,7 +115,7 @@ const Internal = {
 
         if (data.reviver && data.reviver.valid) {
             data.reviver.emit(DeathEvents.toClient.reviveComplete);
-            alt.setTimeout(() => alt.emitAllClients(DeathEvents.toClient.animation.stop, data.reviver), 3500);
+            alt.emitAllClients(DeathEvents.toClient.animation.stop, data.reviver);
         }
 
         if (data.victim  && data.victim.valid) {
@@ -131,12 +131,11 @@ const Internal = {
             alt.setTimeout(() => {
                 ActiveRevives.delete(charId);
                 if (!data.victim || !data.victim.valid) return;
-                
                 alt.emitAllClients(DeathEvents.toClient.animation.stop, data.victim);
                 Rebar.player.useWorld(data.victim).clearScreenFade(3000);
                 Rebar.player.useState(data.victim).sync();
                 data.victim.clearBloodDamage();
-            }, 3500);
+            }, 3100);
         }
     },
 

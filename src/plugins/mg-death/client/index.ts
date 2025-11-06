@@ -65,7 +65,7 @@ async function loadAnimDict(dict: string): Promise<void> {
     }
 }
 
-async function playAnimation(player: alt.Player | alt.LocalPlayer, dict: string, name: string, flags: number = 1, blendInSpeed: number = 8.0, blendOutSpeed: number = -8.0, duration: number = -1, playbackRate: number = 1.0) {
+async function playAnimation(player: alt.Player | alt.LocalPlayer, dict: string, name: string, flags: number = 1, blendInSpeed: number = 1.0, blendOutSpeed: number = -1.0, duration: number = -1, playbackRate: number = 1.0) {
     if (!player || !player.valid) return;
 
     await loadAnimDict(dict);
