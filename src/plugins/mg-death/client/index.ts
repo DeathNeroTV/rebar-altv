@@ -82,7 +82,7 @@ alt.onServer(DeathEvents.toClient.stopTimer, () => {
     if (!canRespawn) canRespawn = true;
 });
 
-alt.onServer(DeathEvents.toClient.animation.play, async (player: alt.Player, animDict: string, animName: string, easeIn: number = 1.0, easeOut: number = 1.0, duration: number = -1, flags: number = 9, playBackRate: number = 1.0) => {
+alt.onServer(DeathEvents.toClient.animation.play, (player: alt.Player, animDict: string, animName: string, easeIn: number = 1.0, easeOut: number = 1.0, duration: number = -1, flags: number = 9, playBackRate: number = 1.0) => {
     if (!natives.hasAnimDictLoaded(animDict)) 
         natives.requestAnimDict(animDict);
 
