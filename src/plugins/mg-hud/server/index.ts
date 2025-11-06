@@ -33,6 +33,10 @@ const allowedVehicleKeys: (keyof Vehicle)[] = [
     'stateProps',
 ];
 
+alt.onRpc(HudEvents.toServer.fetchId, (player: alt.Player) => {
+    return Rebar.document.character.useCharacter(player)?.getField('id') ?? 0;
+});
+
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
     players.forEach((player: alt.Player) => {
@@ -139,9 +143,8 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
         multiplier += (data.isShooting ? HudConfig.actionMultipliers.shooting : 0);
     }
 
-    const id = document.getField('id');
-    const foodDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain.food * multiplier;
-    const waterDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain.water * multiplier;
+    const foodDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain * multiplier;
+    const waterDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain * multiplier;
 
     food = Math.max(food - foodDrain, 0);
     water = Math.max(water - waterDrain, 0);
@@ -156,7 +159,7 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
         health = Math.max(health - damage, 99);
     }
 
-    await document.setBulk({ id, food, water, health });
+    await document.setBulk({ food, water, health });
 });
 
 function handleSkipCreate(player: alt.Player): void {

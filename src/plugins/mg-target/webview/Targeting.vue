@@ -1,6 +1,6 @@
 <template>
-    <div v-if="isActive" class="w-screen h-screen flex items-center justify-center">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-row gap-2 justify-between items-center text-center select-none">
+    <div v-if="isActive" class="absolute top-0 left-0 w-screen h-screen flex items-center justify-center">
+        <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-row gap-2 justify-between items-center text-center select-none z-50">
             <font-awesome-icon :icon="['fas', 'eye']" class="rounded-full h-12 w-12 shadow-[0_0_25px_#00873640]" :class="hasTarget ? 'text-[#008736]/90' : 'text-neutral-950/90'" />
 
             <Transition name="fade">
