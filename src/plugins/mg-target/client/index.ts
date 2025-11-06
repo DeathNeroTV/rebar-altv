@@ -24,6 +24,8 @@ const keyBinds: KeyInfo[] = [
             if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             isTargetingActive = true;
             view.emit(TargetingEvents.toClient.showTarget);
+            Rebar.player.useControls().setControls(false);
+            Rebar.player.useControls().setCameraFrozen(true);
         },
         keyUp: () => {
             if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
@@ -31,6 +33,7 @@ const keyBinds: KeyInfo[] = [
             currentTarget = null;
             view.emit(TargetingEvents.toClient.hideTarget);
             Rebar.player.useControls().setControls(true);
+            Rebar.player.useControls().setCameraFrozen(false);
         },
         restrictions: { isOnFoot: true }
     },
@@ -49,10 +52,8 @@ const keyBinds: KeyInfo[] = [
     },
 ];
 
-alt.on('connectionComplete', async() => {
-    const keyBindApi = await useClientApi().getAsync('keyBinds-api');
-    keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
-});
+const keyBindApi = await useClientApi().getAsync('keyBinds-api');
+keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
 
 alt.onServer(TargetingEvents.toClient.listTargets, (list: TargetDefinition[]) => {
     targets = list;

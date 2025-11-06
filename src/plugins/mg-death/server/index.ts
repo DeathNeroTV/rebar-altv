@@ -34,7 +34,7 @@ const Internal = {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid() || !victimData.getField('isDead')) return;
+        if (!victimData.isValid()) return;
 
         const charId = victimData.getField('_id');
 
@@ -50,11 +50,8 @@ const Internal = {
         reviver.emit(DeathEvents.toClient.startRevive);
         victim.emit(DeathEvents.toClient.startRevive);
 
-        Rebar.player.useNative(reviver).invoke('taskTurnPedToFaceEntity', reviver.id, victim.id, 1000);
-        alt.setTimeout(() => {            
-            Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_def', 'cpr_pumpchest', 49);
-            Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_def', 'cpr_pumpchest', 49);
-        }, 1100);
+        reviver.playAnimation('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 8.0, -8.0, DeathConfig.reviveTime, 1, 1.0, true, true, true);
+        victim.playAnimation('mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 8.0, -8.0, DeathConfig.reviveTime, 1, 1.0, true, true, true);
 
         const interval = alt.setInterval(() => {
             if (!reviver.valid || !victim.valid) {
@@ -86,7 +83,7 @@ const Internal = {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
 
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid || !victimData.getField('isDead')) return;
+        if (!victimData.isValid()) return;
 
         const charId = victimData.getField('_id');
 
@@ -105,15 +102,18 @@ const Internal = {
             ActiveTimers.delete(charId);
         }
 
-        if (reviver && reviver.valid) Rebar.player.useWebview(reviver).emit(DeathEvents.toClient.stopRevive);
-        if (victim && victim.valid) Rebar.player.useWebview(victim).emit(DeathEvents.toClient.stopRevive);
+        Rebar.player.useWebview(reviver).emit(DeathEvents.toClient.stopRevive);
+        Rebar.player.useWebview(victim).emit(DeathEvents.toClient.stopRevive);
+
+        victim.clearTasks();
+        reviver.clearTasks();
     },
 
     completeRevive(reviver: alt.Player, victim: alt.Player) {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
         
         const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid || !victimData.getField('isDead')) return;
+        if (!victimData.isValid()) return;
 
         const charId = victimData.getField('_id');
 
@@ -132,8 +132,8 @@ const Internal = {
             ActiveTimers.delete(charId);
         }
 
-        Rebar.player.useAnimation(victim).clear();
-        Rebar.player.useAnimation(reviver).clear();
+        victim.clearTasks();
+        reviver.clearTasks();
 
         reviver.emit(DeathEvents.toClient.reviveComplete);
         victim.emit(DeathEvents.toClient.reviveComplete);

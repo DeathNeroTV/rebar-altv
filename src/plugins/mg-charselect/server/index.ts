@@ -30,9 +30,7 @@ async function showSelection(player: alt.Player, attempts = 0) {
         return;
     }
 
-    if (!player.getMeta(sessionKey)) {
-        return;
-    }
+    if (!player.getMeta(sessionKey)) return;
 
     const accDocument = Rebar.document.account.useAccount(player);
     if (!accDocument) {
@@ -53,7 +51,7 @@ async function showSelection(player: alt.Player, attempts = 0) {
     const result = await webview.isReady('CharacterSelect', 'page');
     if (!result) {
         attempts++;
-        showSelection(player, attempts);
+        await showSelection(player, attempts);
         return;
     }
 
@@ -125,7 +123,7 @@ async function handleUsernameSubmit(player: alt.Player, first: string, last: str
         return;
     }
 
-    showSelection(player);
+    await showSelection(player);
 }
 
 async function getCharacter(player: alt.Player, id: string): Promise<Character | undefined> {
@@ -205,22 +203,28 @@ async function handleLogin(player: alt.Player) {
 
     player.dimension = player.id + 1;
     player.setMeta(sessionKey, true);
-    showSelection(player);
+    await showSelection(player);
 }
 
 async function handleLogout(player: alt.Player) {
+    if (!player || !player.valid) return;
+
     if (player.hasMeta(sessionKey)) return;
+    
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
+    
     Rebar.player.useState(player).save();
     alt.log('[Logout]', `Die Daten von ${document.getField('name').replace('_', ' ')} wurden gespeichert.`);
 
     Rebar.document.character.useCharacterBinder(player).unbind();
-    handleLogin(player);
+    await handleLogin(player);
 }
 
 // --- Disconnect ---
 function handleDisconnect(player: alt.Player, reason: string) {
+    if (!player || !player.valid) return;
+
     if (player.hasMeta(sessionKey)) return;
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
