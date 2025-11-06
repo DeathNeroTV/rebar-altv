@@ -1,8 +1,8 @@
 export const HudConfig = {
     timePerSecond: 30,
     baseDrain: { 
-        food: 0.0, 
-        water: 0.0 
+        food: 0.005, 
+        water: 0.01 
     },
     actionMultipliers: {
         sprinting: 2.0,

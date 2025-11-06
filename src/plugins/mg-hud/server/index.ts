@@ -21,7 +21,7 @@ const allowedPlayerKeys: (keyof Character)[] = [
     'health',
     'voiceRange',
     'isDead',
-    'weapon'
+    'weapon',
 ];
 
 const allowedVehicleKeys: (keyof Vehicle)[] = [
@@ -32,14 +32,6 @@ const allowedVehicleKeys: (keyof Vehicle)[] = [
     'rpm',
     'stateProps',
 ];
-
-alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
-    if (!allowedPlayerKeys.includes(key)) return;
-    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
-
-    if (key !== 'isDead') return;
-    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updateDead, value);
-});
 
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
@@ -54,6 +46,17 @@ alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
         player.setDateTime(day, month, year, h, m, s);
         Rebar.player.useWebview(player).emit(HudEvents.toWebview.syncTime, hour, minute, second);
     });
+});
+
+alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
+    if (!allowedPlayerKeys.includes(key)) return;
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return;
+    
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
+
+    if (key !== 'isDead') return;
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updateDead, value);
 });
 
 alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value: any) => {
@@ -76,7 +79,7 @@ alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: num
     Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, false);
 });
 
-alt.on('playerWeaponChange', (player: alt.Player, oldWeapon: number, newWeapon: number) => {
+alt.on('playerWeaponChange', async(player: alt.Player, oldWeapon: number, newWeapon: number) => {
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
 
@@ -88,19 +91,14 @@ alt.on('playerWeaponChange', (player: alt.Player, oldWeapon: number, newWeapon: 
         tintIndex: player.currentWeaponTintIndex
     };
 
-    document.set('weapon', weapon);
+    await document.set('weapon', weapon);
 });
 
-alt.on('playerDamage', (victim: alt.Player, attacker: alt.Entity, healthDamage: number, armourDamage: number, weaponHash: number) => {
-    
+alt.on('playerDamage', async (victim: alt.Player, attacker: alt.Entity, healthDamage: number, armourDamage: number, weaponHash: number) => {
     const document = Rebar.document.character.useCharacter(victim);
     if (!document.isValid() || document.getField('isDead')) return;
 
-    document.setBulk({
-        health: Math.max(99, victim.health),
-        armour: Math.max(0, victim.armour),
-    });
-
+    await document.setBulk({ health: Math.max(99, victim.health), armour: Math.max(0, victim.armour) });
     alt.log('[PlayerDamage]', `${document.getField('name').replaceAll('_', ' ')} hat Schaden erlitten.`);
 });
 
@@ -125,9 +123,9 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
     });
 });
 
-alt.onClient(HudEvents.toServer.updateStats, (player: alt.Player, data: { isSprinting: boolean, isMoving: boolean, isJumping: boolean, isShooting: boolean }) => {
+alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { isSprinting: boolean, isMoving: boolean, isJumping: boolean, isShooting: boolean }) => {
     const playerData = Rebar.document.character.useCharacter(player);
-    if (!playerData.isValid() || playerData.getField('isDead')) return;
+    if (!playerData.isValid()) return;
 
     let food = playerData.getField('food') || 100;
     let water = playerData.getField('water') || 100;
@@ -157,16 +155,13 @@ alt.onClient(HudEvents.toServer.updateStats, (player: alt.Player, data: { isSpri
         health = Math.max(health - damage, 99);
     }
 
-    playerData.setBulk({ food, water, health });
-    Rebar.player.useState(player).apply({ health });
+    await playerData.setBulk({ food, water, health });
 });
 
 function handleSkipCreate(player: alt.Player): void {
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
     Rebar.player.useWebview(player).show('Hud', 'overlay');
-    const character = document.get();
-    Object.keys(character).forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value: character[key] }));
 }
 
 async function init() {

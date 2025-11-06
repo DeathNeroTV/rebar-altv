@@ -150,7 +150,10 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
     Rebar.document.character.useCharacterBinder(player, true).bind(character);
     Rebar.player.useWebview(player).hide('CharacterSelect');
     Rebar.player.useWorld(player).enableControls();
+    
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
+
+    player.dimension = 0;
     player.frozen = false;
     player.invincible = false;
     player.deleteMeta(sessionKey);
