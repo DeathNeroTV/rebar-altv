@@ -35,7 +35,7 @@ const Internal = {
 
             player.emit(DeathEvents.toClient.animation.play, {
                 animDict: 'missfinale_c1@',
-                animName: 'cpr_pumpchest',
+                animName: 'lying_dead_player0',
                 player: deadPlayer
             });
         }
@@ -98,6 +98,7 @@ const Internal = {
             animName: 'cpr_pumpchest',
             player: victim
         };
+        
         alt.emitAllClients(DeathEvents.toClient.animation.play, reviverInfo, victimInfo);
 
         const interval = alt.setInterval(() => {

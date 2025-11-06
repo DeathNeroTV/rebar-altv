@@ -77,10 +77,10 @@ async function playAnimation(playerInfo: AnimInfo, flags: number = 1, blendInSpe
 }
 
 async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo) {
-    if (!playerInfo.player || !playerInfo.player.valid) return;
+    if (!playerInfo.player || !playerInfo.player.valid || !targetInfo.player || !targetInfo.player.valid) return;
 
     // Brustkoordinaten des Zielspielers
-    const chestPos = natives.getPedBoneCoords(playerInfo.player, 24816, 0, 0, 0);
+    const chestPos = natives.getPedBoneCoords(targetInfo.player, 24816, 0, 0, 0);
 
     // Spieler läuft zum Brustkorb
     natives.taskGoStraightToCoord(playerInfo.player, chestPos.x, chestPos.y, chestPos.z, 1.2, -1, 0.0, 0.0);
