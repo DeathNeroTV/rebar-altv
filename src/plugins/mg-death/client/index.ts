@@ -42,9 +42,8 @@ const keyBinds: KeyInfo[] = [
         description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
         identifier: 'emergency-revive',
         keyDown: () => {
-            const closest = alt.Utils.getClosestPlayer({ pos: alt.Player.local.pos, range: 3.0 });
-            if (isReviving || alt.Player.local.isDead) return;
-            if (!closest || closest.valid || !closest.isDead) return;
+            const closest = alt.Utils.getClosestPlayer({ range: 3.0 });
+            if (isReviving || alt.Player.local.isDead || !closest || !closest.valid || !closest.isDead) return;
             alt.emitServer(DeathEvents.toServer.reviveTarget, closest);
             isReviving = true;
         },
@@ -84,17 +83,12 @@ alt.onServer(DeathEvents.toClient.stopTimer, () => {
 });
 
 alt.onServer(DeathEvents.toClient.animation.play, async (player: alt.Player, animDict: string, animName: string, easeIn: number = 1.0, easeOut: number = 1.0, duration: number = -1, flags: number = 9, playBackRate: number = 1.0) => {
-    const scriptID = alt.Player.local.id === player.id ? alt.Player.local.scriptID : player.scriptID;
-    if (!natives.hasAnimDictLoaded(animDict)) {
+    if (!natives.hasAnimDictLoaded(animDict)) 
         natives.requestAnimDict(animDict);
-        while (!natives.hasAnimDictLoaded(animDict)) {
-            await alt.Utils.wait(10);
-        }
-    }
-    natives.taskPlayAnim(scriptID, animDict, animName, easeIn, easeOut, duration, flags, playBackRate, false, false, false);
+
+    natives.taskPlayAnim(player, animDict, animName, easeIn, easeOut, duration, flags, playBackRate, false, false, false);
 });
 
 alt.onServer(DeathEvents.toClient.animation.stop, (player: alt.Player) => {
-    const scriptID = alt.Player.local.id === player.id ? alt.Player.local.scriptID : player.scriptID;
-    natives.clearPedTasks(scriptID);
+    natives.clearPedTasks(player);
 });
