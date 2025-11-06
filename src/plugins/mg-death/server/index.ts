@@ -34,9 +34,9 @@ const Internal = {
             if (!deadPlayer || !deadPlayer.valid) continue;
 
             player.emit(DeathEvents.toClient.animation.play, {
-                animDict: 'missfinale_c1@',
-                animName: 'lying_dead_player0',
-                player: deadPlayer
+                player: deadPlayer, 
+                animDict: 'missfinale_c1@', 
+                animName: 'lying_dead_player0'
             });
         }
 
@@ -66,8 +66,12 @@ const Internal = {
     },
 
     startRevive(reviver: alt.Player, victim: alt.Player) {
-        if (!reviver || !reviver.valid || !victim || !victim.valid) return;
+        if (!reviver || !victim || !reviver.valid || !victim.valid) return;
 
+        const victimData = Rebar.document.character.useCharacter(victim);
+        if (!victimData.isValid() || !victimData.getField('isDead')) return;
+
+        const victimId = victimData.getField('_id');
         const reviverInfo: AnimInfo = {
             animDict: 'mini@cpr@char_a@cpr_str',
             animName: 'cpr_pumpchest',
@@ -84,38 +88,27 @@ const Internal = {
         setTimeout(() => {
             reviver.emit(DeathEvents.toClient.startRevive);
             victim.emit(DeathEvents.toClient.startRevive);
-            Internal.startProgress(reviver, victim);
+            let progress = 0;
+            const interval = alt.setInterval(() => {
+                if (!reviver || !victim || !reviver.valid || !victim.valid) { 
+                    alt.clearInterval(interval);
+                    if (ActiveRevives.has(victimId))
+                        ActiveRevives.delete(victimId);
+                    return;
+                }
+
+                progress += 5;
+
+                if (progress > 100) {
+                    Internal.completeRevive(victimId);
+                    return;
+                }
+
+                reviver.emit(DeathEvents.toClient.reviveProgress, progress);
+                victim.emit(DeathEvents.toClient.reviveProgress, progress);
+            }, DeathConfig.reviveTime / 20);
+            ActiveRevives.set(victimId, { reviver, victim, interval });
          }, 2400);
-    },
-
-    startProgress(reviver: alt.Player, victim: alt.Player) {
-        if (!reviver || !reviver.valid || !victim || !victim.valid) return;
-        const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid() || !victimData.getField('isDead')) return;
-
-        const victimId = victimData.getField('_id');
-        
-        let progress = 0;
-        const interval = alt.setInterval(() => {
-            if (!reviver || !victim || !reviver.valid || !victim.valid) { 
-                alt.clearInterval(interval);
-                if (ActiveRevives.has(victimId))
-                    ActiveRevives.delete(victimId);
-                return;
-            }
-
-            progress += 5;
-
-            if (progress > 100) {
-                Internal.completeRevive(victimId);
-                return;
-            }
-
-            reviver.emit(DeathEvents.toClient.reviveProgress, progress);
-            victim.emit(DeathEvents.toClient.reviveProgress, progress);
-        }, DeathConfig.reviveTime / 20);
-
-        ActiveRevives.set(victimId, { reviver, victim, interval });
     },
 
     async completeRevive(charId: string) {
@@ -209,7 +202,7 @@ const Internal = {
         await document.set('isDead', true);
 
         alt.emitAllClients(DeathEvents.toClient.animation.play, {
-            player,
+            player, 
             animDict: 'missfinale_c1@', 
             animName: 'lying_dead_player0'
         });

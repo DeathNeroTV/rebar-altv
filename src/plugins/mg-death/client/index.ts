@@ -67,13 +67,13 @@ async function loadAnimDict(dict: string): Promise<void> {
     }
 }
 
-async function playAnimation(playerInfo: AnimInfo, flags: number = 1, blendInSpeed: number = 1.0, blendOutSpeed: number = -1.0, duration: number = -1, playbackRate: number = 1.0) {
+async function playAnimation(playerInfo: AnimInfo) {
     if (!playerInfo.player || !playerInfo.player.valid) return;
 
     await loadAnimDict(playerInfo.animDict);
 
     natives.clearPedTasksImmediately(playerInfo.player);
-    natives.taskPlayAnim(playerInfo.player, playerInfo.animDict, playerInfo.animName, blendInSpeed, blendOutSpeed, duration, flags, playbackRate, false, false, false);
+    natives.taskPlayAnim(playerInfo.player, playerInfo.animDict, playerInfo.animName, 1.0, -1.0, -1, 49, 1.0, false, false, false);
 }
 
 async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo) {
