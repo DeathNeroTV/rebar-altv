@@ -54,9 +54,9 @@ const Internal = {
             alt.logWarning('[mg-death][StartRevive]', 'Spieler nicht gefunden.');
             return;
         }
-        
+
         if (!victim || !victim.valid) {
-            alt.logWarning('[mg-death][StartRevive]', 'Keine bewusstlose Person gefunden.');
+            alt.logWarning('[mg-death][StartRevive]', 'Keinen anderen Spieler gefunden.');
             return;
         }
 
@@ -68,7 +68,6 @@ const Internal = {
 
         const victimId = victimData.getField('_id');
 
-        // Start der Progress-Animation
         let progress = 0;
         reviver.emit(DeathEvents.toClient.startRevive);
         victim.emit(DeathEvents.toClient.startRevive);
