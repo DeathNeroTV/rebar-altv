@@ -53,6 +53,7 @@ const Internal = {
         victim.health = 124;
        
         alt.emitAllClients(DeathEvents.toClient.animation.stop, victim);
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver);
         alt.emitAllClients(DeathEvents.toClient.animation.play, reviver, 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest_idle');
         alt.emitAllClients(DeathEvents.toClient.animation.play, victim, 'mini@cpr@char_b@cpr_str', 'cpr_pumpchest_idle');
 
@@ -104,11 +105,10 @@ const Internal = {
         await victimData.setBulk({ health: 124, isDead: false, water: 100, food: 100, pos: victim.pos, dimension: victim.dimension });
 
         Rebar.player.useWorld(victim).setScreenFade(3000);
-        victim.spawn(victim.pos.x, victim.pos.y, victim.pos.z, 2900);
         Rebar.player.useWebview(victim).emit(DeathEvents.toClient.respawned);
 
-        alt.emitAllClients(DeathEvents.toClient.animation.stop, victim.id);
-        alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver.id);
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, victim);
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, reviver);
 
         reviver.emit(DeathEvents.toClient.reviveComplete);
         victim.emit(DeathEvents.toClient.reviveComplete);
@@ -169,7 +169,9 @@ const Internal = {
         if (TimeOfDeath.has(charId)) return;
 
         await document.set('isDead', true);
-        alt.emitAllClients(DeathEvents.toClient.animation.play, player, 'dead', 'dead_e');
+
+        alt.emitAllClients(DeathEvents.toClient.animation.stop, player);
+        alt.emitAllClients(DeathEvents.toClient.animation.play, player, 'missfinale_c1@', 'lying_dead_player0');
 
         TimeOfDeath.set(charId, Date.now() + DeathConfig.respawnTime);
         player.emit(DeathEvents.toClient.startTimer, TimeOfDeath.get(charId) - Date.now());
