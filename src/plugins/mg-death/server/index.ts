@@ -66,27 +66,7 @@ const Internal = {
     },
 
     startRevive(reviver: alt.Player, victim: alt.Player) {
-        if (!reviver || !reviver.valid) {
-            alt.logWarning('[mg-death][StartRevive]', 'Spieler nicht gefunden.');
-            return;
-        }
-
-        if (!victim || !victim.valid) {
-            alt.logWarning('[mg-death][StartRevive]', 'Keinen anderen Spieler gefunden.');
-            return;
-        }
-
-        const victimData = Rebar.document.character.useCharacter(victim);
-        if (!victimData.isValid() || !victimData.getField('isDead')) {
-            alt.logWarning('[mg-death][StartRevive]', 'Spieler ist nicht bewusstlos.');
-            return;
-        }
-
-        const victimId = victimData.getField('_id');
-
-        let progress = 0;
-        reviver.emit(DeathEvents.toClient.startRevive);
-        victim.emit(DeathEvents.toClient.startRevive);
+        if (!reviver || !reviver.valid || !victim || !victim.valid) return;
 
         const reviverInfo: AnimInfo = {
             animDict: 'mini@cpr@char_a@cpr_str',
@@ -98,9 +78,24 @@ const Internal = {
             animName: 'cpr_pumpchest',
             player: victim
         };
-        
+
         alt.emitAllClients(DeathEvents.toClient.animation.play, reviverInfo, victimInfo);
 
+        setTimeout(() => {
+            reviver.emit(DeathEvents.toClient.startRevive);
+            victim.emit(DeathEvents.toClient.startRevive);
+            Internal.startProgress(reviver, victim);
+         }, 2400);
+    },
+
+    startProgress(reviver: alt.Player, victim: alt.Player) {
+        if (!reviver || !reviver.valid || !victim || !victim.valid) return;
+        const victimData = Rebar.document.character.useCharacter(victim);
+        if (!victimData.isValid() || !victimData.getField('isDead')) return;
+
+        const victimId = victimData.getField('_id');
+        
+        let progress = 0;
         const interval = alt.setInterval(() => {
             if (!reviver || !victim || !reviver.valid || !victim.valid) { 
                 alt.clearInterval(interval);

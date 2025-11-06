@@ -87,7 +87,7 @@ async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo
 
     let attempts = 0;
     // Warten bis Spieler <= 1 Meter vom Brustkorb entfernt ist oder max. 200 Versuche
-    while (playerInfo.player.pos.distanceTo(chestPos) > 0.5 && attempts < 200) {
+    while (playerInfo.player.pos.distanceTo(chestPos) > 0.8 && attempts < 200) {
         await alt.Utils.wait(10);
         attempts++;
     }
@@ -101,8 +101,8 @@ async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo
     natives.setEntityHeading(playerInfo.player, heading - 90);
 
     // Animation abspielen
-    await playAnimation(playerInfo);
     await playAnimation(targetInfo);
+    await playAnimation(playerInfo);
 }
 
 function stopAnimation(player: alt.Player | alt.LocalPlayer) {
