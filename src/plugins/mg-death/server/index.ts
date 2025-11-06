@@ -112,7 +112,7 @@ const Internal = {
 
         if (data.reviver && data.reviver.valid) {
             data.reviver.emit(DeathEvents.toClient.reviveComplete);
-            alt.setTimeout(() => data.reviver.clearTasks(), 3500);
+            alt.setTimeout(() => Rebar.player.useAnimation(data.reviver).clear(), 3500);
         }
 
         if (data.victim  && data.victim.valid) {
@@ -126,11 +126,13 @@ const Internal = {
             data.victim.emit(DeathEvents.toClient.reviveComplete);
 
             alt.setTimeout(() => {
-                data.victim.clearTasks();
+                ActiveRevives.delete(charId);
+                if (!data.victim || !data.victim.valid) return;
+                
+                Rebar.player.useAnimation(data.victim).clear();
                 Rebar.player.useWorld(data.victim).clearScreenFade(3000);
                 Rebar.player.useState(data.victim).sync();
                 data.victim.clearBloodDamage();
-                ActiveRevives.delete(charId);
             }, 3500);
         }
     },
