@@ -1,7 +1,7 @@
 import {DiscordAuthConfig} from "./config.js";
 import {useRebar} from "@Server/index.js";
 import {Client, GuildMember} from "discord.js";
-import {DiscordInfo} from "../shared/discordAuth.js";
+import {DiscordInfo} from "../shared/interfaces.js";
 import * as https from "node:https";
 
 let client: Client = undefined;

@@ -1,4 +1,5 @@
 export const HudConfig = {
+    language: 'de',
     timePerSecond: 30,
     baseDrain: 0.005,
     actionMultipliers: {

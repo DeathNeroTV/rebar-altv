@@ -5,5 +5,8 @@ export const DiscordAuthEvents = {
     },
     toClient: {
         requestToken: 'discord:event:requestToken'
+    },
+    toWebview: {
+        send: 'discord:event:send'
     }
 };

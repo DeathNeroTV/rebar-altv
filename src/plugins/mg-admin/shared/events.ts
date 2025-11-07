@@ -1,6 +1,13 @@
 export const AdminEvents = {
     toClient: {
+        whitelist: {
+            add: 'mg-admin:whitelist:add',
+            remove: 'mg-admin:whitelist:remove'
+        }
+    },
+    toWebview: {
         send: {
+            whitelist: 'mg-admin:send:whitelist',
             stats: 'mg-admin:send:stats'
         }
     },

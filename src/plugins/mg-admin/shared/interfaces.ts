@@ -11,6 +11,7 @@ export interface SidebarInfo {
     id: string;
     color: string;
 }
+
 export interface WhitelistEntry {
     _id: string;
     username: string;

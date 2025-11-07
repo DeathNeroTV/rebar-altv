@@ -6,7 +6,7 @@ import { CollectionNames } from '@Server/document/shared.js';
 import { NotificationTypes } from '@Plugins/mg-notify/shared/interface.js';
 import { AdminEvents } from '../shared/events.js';
 import { AdminConfig } from '../shared/config.js';
-import { DashboardStat } from '../shared/interfaces.js';
+import { DashboardStat, WhitelistEntry } from '../shared/interfaces.js';
 import '../translate/index.js';
 
 import * as os from 'os';
@@ -14,6 +14,7 @@ import * as disk from 'diskusage';
 
 const { t }  = useTranslate(AdminConfig.language);
 const Rebar = useRebar();
+const db = Rebar.database.useDatabase();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 
 const stats: DashboardStat[] = AdminConfig.infos;
@@ -64,19 +65,25 @@ alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
 });
 
 alt.onRpc(AdminEvents.toServer.request.stats, async () => {
-    const db = Rebar.database.useDatabase();
+    const requests = await db.getAll('WhitelistRequests');
     const accounts = await db.getAll(CollectionNames.Accounts);
     const vehicles = await db.getAll(CollectionNames.Vehicles);
     
+    const whitelistIndex = stats.findIndex(data => data.id === 'whitelist');
+    if (whitelistIndex !== -1) stats[whitelistIndex].value = requests.length;
+
     const playerIndex = stats.findIndex(data => data.id === 'players');
-    const vehicleIndex = stats.findIndex(data => data.id === 'vehicles');
     if (playerIndex !== -1) stats[playerIndex].value = accounts.length;
+
+    const vehicleIndex = stats.findIndex(data => data.id === 'vehicles');
     if (vehicleIndex !== -1) stats[vehicleIndex].value = vehicles.length;
+    
     return stats;
 });
 
-alt.onRpc(AdminEvents.toServer.request.whitelist, () => {
-    return {};
+alt.onRpc(AdminEvents.toServer.request.whitelist, async () => {
+    const requests: WhitelistEntry[] = await db.getAll<WhitelistEntry>('WhitelistRequests'); 
+    return requests;
 });
 
 alt.onRpc(AdminEvents.toServer.request.usage, async () => {
@@ -107,6 +114,7 @@ alt.onRpc(AdminEvents.toServer.request.usage, async () => {
 
 function isMemberOfAllowedGroups(player: alt.Player) {
     const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return false;
 
     for (const key in AdminConfig.discordRoles) {
         if (!document.groups.memberOf(key)) continue;
@@ -115,3 +123,16 @@ function isMemberOfAllowedGroups(player: alt.Player) {
 
     return false;
 }
+
+function handleWhitelistRequest(player: alt.Player, request: WhitelistEntry) {
+    if (!player || !player.valid) return;
+    if (!isMemberOfAllowedGroups(player)) return;
+    player.emit(AdminEvents.toClient.whitelist.add, request);
+}
+
+async function init() {
+    const discordAuthApi = await Rebar.useApi().getAsync('discord-auth-api');
+    discordAuthApi.onWhitelistRequest(handleWhitelistRequest);
+}
+
+init();

@@ -4,6 +4,7 @@ import { useRebar } from '@Server/index.js';
 import * as Utility from '@Shared/utility/index.js';
 import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
+import { WhitelistRequest } from '@Plugins/mg-discord-auth/shared/interfaces.js';
 
 const Rebar = useRebar();
 const api = Rebar.useApi();

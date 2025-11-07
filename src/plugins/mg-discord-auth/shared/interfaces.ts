@@ -12,3 +12,11 @@ export interface DiscordSession {
     expiration: number;
     finished?: boolean;
 }
+
+export interface WhitelistRequest {
+    _id?: string;
+    username: string;
+    discordId: string;
+    code: string;
+    date: string;
+}

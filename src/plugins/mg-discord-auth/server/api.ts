@@ -1,24 +1,27 @@
 import alt from "alt-server";
 import {useRebar} from "@Server/index.js";
 import {Account} from "@Shared/types/index.js";
+import { WhitelistRequest } from "../shared/interfaces.js";
 
 type PlayerLoginCallback = (player: alt.Player, account: Account) => void;
 type PlayerLogoutCallback = (player: alt.Player) => void;
+type WhitelistCallback = (player: alt.Player, request: WhitelistRequest) => void;
 
 const Rebar = useRebar();
 const loginCallbacks: Array<PlayerLoginCallback> = [];
 const logoutCallbacks: Array<PlayerLogoutCallback> = [];
+const whitelistCallbacks: Array<WhitelistCallback> = [];
 
 export function invokeLogin(player: alt.Player, account: Account) {
-    for ( const cb of loginCallbacks ) {
-        cb(player, account);
-    }
+    loginCallbacks.forEach(cb => cb(player, account));
 }
 
 export function invokeLogout(player: alt.Player) {
-    for ( const cb of logoutCallbacks ) {
-        cb(player);
-    }
+    logoutCallbacks.forEach(cb => cb(player));
+}
+
+export function invokeWhitelistRequest(player: alt.Player, request: WhitelistRequest) {
+    whitelistCallbacks.forEach(cb => cb(player, request));
 }
 
 export function useDiscordAuth() {
@@ -30,9 +33,14 @@ export function useDiscordAuth() {
         logoutCallbacks.push(callback);
     }
 
+    function onWhitelistRequest(callback: (player: alt.Player, request: WhitelistRequest) => void) {
+        whitelistCallbacks.push(callback);
+    }
+
     return {
         onLogin,
-        onLogout
+        onLogout,
+        onWhitelistRequest,
     };
 }
 
