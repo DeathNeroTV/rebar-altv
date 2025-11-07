@@ -18,11 +18,13 @@ const keyBind: KeyInfo = {
     identifier: 'toggle-hud-cursor',
     key: alt.KeyCode.F2,
     keyDown: () => {
+        if (!view.isOverlayOpen('Hud')) return;
         view.focus();
         view.showCursor(true);
         alt.toggleGameControls(false);
     },
     keyUp: () => {
+        if (!view.isOverlayOpen('Hud')) return;
         view.unfocus();
         view.showCursor(false);
         alt.toggleGameControls(true);
@@ -33,7 +35,9 @@ alt.setMsPerGameMinute(msPerGameMinute);
 keyBindApi.add(keyBind);
 
 alt.setInterval(() => {
+    if (!view.isOverlayOpen('Hud')) return;
     const player = alt.Player.local;
+
     const vehicle = player.vehicle;
 
     if (!vehicle || !vehicle.valid) return;
@@ -43,7 +47,6 @@ alt.setInterval(() => {
     const gear = vehicle.gear;
     const speedKmh = natives.getEntitySpeed(vehicle.scriptID) * 3.6;
     const maxSpeed = natives.getVehicleEstimatedMaxSpeed(vehicle.scriptID) * 3.6;
-
     alt.emitServer(HudEvents.toServer.updateFuel, { rpm, gear, speed: speedKmh, maxSpeed });
 }, 100);
 
@@ -51,7 +54,9 @@ alt.setInterval(() => {
     if (!alt.getConfigFlag(alt.ConfigFlag.DisableIdleCamera)) 
         alt.setConfigFlag(alt.ConfigFlag.DisableIdleCamera, true);
 
-    const player = alt.Player.local;    
+    if (!view.isOverlayOpen('Hud')) return;
+    
+    const player = alt.Player.local;  
     const isMoving = natives.getEntitySpeed(player.scriptID) > 0.0;
     const isJumping = natives.isPedJumping(player.scriptID)
     const isSprinting = natives.isPedSprinting(player.scriptID) || natives.isPedRunning(player.scriptID);

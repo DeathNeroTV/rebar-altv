@@ -94,10 +94,6 @@ alt.onServer(DeathEvents.toClient.moveTo, async(target: alt.Player) => {
         await alt.Utils.wait(1);
     }
 
-    const dx = chestPos.x - alt.Player.local.pos.x;
-    const dy = chestPos.y - alt.Player.local.pos.y;
-    const heading = Math.atan2(dy, dx) * (180 / Math.PI);
-    natives.setEntityHeading(alt.Player.local, heading);
-
-    alt.emitServer(DeathEvents.toServer.toggleProgress, target);
+    natives.taskTurnPedToFaceCoord(alt.Player.local, chestPos.x, chestPos.y, chestPos.z, 1000);
+    alt.setTimeout(() => alt.emitServer(DeathEvents.toServer.toggleProgress, target), 1100);
 });

@@ -38,7 +38,10 @@ const Internal = {
         if (!victimData.isValid() || !victimData.getField('isDead')) return;
 
         victim.spawn(victim.pos);
+
+        Rebar.player.useAnimation(victim).clear();
         Rebar.player.useAnimation(victim).playInfinite('missfinale_c1@', 'lying_dead_player0', 1);
+        
         reviver.emit(DeathEvents.toClient.moveTo, victim);
     },
 
@@ -151,7 +154,7 @@ const Internal = {
         Rebar.player.useWebview(player).emit(DeathEvents.toClient.respawned);
 
         alt.setTimeout(() => {
-            player.clearTasks();
+            Rebar.player.useAnimation(player).clear();
             Rebar.player.useWorld(player).clearScreenFade(3000);
             Rebar.player.useState(player).sync();
             player.clearBloodDamage();
