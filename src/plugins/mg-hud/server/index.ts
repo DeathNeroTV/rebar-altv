@@ -102,8 +102,8 @@ alt.on('playerDamage', async (victim: alt.Player, attacker: alt.Entity, healthDa
     const document = Rebar.document.character.useCharacter(victim);
     if (!document.isValid() || document.getField('isDead')) return;
 
-    await document.setBulk({ health: Math.max(99, victim.health), armour: Math.max(0, victim.armour) });
-    alt.log('[PlayerDamage]', `${document.getField('name').replaceAll('_', ' ')} hat Schaden erlitten.`);
+    await document.setBulk({ health: Math.max(99, Math.min(200, victim.health)), armour: Math.max(0, Math.min(100, victim.armour)) });
+    Rebar.player.useState(victim).apply({ health: Math.max(99, Math.min(200, victim.health)), armour: Math.max(0, Math.min(100, victim.armour)) });
 });
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
@@ -160,6 +160,7 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
     }
 
     await document.setBulk({ food, water, health });
+    Rebar.player.useState(player).apply({ health });
 });
 
 function handleSkipCreate(player: alt.Player): void {

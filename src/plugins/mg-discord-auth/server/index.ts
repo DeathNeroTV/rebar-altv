@@ -146,7 +146,19 @@ async function handleToken(player: alt.Player, token: string) {
                     return;
                 }
 
+                if (request.state === 'approved') {
+                    await guildMember.roles.add(DiscordAuthConfig.WHITELIST_ROLE_ID);
+                    setAccount(player, account);
+                    return;
+                }
+
                 player.kick(t('discord.auth.guild.no.whitelist'));
+                return;
+            }
+
+            if (request.state === 'rejected') {
+                await guildMember.roles.remove(DiscordAuthConfig.WHITELIST_ROLE_ID);
+                Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.rejected.whitelist'));
                 return;
             }
         }

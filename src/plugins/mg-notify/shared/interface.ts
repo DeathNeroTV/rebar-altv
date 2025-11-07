@@ -11,7 +11,7 @@ export interface Notification {
     subtitle?: string;
     message: string;
     duration?: number;
-    oggFile?: string;
+    oggFile?: 'notification' | 'systemfault';
 }
 
 export interface VueNotification extends Notification {
@@ -34,7 +34,7 @@ export interface MGNotification {
 export interface Label {
     keyToPress: string;
     label: string;
-    oggFile?: string;
+    oggFile?: 'notification' | 'systemfault';
 }
 
 export interface AllPlayerLabels extends Label {

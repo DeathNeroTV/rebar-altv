@@ -10,15 +10,10 @@ const { t } = useTranslate(language);
 const events = useEvents();
 const entries = ref<WhitelistRequest[]>([]);
 
-const approveRequest = async (index: number) => {
-    events.emitServer(AdminEvents.toServer.whitelist.approve, entries[index]._id);
-};
-
-const rejectRequest = async (index: number) => {
-    events.emitServer(AdminEvents.toServer.whitelist.reject, entries[index]._id);
-};
-
+const approveRequest = (index: number) => events.emitServer(AdminEvents.toServer.whitelist.approve, entries.value[index]._id);
+const rejectRequest = (index: number) => events.emitServer(AdminEvents.toServer.whitelist.reject, entries.value[index]._id);
 const addWhitelist = (request: WhitelistRequest) => entries.value.push(request);
+
 const updateWhitelist = (request: WhitelistRequest) => {
     const index = entries.value.findIndex(data => data._id === request._id);
     if (index === -1) return;
@@ -58,21 +53,25 @@ onMounted(async () => {
                     <span class="text-gray-200 font-mono text-lg tracking-widest">{{ entry.code }}</span>
                 </div>
 
+                <!-- Whitelist-Status -->
+                <div class="flex items-center gap-2 mb-4">
+                    <font-awesome-icon :icon="['fas', 'key']" class="text-green-500" />
+                    <span class="text-gray-200 font-mono text-lg tracking-widest">{{ entry.state }}</span>
+                </div>
+
                 <!-- Aktionen -->
                 <div class="flex justify-center gap-3 mt-2">
                     <button
-                        @click="approveRequest(index)"
-                        class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-full text-sm font-medium transition cursor-pointer"
+                        @click.stop="approveRequest(index)"
+                        class="bg-green-600 hover:bg-green-700 p-2 rounded-full text-sm font-medium transition cursor-pointer"
                     >
-                        <font-awesome-icon :icon="['fas', 'check']" class="mr-2" />
-                        {{ t('admin.panel.dashboard.whitelist.approve') }}
+                        <font-awesome-icon :icon="['fas', 'check']" />
                     </button>
                     <button
-                        @click="rejectRequest(index)"
-                        class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-sm font-medium transition cursor-pointer"
+                        @click.stop="rejectRequest(index)"
+                        class="bg-red-600 hover:bg-red-700 p-2 rounded-full text-sm font-medium transition cursor-pointer"
                     >
-                        <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2" />
-                        {{ t('admin.panel.dashboard.whitelist.reject') }}
+                        <font-awesome-icon :icon="['fas', 'xmark']" />
                     </button>
                 </div>
             </div>

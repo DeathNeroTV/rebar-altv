@@ -6,6 +6,7 @@ const { t } = useTranslate('de');
 
 export const AdminConfig = {
     language: 'de',
+    useWhitelist: true,
     infos: [
         { id: 'whitelist', title: t('admin.panel.dashboard.whitelist.title'), icon: 'id-card', value: 0 },
         { id: 'players', title: t('admin.panel.dashboard.players.title'), icon: 'users', value: 0 },

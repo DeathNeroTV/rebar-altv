@@ -27,7 +27,8 @@ const navigate = (page: string) => emits('navigate', page);
 const init = async () => {
     const result: DashboardStat[] = await events.emitServerRpc(AdminEvents.toServer.request.stats);
     if (!result) {
-        AdminConfig.infos.forEach(info => list.push(info));
+        if (AdminConfig.useWhitelist) AdminConfig.infos.forEach(info => list.push(info));
+        else AdminConfig.infos.filter(data => data.id !== 'whitelist').forEach(info => list.push(info));
         return;
     }
 

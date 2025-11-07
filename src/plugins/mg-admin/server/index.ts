@@ -16,11 +16,11 @@ import * as disk from 'diskusage';
 const { t }  = useTranslate(AdminConfig.language);
 const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
-const notifyApi = await Rebar.useApi().getAsync('notify-api');
 
-const stats: DashboardStat[] = AdminConfig.infos;
+const stats: DashboardStat[] = AdminConfig.useWhitelist ? AdminConfig.infos : AdminConfig.infos.filter(data => data.id !== 'whitelist');
 
-alt.onClient(AdminEvents.toServer.login, (player: alt.Player) => {
+alt.onClient(AdminEvents.toServer.login, async (player: alt.Player) => {    
+    const notifyApi = await Rebar.useApi().getAsync('notify-api');
     const accDocument = Rebar.document.account.useAccount(player);
     if(!accDocument.isValid()) { 
         return notifyApi.general.send(player, {
@@ -59,16 +59,24 @@ alt.onClient(AdminEvents.toServer.login, (player: alt.Player) => {
     Rebar.player.useWorld(player).freezeCamera(true);
 });
 
+alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
+    Rebar.player.useWebview(player).hide('Admin');
+    Rebar.player.useWorld(player).enableControls();
+    Rebar.player.useWorld(player).freezeCamera(false);
+});
+
 alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, _id: string) => {
+    const notifyApi = await Rebar.useApi().getAsync('notify-api');
     const entry: WhitelistRequest = await db.get<WhitelistRequest>({ _id }, 'WhitelistRequests');
     if (!entry) {
-        return notifyApi.general.send(player, {
+        notifyApi.general.send(player, {
             icon: NotificationTypes.ERROR,
             title: 'Admin-System',
-            subtitle: 'Datensatzfehler',
-            message: 'Datensatz wurde nicht gefunden',
+            subtitle: 'Rollenvergabe',
+            message: 'Der Whitelisteintrag ist nicht verfügbar',
             oggFile: 'systemfault',
         });   
+        return;
     }
 
     entry.state = 'approved';
@@ -77,30 +85,52 @@ alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, 
     const discordApi = await Rebar.useApi().getAsync('discord-api');
     const member = await discordApi.getDiscordMember(entry.discordId);
 
-    if (member && !member.roles.cache.has(DiscordAuthConfig.WHITELIST_ROLE_ID)) 
-        await member.roles.add(DiscordAuthConfig.WHITELIST_ROLE_ID);
+    if (!member) {
+        notifyApi.general.send(player, {
+            icon: NotificationTypes.ERROR,
+            title: 'Admin-System',
+            subtitle: 'Rollenvergabe',
+            message: 'Der Spieler ist nicht auf dem Discord vorhanden.',
+            oggFile: 'systemfault',
+        });
+        return;
+    }
 
+    if (member.roles.cache.has(DiscordAuthConfig.WHITELIST_ROLE_ID)) {
+        notifyApi.general.send(player, {
+            icon: NotificationTypes.INFO,
+            title: 'Admin-System',
+            subtitle: 'Rollenvergabe',
+            message: 'Dem Spieler wurde bereits die Whitelist gegeben',
+            oggFile: 'notification',
+        });
+        return;
+    }
+    
+    await member.roles.add(DiscordAuthConfig.WHITELIST_ROLE_ID);
     alt.emitAllClients(AdminEvents.toClient.whitelist.update, entry);
     
-    return notifyApi.general.send(player, {
+    notifyApi.general.send(player, {
         icon: NotificationTypes.SUCCESS,
         title: 'Admin-System',
-        subtitle: 'Datensatzbearbeitung',
-        message: 'Datensatz wurde erfolgreich aktualisiert',
+        subtitle: 'Rollenvergabe',
+        message: 'Dem Spieler wurde die Whitelist gegeben',
         oggFile: 'notification',
     });
 });
 
 alt.onClient(AdminEvents.toServer.whitelist.reject, async (player: alt.Player, _id: string) => {
+    const notifyApi = await Rebar.useApi().getAsync('notify-api');
     const entry: WhitelistRequest = await db.get<WhitelistRequest>({ _id }, 'WhitelistRequests');
     if (!entry) {
-        return notifyApi.general.send(player, {
+        notifyApi.general.send(player, {
             icon: NotificationTypes.ERROR,
             title: 'Admin-System',
-            subtitle: 'Datensatzfehler',
-            message: 'Datensatz wurde nicht gefunden',
+            subtitle: 'Rollenentzug',
+            message: 'Whitelisteintrag ist nicht verfügbar',
             oggFile: 'systemfault',
-        });   
+        });
+        return;
     }
 
     entry.state = 'rejected';
@@ -109,41 +139,56 @@ alt.onClient(AdminEvents.toServer.whitelist.reject, async (player: alt.Player, _
     const discordApi = await Rebar.useApi().getAsync('discord-api');
     const member = await discordApi.getDiscordMember(entry.discordId);
 
-    if (member && member.roles.cache.has(DiscordAuthConfig.WHITELIST_ROLE_ID)) 
-        await member.roles.remove(DiscordAuthConfig.WHITELIST_ROLE_ID);
+    if (!member) {
+        notifyApi.general.send(player, {
+            icon: NotificationTypes.ERROR,
+            title: 'Admin-System',
+            subtitle: 'Rollenentzug',
+            message: 'Der Spieler ist nicht auf dem Discord vorhanden.',
+            oggFile: 'notification',
+        });
+        return;
+    } 
+    
+    if (!member.roles.cache.has(DiscordAuthConfig.WHITELIST_ROLE_ID)) {
+        notifyApi.general.send(player, {
+            icon: NotificationTypes.INFO,
+            title: 'Admin-System',
+            subtitle: 'Rollenentzug',
+            message: 'Dem Spieler wurde bereits die Whitelist entzogen',
+            oggFile: 'notification',
+        });
+        return;
+    }
 
+    await member.roles.remove(DiscordAuthConfig.WHITELIST_ROLE_ID);
     alt.emitAllClients(AdminEvents.toClient.whitelist.update, entry);
 
-    return notifyApi.general.send(player, {
+    notifyApi.general.send(player, {
         icon: NotificationTypes.SUCCESS,
         title: 'Admin-System',
-        subtitle: 'Datensatzbearbeitung',
-        message: 'Datensatz wurde erfolgreich aktualisiert',
+        subtitle: 'Rollenentzug',
+        message: 'Dem Spieler wurde die Whitelist entzogen',
         oggFile: 'notification',
     });
 });
 
-alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
-    Rebar.player.useWebview(player).hide('Admin');
-    Rebar.player.useWorld(player).enableControls();
-    Rebar.player.useWorld(player).freezeCamera(false);
-});
-
 alt.onRpc(AdminEvents.toServer.request.stats, async () => {
-    const requests = await db.getAll('WhitelistRequests') ?? [];
-    const accounts = await db.getAll(Rebar.database.CollectionNames.Accounts) ?? [];
-    const vehicles = await db.getAll(Rebar.database.CollectionNames.Vehicles) ?? [];
-    
-    const whitelistIndex = stats.findIndex(data => data.id === 'whitelist');
-    if (whitelistIndex !== -1) stats[whitelistIndex].value = requests.length;
+    if (AdminConfig.useWhitelist) {        
+        const requests = await db.getAll('WhitelistRequests') ?? [];
+        const whitelistIndex = stats.findIndex(data => data.id === 'whitelist');
+        if (whitelistIndex !== -1) stats[whitelistIndex].value = requests.length;
+    }
 
+    const accounts = await db.getAll(Rebar.database.CollectionNames.Accounts) ?? [];
     const playerIndex = stats.findIndex(data => data.id === 'players');
     if (playerIndex !== -1) stats[playerIndex].value = accounts.length;
 
+    const vehicles = await db.getAll(Rebar.database.CollectionNames.Vehicles) ?? [];
     const vehicleIndex = stats.findIndex(data => data.id === 'vehicles');
     if (vehicleIndex !== -1) stats[vehicleIndex].value = vehicles.length;
     
-    return stats;
+    return AdminConfig.useWhitelist ? stats : stats.filter(data => data.id !== 'whitelist');
 });
 
 alt.onRpc(AdminEvents.toServer.request.whitelist, async () => {

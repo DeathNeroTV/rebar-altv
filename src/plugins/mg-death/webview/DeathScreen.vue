@@ -86,6 +86,7 @@ events.on(DeathEvents.toClient.confirmEms, () => {
 events.on(DeathEvents.toClient.reviveComplete, () => {
     isReviving.value = false;
     reviveProgress.value = 100;
+    if (isDead) resetData();
 });
 
 events.on(DeathEvents.toClient.respawned, resetData);
