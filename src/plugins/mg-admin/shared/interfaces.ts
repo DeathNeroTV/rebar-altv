@@ -18,6 +18,7 @@ export interface WhitelistEntry {
     discordId: string;
     code: string;
     date: string;
+    state: 'pending' | 'approved' | 'denied';
 }
 
 export interface LoginResponse {

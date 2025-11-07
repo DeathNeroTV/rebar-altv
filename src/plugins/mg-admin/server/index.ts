@@ -58,6 +58,58 @@ alt.onClient(AdminEvents.toServer.login, (player: alt.Player) => {
     Rebar.player.useWorld(player).freezeCamera(true);
 });
 
+alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, _id: string) => {
+    const entry: WhitelistEntry = await db.get<WhitelistEntry>({ _id }, 'WhitelistRequests');
+    if (!entry) {
+        return notifyApi.general.send(player, {
+            icon: NotificationTypes.ERROR,
+            title: 'Admin-System',
+            subtitle: 'Datensatzfehler',
+            message: 'Datensatz wurde nicht gefunden',
+            oggFile: 'systemfault',
+        });   
+    }
+
+    entry.state = 'approved';
+    await db.update<WhitelistEntry>(entry, 'WhitelistRequests');
+
+    alt.emitAllClients(AdminEvents.toClient.whitelist.update, entry);
+    
+    return notifyApi.general.send(player, {
+        icon: NotificationTypes.SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Datensatzbearbeitung',
+        message: 'Datensatz wurde erfolgreich aktualisiert',
+        oggFile: 'notification',
+    });
+});
+
+alt.onClient(AdminEvents.toServer.whitelist.reject, async (player: alt.Player, _id: string) => {
+    const entry: WhitelistEntry = await db.get<WhitelistEntry>({ _id }, 'WhitelistRequests');
+    if (!entry) {
+        return notifyApi.general.send(player, {
+            icon: NotificationTypes.ERROR,
+            title: 'Admin-System',
+            subtitle: 'Datensatzfehler',
+            message: 'Datensatz wurde nicht gefunden',
+            oggFile: 'systemfault',
+        });   
+    }
+
+    entry.state = 'denied';
+    await db.update<WhitelistEntry>(entry, 'WhitelistRequests');
+
+    alt.emitAllClients(AdminEvents.toClient.whitelist.update, entry);
+
+    return notifyApi.general.send(player, {
+        icon: NotificationTypes.SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Datensatzbearbeitung',
+        message: 'Datensatz wurde erfolgreich aktualisiert',
+        oggFile: 'notification',
+    });
+});
+
 alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
     Rebar.player.useWebview(player).hide('Admin');
     Rebar.player.useWorld(player).enableControls();
@@ -65,9 +117,9 @@ alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
 });
 
 alt.onRpc(AdminEvents.toServer.request.stats, async () => {
-    const requests = await db.getAll('WhitelistRequests');
-    const accounts = await db.getAll(CollectionNames.Accounts);
-    const vehicles = await db.getAll(CollectionNames.Vehicles);
+    const requests = await db.getAll('WhitelistRequests') ?? [];
+    const accounts = await db.getAll(CollectionNames.Accounts) ?? [];
+    const vehicles = await db.getAll(CollectionNames.Vehicles) ?? [];
     
     const whitelistIndex = stats.findIndex(data => data.id === 'whitelist');
     if (whitelistIndex !== -1) stats[whitelistIndex].value = requests.length;
@@ -82,7 +134,7 @@ alt.onRpc(AdminEvents.toServer.request.stats, async () => {
 });
 
 alt.onRpc(AdminEvents.toServer.request.whitelist, async () => {
-    const requests: WhitelistEntry[] = await db.getAll<WhitelistEntry>('WhitelistRequests'); 
+    const requests = await db.getAll<WhitelistEntry>('WhitelistRequests') ?? []; 
     return requests;
 });
 
@@ -127,7 +179,7 @@ function isMemberOfAllowedGroups(player: alt.Player) {
 function handleWhitelistRequest(player: alt.Player, request: WhitelistEntry) {
     if (!player || !player.valid) return;
     if (!isMemberOfAllowedGroups(player)) return;
-    player.emit(AdminEvents.toClient.whitelist.add, request);
+    alt.emitAllClients(AdminEvents.toClient.whitelist.add, request);
 }
 
 async function init() {

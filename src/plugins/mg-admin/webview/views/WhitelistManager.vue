@@ -6,22 +6,31 @@ import { useEvents } from '@Composables/useEvents';
 import { AdminEvents } from '@Plugins/mg-admin/shared/events';
 
 const { language } = defineProps({ language: String });
-
-const emits = defineEmits<{
-    (e: 'approve', discordId: string): void;
-    (e: 'reject', discordId: string): void;
-    (e: 'request'): void;
-}>();
-
 const { t } = useTranslate(language);
 const events = useEvents();
-
 const entries = ref<WhitelistEntry[]>([]);
 
-const approveRequest = (discordId: string) => emits('approve', discordId);
-const rejectRequest = (discordId: string) => emits('reject', discordId);
+const approveRequest = async (index: number) => {
+    events.emitServer(AdminEvents.toServer.whitelist.approve, entries[index]._id);
+};
 
-onMounted(async () => entries.value = await events.emitServerRpc(AdminEvents.toServer.request.whitelist) ?? []);
+const rejectRequest = async (index: number) => {
+    events.emitServer(AdminEvents.toServer.whitelist.reject, entries[index]._id);
+};
+
+const addWhitelist = (request: WhitelistEntry) => entries.value.push(request);
+const updateWhitelist = (request: WhitelistEntry) => {
+    const index = entries.value.findIndex(data => data._id === request._id);
+    if (index === -1) return;
+    entries.value[index] = request;
+};
+
+onMounted(async () => {
+    entries.value = await events.emitServerRpc(AdminEvents.toServer.request.whitelist) ?? [];
+
+    events.on(AdminEvents.toWebview.whitelist.add, updateWhitelist);
+    events.on(AdminEvents.toWebview.whitelist.update, addWhitelist);
+});
 
 </script>
 
@@ -31,13 +40,13 @@ onMounted(async () => entries.value = await events.emitServerRpc(AdminEvents.toS
         <p class="text-gray-100 mb-6">{{ t('admin.panel.dashboard.whitelist.desc') }}</p>
 
         <div v-if="entries.length > 0" class="grid grid-cols-4 gap-6">
-            <div v-for="entry in entries" :key="entry.code" class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex-col justify-between shadow-md hover:shadow-xl transition-all hover:-translate-y-1">
+            <div v-for="entry, index in entries" :key="entry.code" class="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex-col justify-between shadow-md hover:shadow-xl transition-all hover:-translate-y-1">
                 <!-- Header -->
                 <div class="flex flex-col gap-2 mb-3">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xl font-semibold flex items-center gap-2">
-                        <font-awesome-icon :icon="['fas', 'user']" />
-                        {{ entry.username }}
+                            <font-awesome-icon :icon="['fas', 'user']" />
+                            {{ entry.username }}
                         </h2>
                         <span class="text-sm text-gray-400">{{ entry.date }}</span>
                     </div>
@@ -52,14 +61,14 @@ onMounted(async () => entries.value = await events.emitServerRpc(AdminEvents.toS
                 <!-- Aktionen -->
                 <div class="flex justify-center gap-3 mt-2">
                     <button
-                        @click="approveRequest(entry.username)"
+                        @click="approveRequest(index)"
                         class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-full text-sm font-medium transition cursor-pointer"
                     >
                         <font-awesome-icon :icon="['fas', 'check']" class="mr-2" />
                         {{ t('admin.panel.dashboard.whitelist.approve') }}
                     </button>
                     <button
-                        @click="rejectRequest(entry.username)"
+                        @click="rejectRequest(index)"
                         class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-full text-sm font-medium transition cursor-pointer"
                     >
                         <font-awesome-icon :icon="['fas', 'xmark']" class="mr-2" />
@@ -79,6 +88,3 @@ onMounted(async () => entries.value = await events.emitServerRpc(AdminEvents.toS
         </div>
     </div>
 </template>
-
-<style scoped>
-</style>

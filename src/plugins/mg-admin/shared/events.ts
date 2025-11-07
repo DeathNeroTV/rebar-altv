@@ -2,10 +2,15 @@ export const AdminEvents = {
     toClient: {
         whitelist: {
             add: 'mg-admin:whitelist:add',
+            update: 'mg-admin:whitelist:update',
             remove: 'mg-admin:whitelist:remove'
         }
     },
     toWebview: {
+        whitelist: {
+            add: 'mg-admin:webview:whitelist:add',
+            update: 'mg-admin:webview:whitelist:update',
+        },
         send: {
             whitelist: 'mg-admin:send:whitelist',
             stats: 'mg-admin:send:stats'
@@ -14,6 +19,10 @@ export const AdminEvents = {
     toServer: {
         login: 'mg-admin:login',
         logout: 'mg-admin:logout',
+        whitelist: {
+            approve: 'mg-admin:whitelist:approve',
+            reject: 'mg-admin:whitelist:reject'
+        },
         request: {
             usage: 'mg-admin:request:usage',
             stats: 'mg-admin:request:stats',
