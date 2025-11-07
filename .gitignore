@@ -39,7 +39,7 @@ tmp/
 src/scratchpad/*.ts
 
 src/plugins/sandbox-*
-src/plugins/mg-discord-*/**/config.ts
+src/plugins/mg-discord*/**/config.ts
 
 # Logs
 logs

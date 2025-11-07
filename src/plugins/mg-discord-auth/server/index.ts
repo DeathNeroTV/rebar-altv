@@ -8,7 +8,7 @@ import { DiscordInfo, DiscordSession, WhitelistRequest } from "../shared/interfa
 import { useTranslate } from "@Shared/translate.js";
 import { invokeLogin, invokeWhitelistRequest } from './api.js';
 import '../translate/index.js';
-import { getClient } from '@Plugins/mg-discord-bot/server/bot.js';
+import { getClient } from '@Plugins/mg-discord/server/bot.js';
 import { Embed, EmbedBuilder, TextChannel } from 'discord.js';
 import { CollectionNames } from '@Server/document/shared.js';
 
@@ -35,7 +35,6 @@ const sections = [
 ] as const satisfies (keyof ServerConfig)[];
 
 sections.forEach(section => serverConfig.set(section, true));
-
 
 function handleConnect(player: alt.Player) {
     const playerWorld = Rebar.player.useWorld(player);
@@ -102,15 +101,14 @@ async function handleToken(player: alt.Player, token: string) {
     }
 
     if (DiscordAuthConfig.SERVER_ID && DiscordAuthConfig.SERVER_ID.length !== 0) {
-        try {
-            const guildMember = await getUserGuildMember(currentUser.id);
-            if (!guildMember) return player.kick(t("discord.auth.guild.no.member"));
-    
-            if (DiscordAuthConfig.WHITELIST_ROLE_ID && DiscordAuthConfig.WHITELIST_ROLE_ID.length !== 0) {
-                const role = guildMember.roles.cache.get(DiscordAuthConfig.WHITELIST_ROLE_ID);
-                const request: WhitelistRequest = await db.get<WhitelistRequest>({ discordId: currentUser.id }, 'WhitelistRequests');
-                if (!role) { 
-                    if (!request) {
+        const guildMember = await getUserGuildMember(currentUser.id);
+        if (!guildMember) return player.kick(t("discord.auth.guild.no.member"));
+
+        if (DiscordAuthConfig.WHITELIST_ROLE_ID && DiscordAuthConfig.WHITELIST_ROLE_ID.length !== 0) {
+            const role = guildMember.roles.cache.get(DiscordAuthConfig.WHITELIST_ROLE_ID);
+            const request: WhitelistRequest = await db.get<WhitelistRequest>({ discordId: currentUser.id }, 'WhitelistRequests');
+            if (!role) { 
+                if (!request) {
                         const code = await generateWhitelistCode();
                         const data: WhitelistRequest = { code, date: new Date().toLocaleString(), discordId: guildMember.id, username: guildMember.displayName, state: 'pending' };
 
@@ -120,35 +118,31 @@ async function handleToken(player: alt.Player, token: string) {
                         const channel: TextChannel = await getClient().channels.fetch(DiscordAuthConfig.WHITELIST_CHANNEL_ID) as TextChannel;
                         const embed = new EmbedBuilder()
                             .setAuthor({ name: guildMember.nickname })
-                            .setFields([
+                            .setFields(
                                 { name: 'Id', value: data._id },
                                 { name: 'Name', value: guildMember.nickname },
-                                { name: 'Code', value: data.code},
-                                { name: 'Status', value: data.state},
-                            ])
+                                { name: 'Code', value: data.code },
+                                { name: 'Status', value: data.state },
+                            )
                             .setTitle('Whitelist Anfrage')
                             .setTimestamp();
-                        await channel.send({ embeds: [embed] });
-
+                    const success = await channel.send({ embeds: [embed] });
+                    if (success) {
                         invokeWhitelistRequest(player, request);
                         return Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.request.whitelist', { code: data.code }));
                     }
-
-                    if (request.state === 'pending') {
-                        return Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.pending.whitelist', { code: request.code }));
-                    }
-
-                    if (request.state === 'denied') {
-                        return Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.denied.whitelist'));
-                    }
-
-                    return player.kick(t('discord.auth.guild.no.whitelist'))
                 }
+
+                if (request.state === 'pending') {
+                    return Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.pending.whitelist', { code: request.code }));
+                }
+
+                if (request.state === 'rejected') {
+                    return Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.rejected.whitelist'));
+                }
+
+                return player.kick(t('discord.auth.guild.no.whitelist'))
             }
-        } catch (error) {
-            alt.logError(JSON.stringify(error));
-            if (error.code === 10007) return player.kick(t('discord.auth.guild.no.member'));
-            else return player.kick(t('discord.auth.request.failed'));
         }
     }
 

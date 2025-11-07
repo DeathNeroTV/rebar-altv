@@ -4,7 +4,7 @@ import {client} from "./client.js";
 import { ActivityType } from "discord.js";
 
 export function init() {
-    if ( !DiscordConfig.BOT_TOKEN || DiscordConfig.BOT_TOKEN.length === 0 )
+    if (!DiscordConfig.BOT_TOKEN || DiscordConfig.BOT_TOKEN.length === 0)
         alt.logError("Bot token is empty");
 
     client.on('ready', () => {

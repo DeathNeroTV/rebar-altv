@@ -19,5 +19,5 @@ export interface WhitelistRequest {
     discordId: string;
     code: string;
     date: string;
-    state: 'pending' | 'approved' | 'denied'
+    state: 'pending' | 'approved' | 'rejected'
 }

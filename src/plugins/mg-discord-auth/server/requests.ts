@@ -9,10 +9,11 @@ let client: Client = undefined;
 const Rebar = useRebar();
 
 export async function requestInit() {
-    if ( !DiscordAuthConfig.SERVER_ID || DiscordAuthConfig.SERVER_ID.length <= 3 ) return;
+    if (!DiscordAuthConfig.SERVER_ID || DiscordAuthConfig.SERVER_ID.length <= 3) return;
 
     const discordAPI = await Rebar.useApi().getAsync('discord-api');
-    if (!discordAPI) throw new Error( "no discord api found" );
+    if (!discordAPI) throw new Error("no discord api found");
+
     client = discordAPI.client();
     if (!client) throw new Error( "no discord client found" );
 }
