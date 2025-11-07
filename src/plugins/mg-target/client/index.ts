@@ -23,17 +23,15 @@ const keyBinds: KeyInfo[] = [
         keyDown: () => {
             if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             isTargetingActive = true;
+            Rebar.player.useControls().setAttackControlsDisabled(true);
             view.emit(TargetingEvents.toClient.showTarget);
-            Rebar.player.useControls().setControls(false);
-            Rebar.player.useControls().setCameraFrozen(true);
         },
         keyUp: () => {
             if (alt.Player.local.isDead || Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             isTargetingActive = false;
             currentTarget = null;
+            Rebar.player.useControls().setAttackControlsDisabled(false);
             view.emit(TargetingEvents.toClient.hideTarget);
-            Rebar.player.useControls().setControls(true);
-            Rebar.player.useControls().setCameraFrozen(false);
         },
         restrictions: { isOnFoot: true }
     },

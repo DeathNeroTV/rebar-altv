@@ -61,22 +61,22 @@ async function loadAnimDict(dict: string): Promise<void> {
 
     natives.requestAnimDict(dict);
     let attempts = 0;
-    while (!natives.hasAnimDictLoaded(dict) && attempts < 200) {
-        await alt.Utils.wait(1);
+    while (!natives.hasAnimDictLoaded(dict) && attempts < 100) {
+        await alt.Utils.wait(10);
         attempts++;
     }
 }
 
-async function playAnimation(playerInfo: AnimInfo) {
-    if (!playerInfo.player || !playerInfo.player.valid) return;
+async function playAnimation(animInfo: AnimInfo, flags: number) {
+    if (!animInfo.player || !animInfo.player.valid) return;
 
-    await loadAnimDict(playerInfo.animDict);
+    await loadAnimDict(animInfo.animDict);
 
-    natives.clearPedTasksImmediately(playerInfo.player);
-    natives.taskPlayAnim(playerInfo.player, playerInfo.animDict, playerInfo.animName, 1.0, -1.0, -1, 49, 1.0, false, false, false);
+    natives.clearPedTasksImmediately(animInfo.player);
+    natives.taskPlayAnim(animInfo.player, animInfo.animDict, animInfo.animName, 8.0, -8.0, -1, flags, 1.0, false, false, false);
 }
 
-async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo) {
+async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo, flags: number) {
     if (!playerInfo.player || !playerInfo.player.valid || !targetInfo.player || !targetInfo.player.valid) return;
 
     // Brustkoordinaten des Zielspielers
@@ -88,7 +88,7 @@ async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo
     let attempts = 0;
     // Warten bis Spieler <= 1 Meter vom Brustkorb entfernt ist oder max. 200 Versuche
     while (playerInfo.player.pos.distanceTo(chestPos) > 0.8 && attempts < 200) {
-        await alt.Utils.wait(10);
+        await alt.Utils.wait(1);
         attempts++;
     }
 
@@ -98,11 +98,11 @@ async function moveToAndPlayAnimation(playerInfo: AnimInfo, targetInfo: AnimInfo
     const dx = chestPos.x - playerInfo.player.pos.x;
     const dy = chestPos.y - playerInfo.player.pos.y;
     const heading = Math.atan2(dy, dx) * (180 / Math.PI);
-    natives.setEntityHeading(playerInfo.player, heading - 90);
+    natives.setEntityHeading(playerInfo.player.scriptID, heading - 90);
 
     // Animation abspielen
-    await playAnimation(targetInfo);
-    await playAnimation(playerInfo);
+    await playAnimation(targetInfo, flags);
+    await playAnimation(playerInfo, flags);
 }
 
 function stopAnimation(player: alt.Player | alt.LocalPlayer) {
@@ -113,8 +113,8 @@ function stopAnimation(player: alt.Player | alt.LocalPlayer) {
 alt.onServer(DeathEvents.toClient.animation.play, async (playerInfo: AnimInfo, targetInfo?: AnimInfo) => {
     if (!playerInfo.player || !playerInfo.player.valid) return;
 
-    if (targetInfo) await moveToAndPlayAnimation(playerInfo, targetInfo);
-    else await playAnimation(playerInfo);
+    if (targetInfo) await moveToAndPlayAnimation(playerInfo, targetInfo, 1);
+    else await playAnimation(playerInfo, 1);
 });
 
 alt.onServer(DeathEvents.toClient.animation.stop, (target: alt.Player | alt.LocalPlayer) => {
