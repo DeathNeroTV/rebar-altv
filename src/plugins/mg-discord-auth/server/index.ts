@@ -105,10 +105,7 @@ async function handleToken(player: alt.Player, token: string) {
     if (DiscordAuthConfig.SERVER_ID && DiscordAuthConfig.SERVER_ID.length !== 0) {
         try {
             const guildMember = await getUserGuildMember(currentUser.id);
-            if (!guildMember) {
-                player.kick(t("discord.auth.guild.no.member"));
-                return;
-            }
+            if (!guildMember) return player.kick(t("discord.auth.guild.no.member"));
     
             if (DiscordAuthConfig.WHITELIST_ROLE_ID && DiscordAuthConfig.WHITELIST_ROLE_ID.length !== 0) {
                 const role = guildMember.roles.cache.get(DiscordAuthConfig.WHITELIST_ROLE_ID);
@@ -146,13 +143,13 @@ async function handleToken(player: alt.Player, token: string) {
                         return Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.denied.whitelist'));
                     }
 
-                    return player.kick(('discord.auth.guild.no.whitelist'))
+                    return player.kick(t('discord.auth.guild.no.whitelist'))
                 }
             }
         } catch (error) {
-            if (error.code === 10007) player.kick(t("discord.auth.guild.no.member"));
-            else player.kick(t("discord.auth.request.failed"));
-            return;
+            alt.logError(JSON.stringify(error));
+            if (error.code === 10007) return player.kick(t('discord.auth.guild.no.member'));
+            else return player.kick(t('discord.auth.request.failed'));
         }
     }
 
