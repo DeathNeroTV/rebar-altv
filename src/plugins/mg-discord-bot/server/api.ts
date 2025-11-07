@@ -2,7 +2,7 @@ import {useRebar} from "@Server/index.js";
 import {DiscordConfig} from "./config.js";
 import {getClient} from "./bot.js";
 import {registerCommand} from "./client.js";
-import { GuildMember, User } from "discord.js";
+import { GuildMember } from "discord.js";
 
 const Rebar = useRebar();
 

@@ -70,13 +70,11 @@ const chartOptions = {
 }
 
 onMounted(async () => {
-    if (interval) clearInterval(interval);
-
     interval = setInterval(async () => {
         const stats = await events.emitServerRpc(AdminEvents.toServer.request.usage) ?? {
-            cpuUsage: 50,
-            ramUsage: 50,
-            diskUsage: 50,
+            cpuUsage: 0,
+            ramUsage: 0,
+            diskUsage: 0,
         };
 
         const time = new Date().toLocaleTimeString()
@@ -95,10 +93,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-    if (interval) {
+    if (interval) 
         clearInterval(interval);
-        interval = null;
-    }
 });
 </script>
 

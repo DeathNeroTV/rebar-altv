@@ -117,7 +117,7 @@ alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
 });
 
 alt.onRpc(AdminEvents.toServer.request.stats, async () => {
-    const requests = await db.getAll('WhitelistRequests') ?? [];
+    const requests = await db.getAll<WhitelistEntry>('WhitelistRequests') ?? [];
     const accounts = await db.getAll(CollectionNames.Accounts) ?? [];
     const vehicles = await db.getAll(CollectionNames.Vehicles) ?? [];
     

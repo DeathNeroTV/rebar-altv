@@ -36,7 +36,6 @@ const sections = [
 
 sections.forEach(section => serverConfig.set(section, true));
 
-requestInit();
 
 function handleConnect(player: alt.Player) {
     const playerWorld = Rebar.player.useWorld(player);
@@ -227,6 +226,8 @@ function setAccount(player: alt.Player, account: Account) {
 }
 
 async function init() {
+    await requestInit();
+
     const introApi = await Rebar.useApi().getAsync('mg-intro-api');    
     introApi.onFinished(handleConnect);
     
