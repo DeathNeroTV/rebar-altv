@@ -44,6 +44,8 @@ const keyBinds: KeyInfo[] = [
         description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
         identifier: 'emergency-revive',
         keyDown: async () => {
+            if (isReviving) return;
+            
             const victim = alt.Utils.getClosestPlayer({ range: 3.0 });
             if (!victim || !victim.valid) return;
             isReviving = true;
@@ -82,16 +84,17 @@ alt.onServer(DeathEvents.toClient.reviveProgress, (progress: number) => {
 
 alt.onServer(DeathEvents.toClient.startRevive, () => {    
     view.emit(DeathEvents.toClient.startRevive);
+    isReviving = true;
 });
 
 alt.onServer(DeathEvents.toClient.stopRevive, () => {
     view.emit(DeathEvents.toClient.stopRevive);
-    if (isReviving) isReviving = false;
+    isReviving = false;
 });
 
 alt.onServer(DeathEvents.toClient.reviveComplete, () => {
     view.emit(DeathEvents.toClient.reviveComplete);
-    if (isReviving) isReviving = false;
+    isReviving = false;
 });
 
 alt.onServer(DeathEvents.toClient.startTimer, (timeLeft: number) => {

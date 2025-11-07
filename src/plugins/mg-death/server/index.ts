@@ -90,16 +90,16 @@ const Internal = {
         const data = ActiveRevives.get(charId);
 
         if (data.interval) alt.clearInterval(data.interval);
-        Internal.respawn(data.victim, data.victim.pos, data.reviver);
+        await Internal.respawn(data.victim, data.victim.pos, data.reviver);
     },
 
-    async respawn(player: alt.Player, pos?: alt.IVector3, reviver?: alt.Player) {
+    async respawn(player: alt.Player, pos?: alt.Vector3, reviver?: alt.Player) {
         if (!player || !player.valid) return;
-
-        player.frozen = false;
         
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid() || !document.getField('isDead')) return;
+
+        player.frozen = false;
 
         const charId = document.getField('_id');
 
@@ -129,10 +129,9 @@ const Internal = {
             Rebar.player.useState(player).sync();
             player.clearBloodDamage();
 
-            if (reviver) {
-                reviver.emit(DeathEvents.toClient.reviveComplete);
-                Rebar.player.useAnimation(reviver).clear();
-            }
+            if (!reviver) return;
+            reviver.emit(DeathEvents.toClient.reviveComplete);
+            Rebar.player.useAnimation(reviver).clear();
         }, 3100);
     },
 
@@ -155,7 +154,7 @@ const Internal = {
         if (!player || !player.valid) return;
 
         const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid() || !document.getField('isDead')) return;
+        if (!document.isValid() || document.getField('isDead')) return;
 
         const charId = document.getField('_id');
         player.spawn(document.getField('pos'));
