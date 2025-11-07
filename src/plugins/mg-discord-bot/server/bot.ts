@@ -9,10 +9,10 @@ export function init() {
 
     client.on('ready', () => {
         alt.log('[DISCORD]', `Logged in as ${client.user.username}!`);
-        client.user.setActivity({ name: 'Trial Life Roleplay', state: "server starting", type: ActivityType.Playing });
+        client.user.setActivity({ name: 'Trial Life Roleplay', state: "Server wird hochgefahren", type: ActivityType.Playing });
         alt.setTimeout(() => {
             if (!client) return;
-            client.user.setActivity({ name: 'Trial Life Roleplay', state: 'Wartet auf Befehle', type: ActivityType.Listening })
+            client.user.setActivity({ name: 'Trial Life Roleplay', state: 'Wartet auf weitere Befehle', type: ActivityType.Listening })
         }, 10000);
     });
 
