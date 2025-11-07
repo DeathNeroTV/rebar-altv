@@ -9,7 +9,7 @@ import { useTranslate } from "@Shared/translate.js";
 import { invokeLogin, invokeWhitelistRequest } from './api.js';
 import '../translate/index.js';
 import { getClient } from '@Plugins/mg-discord/server/bot.js';
-import { Embed, EmbedBuilder, TextChannel } from 'discord.js';
+import { EmbedBuilder, TextChannel } from 'discord.js';
 import { CollectionNames } from '@Server/document/shared.js';
 
 const Rebar = useRebar();
