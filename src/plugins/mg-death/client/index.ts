@@ -1,8 +1,10 @@
 import * as alt from 'alt-client';
 import * as natives from 'natives';
+
 import { useRebarClient } from '@Client/index.js';
-import { DeathEvents } from '../shared/events.js';
 import { useClientApi } from '@Client/api/index.js';
+
+import { DeathEvents } from '../shared/events.js';
 
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
@@ -10,7 +12,6 @@ const view = Rebar.webview.useWebview();
 let canRespawn = false;
 let calledEMS = false;
 let isReviving = false;
-var chestPos: alt.Vector3 | null;
 
 const keyBinds: KeyInfo[] = [
     {
@@ -18,7 +19,7 @@ const keyBinds: KeyInfo[] = [
         description: 'Lasse dich vom Rettungsteam abholen',
         identifier: 'emergency-trigger',
         keyDown: () => {
-            if (!canRespawn || isReviving || !alt.Player.local.isDead) return;
+            if (!canRespawn || isReviving) return;
             alt.emitServer(DeathEvents.toServer.toggleRespawn);
             canRespawn = false;
             calledEMS = false;
@@ -31,7 +32,7 @@ const keyBinds: KeyInfo[] = [
         description: 'Setze einen Notruf ab',
         identifier: 'emergency-call',
         keyDown: () => {
-            if (calledEMS || isReviving || !alt.Player.local.isDead) return;
+            if (calledEMS || isReviving) return;
             alt.emitServer(DeathEvents.toServer.toggleEms);
             calledEMS = true;
         },
@@ -42,11 +43,31 @@ const keyBinds: KeyInfo[] = [
         key: alt.KeyCode.H,
         description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
         identifier: 'emergency-revive',
-        keyDown: () => {
+        keyDown: async () => {
             const victim = alt.Utils.getClosestPlayer({ range: 3.0 });
-            if (!victim || !victim.valid || !victim.isDead) return;
-            alt.emitServer(DeathEvents.toServer.toggleRevive, victim);
+            if (!victim || !victim.valid) return;
             isReviving = true;
+
+            const playerPos = alt.Player.local.pos;
+            const victimPos = victim.pos;
+            const victimHeading = natives.getEntityHeading(victim);
+            const dx = playerPos.x - victimPos.x;
+            const dy = playerPos.y - victimPos.y;
+            const angleToPlayer = Math.atan2(dy, dx) * (180 / Math.PI);
+            let relativeAngle = (angleToPlayer - victimHeading + 360) % 360;
+            const isRightSide = relativeAngle > 0 && relativeAngle < 180;
+            const offsetX = isRightSide ? 0.5 : -0.5;
+            
+            natives.taskGoStraightToCoordRelativeToEntity(alt.Player.local, victim, offsetX, 0.01, 0.0, 1.2, 5000);
+            await alt.Utils.wait(5100);
+
+            const chestPos = natives.getPedBoneCoords(victim, 24816, 0, 0, 0);
+            const dx2 = chestPos.x - alt.Player.local.pos.x;
+            const dy2 = chestPos.y - alt.Player.local.pos.y;
+            const headingToChest = Math.atan2(dy2, dx2) * (180 / Math.PI);
+            natives.setEntityHeading(alt.Player.local, headingToChest);
+            natives.taskLookAtEntity(alt.Player.local, victim, -1, 2048, 3);
+            alt.emitServer(DeathEvents.toServer.toggleRevive, victim);
         },
         restrictions: { isOnFoot: true }
     }
@@ -81,38 +102,4 @@ alt.onServer(DeathEvents.toClient.startTimer, (timeLeft: number) => {
 alt.onServer(DeathEvents.toClient.stopTimer, () => {
     view.emit(DeathEvents.toClient.stopTimer, 0);
     if (!canRespawn) canRespawn = true;
-});
-
-alt.onServer(DeathEvents.toClient.moveTo, async(target: alt.Player) => {
-    if (!target || !target.valid) return;
-
-    while (target.moveSpeed > 0.0) {
-        chestPos = natives.getPedBoneCoords(target, 24816, 0, -1.0, 0);
-        alt.Utils.wait(1);
-    }
-
-    // Falls noch keine Position gespeichert, hole sie jetzt
-    if (!chestPos) chestPos = natives.getPedBoneCoords(target, 24816, 0, -1.0, 0);
-    natives.taskGoStraightToCoord(alt.Player.local, chestPos.x, chestPos.y, chestPos.z, 1.0, -1, 0.0, 0.0);
-
-    let attempts = 0;
-    while (alt.Player.local.pos.distanceTo(chestPos) > 0.5 && attempts < 200) {
-        attempts++;
-        await alt.Utils.wait(1);
-    }
-
-    const playerPos = alt.Player.local.pos;
-    const dx = chestPos.x - playerPos.x;
-    const dy = chestPos.y - playerPos.y;
-    const heading = Math.atan2(dy, dx) * (180 / Math.PI);
-    natives.taskAchieveHeading(alt.Player.local, heading, 1000);
-
-    await alt.Utils.wait(1200);
-    alt.emitServer(DeathEvents.toServer.toggleProgress, target);
-    chestPos = null;
-});
-
-alt.everyTick(() =>  {
-    if (!chestPos) return;
-    natives.drawMarker(20, chestPos.x, chestPos.y, chestPos.z, 0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0, 135, 54, 255, true, true, 0, false, null, null, false);
 });

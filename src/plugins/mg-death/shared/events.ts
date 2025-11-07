@@ -1,7 +1,6 @@
 export const DeathEvents = {
     toServer: {
         startRevive: 'mg-death:revive:start',
-        toggleProgress: 'mg-death:start:progress',
         toggleRespawn: 'mg-death:toggle:respawn',
         toggleEms: 'mg-death:toggle:ems',
         toggleRevive: 'mg-death:toggle:revive',
