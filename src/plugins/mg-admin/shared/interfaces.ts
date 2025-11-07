@@ -12,13 +12,13 @@ export interface SidebarInfo {
     color: string;
 }
 
-export interface WhitelistEntry {
-    _id: string;
+export interface WhitelistRequest {
+    _id?: string;
     username: string;
     discordId: string;
     code: string;
     date: string;
-    state: 'pending' | 'approved' | 'denied';
+    state: 'pending' | 'approved' | 'rejected';
 }
 
 export interface LoginResponse {

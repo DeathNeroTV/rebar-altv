@@ -1,12 +1,13 @@
 import * as alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
 import { useTranslate } from '@Shared/translate.js';
-import { CollectionNames } from '@Server/document/shared.js';
 
 import { NotificationTypes } from '@Plugins/mg-notify/shared/interface.js';
+import { DiscordAuthConfig } from '@Plugins/mg-discord-auth/server/config.js';
+
 import { AdminEvents } from '../shared/events.js';
 import { AdminConfig } from '../shared/config.js';
-import { DashboardStat, WhitelistEntry } from '../shared/interfaces.js';
+import { DashboardStat, WhitelistRequest } from '../shared/interfaces.js';
 import '../translate/index.js';
 
 import * as os from 'os';
@@ -59,7 +60,7 @@ alt.onClient(AdminEvents.toServer.login, (player: alt.Player) => {
 });
 
 alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, _id: string) => {
-    const entry: WhitelistEntry = await db.get<WhitelistEntry>({ _id }, 'WhitelistRequests');
+    const entry: WhitelistRequest = await db.get<WhitelistRequest>({ _id }, 'WhitelistRequests');
     if (!entry) {
         return notifyApi.general.send(player, {
             icon: NotificationTypes.ERROR,
@@ -71,7 +72,13 @@ alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, 
     }
 
     entry.state = 'approved';
-    await db.update<WhitelistEntry>(entry, 'WhitelistRequests');
+    await db.update<WhitelistRequest>(entry, 'WhitelistRequests');
+
+    const discordApi = await Rebar.useApi().getAsync('discord-api');
+    const member = await discordApi.getDiscordMember(entry.discordId);
+
+    if (member && !member.roles.cache.has(DiscordAuthConfig.WHITELIST_ROLE_ID)) 
+        await member.roles.add(DiscordAuthConfig.WHITELIST_ROLE_ID);
 
     alt.emitAllClients(AdminEvents.toClient.whitelist.update, entry);
     
@@ -85,7 +92,7 @@ alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, 
 });
 
 alt.onClient(AdminEvents.toServer.whitelist.reject, async (player: alt.Player, _id: string) => {
-    const entry: WhitelistEntry = await db.get<WhitelistEntry>({ _id }, 'WhitelistRequests');
+    const entry: WhitelistRequest = await db.get<WhitelistRequest>({ _id }, 'WhitelistRequests');
     if (!entry) {
         return notifyApi.general.send(player, {
             icon: NotificationTypes.ERROR,
@@ -96,8 +103,14 @@ alt.onClient(AdminEvents.toServer.whitelist.reject, async (player: alt.Player, _
         });   
     }
 
-    entry.state = 'denied';
-    await db.update<WhitelistEntry>(entry, 'WhitelistRequests');
+    entry.state = 'rejected';
+    await db.update<WhitelistRequest>(entry, 'WhitelistRequests');
+
+    const discordApi = await Rebar.useApi().getAsync('discord-api');
+    const member = await discordApi.getDiscordMember(entry.discordId);
+
+    if (member && member.roles.cache.has(DiscordAuthConfig.WHITELIST_ROLE_ID)) 
+        await member.roles.remove(DiscordAuthConfig.WHITELIST_ROLE_ID);
 
     alt.emitAllClients(AdminEvents.toClient.whitelist.update, entry);
 
@@ -117,9 +130,9 @@ alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
 });
 
 alt.onRpc(AdminEvents.toServer.request.stats, async () => {
-    const requests = await db.getAll<WhitelistEntry>('WhitelistRequests') ?? [];
-    const accounts = await db.getAll(CollectionNames.Accounts) ?? [];
-    const vehicles = await db.getAll(CollectionNames.Vehicles) ?? [];
+    const requests = await db.getAll('WhitelistRequests') ?? [];
+    const accounts = await db.getAll(Rebar.database.CollectionNames.Accounts) ?? [];
+    const vehicles = await db.getAll(Rebar.database.CollectionNames.Vehicles) ?? [];
     
     const whitelistIndex = stats.findIndex(data => data.id === 'whitelist');
     if (whitelistIndex !== -1) stats[whitelistIndex].value = requests.length;
@@ -134,7 +147,7 @@ alt.onRpc(AdminEvents.toServer.request.stats, async () => {
 });
 
 alt.onRpc(AdminEvents.toServer.request.whitelist, async () => {
-    const requests = await db.getAll<WhitelistEntry>('WhitelistRequests') ?? []; 
+    const requests = await db.getAll<WhitelistRequest & { _id: string }>('WhitelistRequests') ?? []; 
     return requests;
 });
 
@@ -176,7 +189,7 @@ function isMemberOfAllowedGroups(player: alt.Player) {
     return false;
 }
 
-function handleWhitelistRequest(player: alt.Player, request: WhitelistEntry) {
+function handleWhitelistRequest(player: alt.Player, request: WhitelistRequest) {
     if (!player || !player.valid) return;
     if (!isMemberOfAllowedGroups(player)) return;
     alt.emitAllClients(AdminEvents.toClient.whitelist.add, request);

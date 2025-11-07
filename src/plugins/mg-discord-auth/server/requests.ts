@@ -15,7 +15,7 @@ export async function requestInit() {
     if (!discordAPI) throw new Error("no discord api found");
 
     client = discordAPI.client();
-    if (!client) throw new Error( "no discord client found" );
+    if (!client) throw new Error("no discord client found");
 }
 
 export async function getCurrentUser(token: string): Promise<DiscordInfo | undefined> {

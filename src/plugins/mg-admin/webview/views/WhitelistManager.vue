@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { WhitelistEntry } from '@Plugins/mg-admin/shared/interfaces';
+import { WhitelistRequest } from '@Plugins/mg-admin/shared/interfaces';
 import { useTranslate } from '@Shared/translate';
 import { useEvents } from '@Composables/useEvents';
 import { AdminEvents } from '@Plugins/mg-admin/shared/events';
@@ -8,7 +8,7 @@ import { AdminEvents } from '@Plugins/mg-admin/shared/events';
 const { language } = defineProps({ language: String });
 const { t } = useTranslate(language);
 const events = useEvents();
-const entries = ref<WhitelistEntry[]>([]);
+const entries = ref<WhitelistRequest[]>([]);
 
 const approveRequest = async (index: number) => {
     events.emitServer(AdminEvents.toServer.whitelist.approve, entries[index]._id);
@@ -18,8 +18,8 @@ const rejectRequest = async (index: number) => {
     events.emitServer(AdminEvents.toServer.whitelist.reject, entries[index]._id);
 };
 
-const addWhitelist = (request: WhitelistEntry) => entries.value.push(request);
-const updateWhitelist = (request: WhitelistEntry) => {
+const addWhitelist = (request: WhitelistRequest) => entries.value.push(request);
+const updateWhitelist = (request: WhitelistRequest) => {
     const index = entries.value.findIndex(data => data._id === request._id);
     if (index === -1) return;
     entries.value[index] = request;
