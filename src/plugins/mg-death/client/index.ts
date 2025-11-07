@@ -10,6 +10,7 @@ const view = Rebar.webview.useWebview();
 let canRespawn = false;
 let calledEMS = false;
 let isReviving = false;
+var chestPos: alt.Vector3 | null;
 
 const keyBinds: KeyInfo[] = [
     {
@@ -85,15 +86,33 @@ alt.onServer(DeathEvents.toClient.stopTimer, () => {
 alt.onServer(DeathEvents.toClient.moveTo, async(target: alt.Player) => {
     if (!target || !target.valid) return;
 
-    const chestPos = natives.getPedBoneCoords(target, 24816, 0, 0, 0);
+    while (target.moveSpeed > 0.0) {
+        chestPos = natives.getPedBoneCoords(target, 24816, 0, -1.0, 0);
+        alt.Utils.wait(1);
+    }
+
+    // Falls noch keine Position gespeichert, hole sie jetzt
+    if (!chestPos) chestPos = natives.getPedBoneCoords(target, 24816, 0, -1.0, 0);
     natives.taskGoStraightToCoord(alt.Player.local, chestPos.x, chestPos.y, chestPos.z, 1.0, -1, 0.0, 0.0);
 
     let attempts = 0;
-    while (alt.Player.local.pos.distanceTo(chestPos) > 0.8 && attempts < 200) {
+    while (alt.Player.local.pos.distanceTo(chestPos) > 0.5 && attempts < 200) {
         attempts++;
         await alt.Utils.wait(1);
     }
 
-    natives.taskTurnPedToFaceCoord(alt.Player.local, chestPos.x, chestPos.y, chestPos.z, 1000);
-    alt.setTimeout(() => alt.emitServer(DeathEvents.toServer.toggleProgress, target), 1100);
+    const playerPos = alt.Player.local.pos;
+    const dx = chestPos.x - playerPos.x;
+    const dy = chestPos.y - playerPos.y;
+    const heading = Math.atan2(dy, dx) * (180 / Math.PI);
+    natives.taskAchieveHeading(alt.Player.local, heading, 1000);
+
+    await alt.Utils.wait(1200);
+    alt.emitServer(DeathEvents.toServer.toggleProgress, target);
+    chestPos = null;
+});
+
+alt.everyTick(() =>  {
+    if (!chestPos) return;
+    natives.drawMarker(20, chestPos.x, chestPos.y, chestPos.z, 0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0, 135, 54, 255, true, true, 0, false, null, null, false);
 });
