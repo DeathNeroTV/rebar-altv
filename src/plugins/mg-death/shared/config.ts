@@ -1,4 +1,5 @@
 export const DeathConfig = {
+    language: 'de',
     respawnTime: 1 * 60000,
     reviveTime: 10000,
     hospitals: [

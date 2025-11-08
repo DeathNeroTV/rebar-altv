@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { useEvents } from '@Composables/useEvents.js';
 import { DeathEvents } from '../shared/events.js';
 import { useTranslate } from '@Shared/translate.js';
@@ -8,130 +8,159 @@ import '../translate/index';
 const { t } = useTranslate('de');
 const events = useEvents();
 
-// Core States
+// === Core Reactive States ===
 const isDead = ref(false);
 const canRespawn = ref(false);
 const calledEMS = ref(false);
 
-// Für Revive HUD (Reviver)
+// === Revive HUD ===
 const isReviving = ref(false);
 const reviveProgress = ref(0);
 
-// Timer
-const timeLeft = ref<number>(0);
-const totalTime = ref<number>(0);
-let interval: NodeJS.Timeout | null = null;
+// === Timer Logic ===
+const timeLeft = ref(0);
+const totalTime = ref(0);
+let timerInterval: NodeJS.Timeout | null = null;
 
-// Formatierte Anzeige
+// === Computed Properties ===
 const formattedTime = computed(() => {
     const seconds = Math.max(0, Math.floor(timeLeft.value / 1000));
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
+    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const sec = (seconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${sec}`;
 });
 
 const progress = computed(() => {
-    if (totalTime.value === 0) return 0;
-    if (isReviving.value) return reviveProgress.value.toFixed(2);
-    return ((timeLeft.value / totalTime.value) * 100).toFixed(2);
+    if (totalTime.value <= 0) return 0;
+    return isReviving.value ? reviveProgress.value : (timeLeft.value / totalTime.value) * 100;
 });
 
-const resetData = () => {
+// === Internal Helpers ===
+const resetState = () => {
     isDead.value = false;
+    isReviving.value = false;
     canRespawn.value = false;
     calledEMS.value = false;
-};
-
-const resetRevive = (value: boolean) => {
-    isReviving.value = value;
     reviveProgress.value = 0;
-};
+    clearTimer();
+}
 
-events.on(DeathEvents.toClient.startTimer, (ms: number) => {
+const clearTimer = () => {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+const startTimer = (ms: number) => {
+    clearTimer();
     isDead.value = true;
     isReviving.value = false;
     canRespawn.value = false;
 
     totalTime.value = ms;
     timeLeft.value = ms;
-    
-    interval = setInterval(() => {
-        timeLeft.value -= 1000;
-        if (timeLeft.value <= 0) {
-            clearInterval(interval!);
-            interval = null;
-            canRespawn.value = true;
-        }
-    }, 1000);
-});
 
-events.on(DeathEvents.toClient.stopTimer, () => {
-    if (interval) clearInterval(interval);
+    timerInterval = setInterval(() => {
+        if (timeLeft.value <= 1000) {
+            clearTimer();
+            canRespawn.value = true;
+            timeLeft.value = 0;
+            return;
+        }
+        timeLeft.value -= 1000;
+    }, 1000);
+}
+
+// === Event Bindings ===
+events.on(DeathEvents.toWebview.startTimer, startTimer);
+
+events.on(DeathEvents.toWebview.stopTimer, () => {
+    clearTimer();
     totalTime.value = 0;
     timeLeft.value = 0;
-    canRespawn.value = true;    
+    canRespawn.value = true;
 });
 
-events.on(DeathEvents.toClient.startRevive, () => resetRevive(true));
-events.on(DeathEvents.toClient.stopRevive, () => resetRevive(false));
+events.on(DeathEvents.toWebview.startRevive, () => {
+    isReviving.value = true;
+    reviveProgress.value = 0;
+});
 
-events.on(DeathEvents.toClient.reviveProgress, (progress: number) => {
+events.on(DeathEvents.toWebview.stopRevive, () => {
+    isReviving.value = false;
+    reviveProgress.value = 0;
+});
+
+events.on(DeathEvents.toWebview.reviveProgress, (progress: number) => {
     reviveProgress.value = progress;
 });
 
-events.on(DeathEvents.toClient.confirmEms, () => {
+events.on(DeathEvents.toWebview.confirmEms, () => {
     calledEMS.value = true;
 });
 
-events.on(DeathEvents.toClient.reviveComplete, () => {
-    isReviving.value = false;
-    reviveProgress.value = 100;
-    if (isDead) resetData();
-});
+events.on(DeathEvents.toWebview.reviveComplete, resetState);
+events.on(DeathEvents.toWebview.respawned, resetState);
 
-events.on(DeathEvents.toClient.respawned, resetData);
+// === Cleanup ===
+onUnmounted(() => clearTimer());
 </script>
 
 <template>
     <transition name="fade">
-        <div v-if="isDead || isReviving" class="fixed inset-0 bg-neutral-950/70 flex items-center justify-center text-gray-100 z-50">
-            
-            <!-- === Death HUD (Victim) === -->
+        <div
+            v-if="isDead || isReviving"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/70 text-gray-100"
+        >
+            <!-- === Death HUD === -->
             <div
                 v-if="isDead && !isReviving"
-                class="relative w-[380px] bg-neutral-950/60 border border-[#008736]/60 rounded-2xl shadow-[0_0_25px_#00873640] p-6 text-center backdrop-blur-sm"
+                class="relative w-[380px] p-6 text-center backdrop-blur-sm bg-neutral-950/60 border border-[#008736]/60 rounded-2xl shadow-[0_0_25px_#00873640]"
             >
-                <div class="select-none w-24 h-1 bg-[#008736] animate-pulseGlow mx-auto mb-4 rounded-full"></div>
+                <div class="mx-auto mb-4 h-1 w-24 select-none rounded-full bg-[#008736] animate-pulseGlow"></div>
 
-                <h1 class="select-none text-3xl font-bold uppercase tracking-wider text-[#008736] mb-2">
+                <h1 class="mb-2 select-none text-3xl font-bold uppercase tracking-wider text-[#008736]">
                     {{ t('death.downed') }}
                 </h1>
 
-                <p class="text-gray-300 text-xs uppercase tracking-widest mb-4">
+                <p class="mb-4 text-xs uppercase tracking-widest text-gray-300">
                     {{ t('death.critical') }}
                 </p>
 
                 <div
-                    class="select-none text-5xl font-mono text-[#008736] font-semibold mb-4 drop-shadow-[0_0_8px_#008736aa]"
+                    class="mb-4 select-none font-mono text-5xl font-semibold text-[#008736] drop-shadow-[0_0_8px_#008736aa]"
                 >
                     {{ formattedTime }}
                 </div>
 
-                <!-- Timer Fortschritt -->
-                <div class="w-full bg-neutral-800/50 rounded-full h-1.5 overflow-hidden mb-6">
-                    <div class="bg-[#008736] h-1.5 transition-all duration-1000 ease-linear" :style="{ width: `${progress}%` }"></div>
+                <!-- Timer Progress -->
+                <div class="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800/50">
+                    <div
+                        class="h-1.5 bg-[#008736] transition-all duration-1000 ease-linear"
+                        :style="{ width: `${progress}%` }"
+                    ></div>
                 </div>
 
-                <!-- Notruf -->
-                <div v-if="!calledEMS && !canRespawn" class="select-none text-gray-300 text-xs uppercase py-1 tracking-widest">
+                <!-- EMS Call -->
+                <div
+                    v-if="!calledEMS && !canRespawn"
+                    class="select-none py-1 text-xs uppercase tracking-widest text-gray-300"
+                >
                     {{ t('death.callEMS') }}
                 </div>
-                <div v-else-if="calledEMS && !canRespawn" class="select-none text-[#008736] text-xs font-semibold py-1 uppercase animate-pulseGlow">
+                <div
+                    v-else-if="calledEMS && !canRespawn"
+                    class="select-none py-1 text-xs font-semibold uppercase text-[#008736] animate-pulseGlow"
+                >
                     {{ t('death.emsCalled') }}
                 </div>
 
                 <!-- Respawn -->
-                <div v-if="canRespawn" class="text-[#008736] select-none text-xs font-semibold uppercase tracking-wider animate-pulseGlow mt-2">
+                <div
+                    v-if="canRespawn"
+                    class="mt-2 select-none text-xs font-semibold uppercase tracking-wider text-[#008736] animate-pulseGlow"
+                >
                     {{ t('death.pressEToRespawn') }}
                 </div>
             </div>
@@ -139,24 +168,26 @@ events.on(DeathEvents.toClient.respawned, resetData);
             <!-- === Reviver HUD === -->
             <div
                 v-else-if="isReviving"
-                class="relative w-[380px] bg-neutral-950/60 border border-[#008736]/60 rounded-2xl shadow-[0_0_25px_#00873640] p-6 text-center backdrop-blur-sm"
+                class="relative w-[380px] p-6 text-center backdrop-blur-sm bg-neutral-950/60 border border-[#008736]/60 rounded-2xl shadow-[0_0_25px_#00873640]"
             >
-                <div class="select-none w-24 h-1 bg-[#008736] animate-pulseGlow mx-auto mb-4 rounded-full"></div>
+                <div class="mx-auto mb-4 h-1 w-24 select-none rounded-full bg-[#008736] animate-pulseGlow"></div>
 
-                <h1 class="select-none text-2xl font-bold uppercase tracking-wider text-[#008736] mb-3">
+                <h1 class="mb-3 select-none text-2xl font-bold uppercase tracking-wider text-[#008736]">
                     {{ t('death.downed') }}
                 </h1>
 
-                <div class="select-none text-gray-300 text-sm uppercase tracking-widest mb-4">
+                <div class="mb-4 select-none text-sm uppercase tracking-widest text-gray-300">
                     {{ t('death.beingRevived') }}
                 </div>
 
-                <!-- Fortschrittsbalken -->
-                <div class="w-full bg-neutral-800/50 rounded-full h-2 overflow-hidden mb-4">
-                    <div class="bg-[#008736] h-2 transition-all duration-300 ease-linear" :style="{ width: `${reviveProgress}%` }"></div>
+                <div class="mb-4 h-2 w-full overflow-hidden rounded-full bg-neutral-800/50">
+                    <div
+                        class="h-2 bg-[#008736] transition-all duration-300 ease-linear"
+                        :style="{ width: `${reviveProgress}%` }"
+                    ></div>
                 </div>
 
-                <div class="text-xs text-gray-400 uppercase">
+                <div class="text-xs uppercase text-gray-400">
                     {{ reviveProgress.toFixed(0) }}%
                 </div>
             </div>
