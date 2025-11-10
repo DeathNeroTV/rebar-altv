@@ -32,7 +32,8 @@ const amount = ref<number | null>(null);
             </div>
 
             <div class="text-sm text-gray-400 mb-6">
-                ID: <span class="text-gray-300">{{ props.player?.id }}</span>
+                ID: <span class="text-gray-300">{{ props.player?.id }}</span> •
+                PING: <span class="text-gray-300">{{ props.player?.id }}</span>
             </div>
 
             <!-- 🌍 Health -->

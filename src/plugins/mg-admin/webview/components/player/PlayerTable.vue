@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { PlayerStats } from "@Plugins/mg-admin/shared/interfaces";
-import PlayerActions from "./PlayerActions.vue";
 
 defineProps<{ players: PlayerStats[] }>();
 </script>
