@@ -1,3 +1,5 @@
+import { ActionType, GiveType, TeleportType } from "./enums.js";
+
 export interface DashboardStat {
     id: string;
     title: string;
@@ -21,10 +23,28 @@ export interface WhitelistRequest {
     state: 'pending' | 'approved' | 'rejected';
 }
 
-export interface LoginResponse {
-    success: boolean;
-    username?: string;
-    discordId?: string;
-    permissions?: string[];
+export interface PlayerStats {
+    id: number; 
+    name: string;
+    ping: number;
+    health: number;
+    armour: number;
+    pos?: { x: number; y: number; z: number };
+    job?: string | string[]; 
+}
+
+export interface AdminAction {
+    type: ActionType;
+    playerId: number;
     reason?: string;
+    amount?: number;
+    itemName?: string;
+    teleportType?: TeleportType;
+    giveType?: GiveType;
+    value?: any;
+}
+
+export interface DropDownOption {
+    label: string;
+    value: string | number | GiveType | ActionType | TeleportType;
 }

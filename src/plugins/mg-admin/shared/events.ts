@@ -26,7 +26,9 @@ export const AdminEvents = {
         request: {
             usage: 'mg-admin:request:usage',
             stats: 'mg-admin:request:stats',
-            whitelist: 'mg-admin:request:whitelist'
-        }
+            whitelist: 'mg-admin:request:whitelist',
+            player: 'mg-admin:request:player',
+        },
+        action: 'mg-admin:action:invoke',
     }
 };

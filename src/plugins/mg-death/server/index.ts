@@ -15,7 +15,6 @@ const ActiveTasks: Map<string, { timeout?: number; interval?: number }> = new Ma
 const ActiveRevives: Map<string, { reviver: alt.Player; victim: alt.Player; interval: number }> = new Map();
 
 const Internal = {
-    // Called when player chooses skipCreate (initial flow)
     async handleSkipCreate(player: alt.Player) {
         if (!player || !player.valid) return;
 
@@ -30,15 +29,8 @@ const Internal = {
 
         Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
 
-        // Zeige DeathScreen nur falls Zustand notwendig (z. B. isDead true)
-        if (document.getField('isDead')) {
-            // send initial timer/warnung falls vorhanden
-            const charId = document.getField('_id');
-            if (TimeOfDeath.has(charId)) {
-                const msLeft = Math.max(0, TimeOfDeath.get(charId)! - Date.now());
-                player.emit(DeathEvents.toClient.startTimer, msLeft);
-            } else player.emit(DeathEvents.toClient.stopTimer);
-        }
+        if (document.getField('isDead')) 
+            Internal.processDeath(player);
     },
 
     async handleCharacterUpdate(player: alt.Player, key: keyof Character, value: any) {
@@ -46,7 +38,6 @@ const Internal = {
         if (!document.isValid() || key !== 'isDead') return;
         if (!value) return;
 
-        // Wenn isDead true wurde (client oder server update), speichern wir pos und verarbeiten Tod.
         await document.set('pos', player.pos);
         Internal.processDeath(player);
     },
@@ -178,9 +169,6 @@ const Internal = {
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid()) return;
 
-        const charId = document.getField('_id');
-        if (TimeOfDeath.has(charId)) return; // bereits in Todesphase
-
         // Markiere character als tot (persist)
         if (!document.getField('isDead')) await document.set('isDead', true);
         else Internal.processDeath(player);
@@ -195,6 +183,7 @@ const Internal = {
         if (!document.isValid()) return;
 
         const charId = document.getField('_id');
+        if (TimeOfDeath.has(charId)) return;
 
         // spawn am zuletzt gespeicherten char pos, nicht an CharSelect default
         const savedPos = document.getField('pos') ?? player.pos;
@@ -209,7 +198,9 @@ const Internal = {
 
         // Timer: nach respawnTime den Player freigeben (client notified)
         const timeout = alt.setTimeout(() => {
-            if (player && player.valid) player.emit(DeathEvents.toClient.stopTimer);
+            if (player && player.valid) 
+                player.emit(DeathEvents.toClient.stopTimer);
+
             alt.clearTimeout(timeout);
             ActiveTasks.delete(charId);
         }, DeathConfig.respawnTime);

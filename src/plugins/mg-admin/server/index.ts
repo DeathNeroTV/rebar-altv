@@ -10,6 +10,8 @@ import { AdminConfig } from '../shared/config.js';
 import { DashboardStat, WhitelistRequest } from '../shared/interfaces.js';
 import '../translate/index.js';
 
+import './players/index.js';
+
 import * as os from 'os';
 import * as disk from 'diskusage';
 
