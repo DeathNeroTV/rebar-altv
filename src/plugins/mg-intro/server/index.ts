@@ -27,8 +27,6 @@ const showIntro = async (player: alt.Player) => {
         await showIntro(player);
         return;
     }
-        
-    Rebar.player.useAudio(player).playSound('./sounds/intro.ogg', 0.35);
     Rebar.player.useWorld(player).setScreenFade(0);
     Rebar.player.useWorld(player).disableControls();
     Rebar.player.useWorld(player).freezeCamera(true);
