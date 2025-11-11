@@ -54,7 +54,7 @@ const amount = ref<number | null>(null);
                 <p>X: {{ props.player?.pos?.x?.toFixed(4) }} | Y: {{ props.player?.pos?.y?.toFixed(4) }} | Z: {{ props.player?.pos?.z?.toFixed(4) }}</p>
             </div>
 
-            <PlayerActions :player="player" />
+            <PlayerActions :player="player" @close="emits('close')"/>
         </div>
     </div>
 </template>

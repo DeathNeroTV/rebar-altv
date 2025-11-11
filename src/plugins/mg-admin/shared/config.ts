@@ -23,4 +23,14 @@ export const AdminConfig = {
         moderator: '1304085950405677076',
         supporter: '1435181489515003937',
     },
+    kickAndBanReasons: [
+        { label: 'Fail-RP', value: 'failRP' },
+        { label: 'Cheats angewendet', value: 'cheating' },
+        { label: 'Modifizierung', value: 'modding' },
+        { label: 'Glitch/Bug ausnutzen', value: 'glitch' },
+        { label: 'Beleidigung', value: 'insult' },
+        { label: 'Trolling', value: 'trolling' },
+        { label: 'Sinnlose Tötung', value: 'rdm' },
+        { label: 'Tötung durch fahren/parken', value: 'vdm' },
+    ],
 };

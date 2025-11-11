@@ -1,7 +1,7 @@
 export const HudConfig = {
     language: 'de',
     timePerSecond: 30,
-    baseDrain: 0.001,
+    baseDrain: 0.01,
     actionMultipliers: {
         sprinting: 2.0,
         moving: 1.2,

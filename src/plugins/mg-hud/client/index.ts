@@ -34,6 +34,11 @@ const keyBind: KeyInfo = {
 alt.setMsPerGameMinute(msPerGameMinute);
 keyBindApi.add(keyBind);
 
+alt.onServer(HudEvents.toClient.syncTime, (hour: number, minute: number, second: number) => {
+    if (!view.isOverlayOpen('Hud')) return;
+    view.emit(HudEvents.toWebview.syncTime, hour, minute, second);
+});
+
 alt.setInterval(() => {
     if (!view.isOverlayOpen('Hud')) return;
     const player = alt.Player.local;

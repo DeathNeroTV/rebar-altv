@@ -18,6 +18,7 @@ import { IntroEvents } from '../shared/events.js';
 import { invokeFinished } from './api.js';
 import { readdir } from "fs/promises";
 
+const sessionKey = 'can-see-intro';
 const Rebar = useRebar();
 
 const showIntro = async (player: alt.Player) => {
@@ -33,6 +34,8 @@ const showIntro = async (player: alt.Player) => {
     Rebar.player.useWorld(player).freezeCamera(true);
 };
 
+alt.on('playerConnect', (player: alt.Player) => player.setMeta(sessionKey, true));
+
 alt.onClient(IntroEvents.toServer.start, async (player: alt.Player) => {
     await showIntro(player);
 });
@@ -47,6 +50,8 @@ alt.onRpc(IntroEvents.toServer.request, async (player: alt.Player) => {
 });
 
 alt.onClient(IntroEvents.toServer.finished, (player: alt.Player) => {
+    player.deleteMeta(sessionKey);
+    
     Rebar.player.useWebview(player).hide('Intro');
     Rebar.player.useWorld(player).clearScreenFade(0);
     Rebar.player.useWorld(player).enableControls();

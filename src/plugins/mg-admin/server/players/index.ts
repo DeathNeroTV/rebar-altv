@@ -9,17 +9,23 @@ const Rebar = useRebar();
 
 alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
     const players: PlayerStats[] = [];
-    for (const p of alt.Player.all) {
+    for (const p of alt.Player.all.filter(x => 
+        !x.hasMeta('can-change-appearance') && 
+        !x.hasMeta('can-select-character') && 
+        !x.hasMeta('can-auth-account')&& 
+        !x.hasMeta('can-see-intro')
+    )) {
         players.push({
             health: p.health,
             id: p.id,
             name: p.name,
             ping: p.ping,
+            armour: p.armour,
             pos: { 
                 x: player.pos.x, 
                 y: player.pos.y, 
                 z: player.pos.z 
-            }
+            },
         });
     }
     return players;
@@ -36,7 +42,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
 
     switch (data.type) {
         case ActionType.KICK:
-            target.kick(`Sie wurden von einem Teammitglied gebannt. Grund:  ${data.reason}`);
+            target.kick(`Sie wurden von einem Teammitglied gekickt. Grund:  ${data.reason}`);
             break;
         case ActionType.BAN:
             if (!documentAcc.isValid()) return;
@@ -44,10 +50,18 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             target.kick(`Sie wurden von einem Teammitglied gebannt. Grund: ${data.reason}`);
             break;
         case ActionType.HEAL:
-            target.health = 200;
-            Rebar.player.useState(target).apply({ health: 200 });
-            if (!documentChar.isValid()) return;
-            await documentChar.setBulk({ health: 200, food: 100, water: 100 });
+            if (documentChar.getField('isDead')) 
+                Rebar.services.useDeathService().respawn(target, target.pos);
+            
+            await documentChar.setBulk({ food: 100, water: 100, health: 200 });
+            
+            notifyApi.general.send(admin, {
+                icon: notifyApi.general.getTypes().SUCCESS,
+                title: 'Admin-System',
+                subtitle: 'Medizinisch',
+                message: `${target.name} wurde geheilt.`,
+                oggFile: 'notification'
+            });
             break;
         case ActionType.TELEPORT:
             const radius = 5.0;
@@ -56,6 +70,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             const offsetY = Math.sin(angle) * radius;
             if (data.teleportType === TeleportType.GO_TO) {
                 admin.pos = new alt.Vector3(target.pos.x + offsetX, target.pos.y + offsetY, target.pos.z);
+                admin.dimension = target.dimension;
                 notifyApi.general.send(admin, {
                     icon: notifyApi.general.getTypes().SUCCESS,
                     title: 'Admin-System',
@@ -65,6 +80,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
                 });
             } else if (data.teleportType === TeleportType.GET_HERE) {
                 target.pos = new alt.Vector3(admin.pos.x + offsetX, admin.pos.y + offsetY, admin.pos.z);
+                target.dimension = admin.dimension;
                 notifyApi.general.send(admin, {
                     icon: notifyApi.general.getTypes().SUCCESS,
                     title: 'Admin-System',

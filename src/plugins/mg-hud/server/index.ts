@@ -11,7 +11,6 @@ import { DateTimeSecond } from 'alt-server';
 import { HudConfig } from '../shared/config.js';
 
 const Rebar = useRebar();
-const api = Rebar.useApi();
 
 const allowedPlayerKeys: (keyof Character)[] = [
     'id',
@@ -39,17 +38,21 @@ alt.onRpc(HudEvents.toServer.fetchId, (player: alt.Player) => {
 
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
-    players.forEach((player: alt.Player) => {
-        const now: Date = new Date(Date.now()); 
-        const day: DateTimeDay = now.getDay() as DateTimeDay;
-        const month: DateTimeDay = now.getDay() as DateTimeMonth;
-        const year: number = now.getFullYear();
-        const h: DateTimeHour = hour as DateTimeHour;
-        const m: DateTimeMinute = minute as DateTimeMinute;
-        const s: DateTimeSecond = second as DateTimeSecond;
-        player.setDateTime(day, month, year, h, m, s);
-        Rebar.player.useWebview(player).emit(HudEvents.toWebview.syncTime, hour, minute, second);
-    });
+    const now: Date = new Date(Date.now()); 
+    const day: DateTimeDay = now.getDay() as DateTimeDay;
+    const month: DateTimeDay = now.getDay() as DateTimeMonth;
+    const year: number = now.getFullYear();
+    const h: DateTimeHour = hour as DateTimeHour;
+    const m: DateTimeMinute = minute as DateTimeMinute;
+    const s: DateTimeSecond = second as DateTimeSecond;
+
+    players.forEach(player => player.setDateTime(day, month, year, h, m, s));
+    alt.emitAllClients(HudEvents.toClient.syncTime, hour, minute, second);
+});
+
+alt.on('rebar:playerCharacterBound', (player: alt.Player, character: Character) => {
+    Rebar.player.useWebview(player).show('Hud', 'overlay');
+    allowedPlayerKeys.forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value: character[key] })); 
 });
 
 alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
@@ -58,9 +61,6 @@ alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character
     if (!document.isValid()) return;
 
     Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
-
-    if (key !== 'isDead') return;
-    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updateDead, value);
 });
 
 alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value: any) => {
@@ -129,7 +129,7 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
 
 alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { isSprinting: boolean, isMoving: boolean, isJumping: boolean, isShooting: boolean }) => {
     const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid()) return;
+    if (!document.isValid() || document.getField('isDead')) return;
 
     let food = document.getField('food') || 100;
     let water = document.getField('water') || 100;
@@ -143,36 +143,21 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
         multiplier += (data.isShooting ? HudConfig.actionMultipliers.shooting : 0);
     }
 
-    const foodDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain * multiplier;
-    const waterDrain = document.getField('isDead') ? 0 : HudConfig.baseDrain * multiplier;
+    const foodDrain = HudConfig.baseDrain * multiplier;
+    const waterDrain = HudConfig.baseDrain * multiplier;
+    var damage: number = 0;
 
     food = Math.max(food - foodDrain, 0);
     water = Math.max(water - waterDrain, 0);
     
-    if (food <= 0) {
-        const damage = 0.25;
-        health = Math.max(health - damage, 0);
-    }
+    if (food <= 0) damage += 0.25;
+    if (water <= 0) damage += 0.25;
 
-    if (water <= 0) {
-        const damage = 0.25;
-        health = Math.max(health - damage, 99);
-    }
+    health = Math.max(health - damage, 99);
 
     await document.setBulk({ food, water, health });
     Rebar.player.useState(player).apply({ health });
 });
-
-function handleSkipCreate(player: alt.Player): void {
-    const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid()) return;
-    Rebar.player.useWebview(player).show('Hud', 'overlay');
-}
-
-async function init() {
-    const charCreatorApi = await api.getAsync('character-creator-api');
-    charCreatorApi.onSkipCreate(handleSkipCreate);
-}
 
 alt.setInterval(() => {
     const timeService = Rebar.services.useTimeService();
@@ -186,8 +171,6 @@ alt.setInterval(() => {
 
     timeService.setTime(ingameHours, ingameMinutes, ingameSeconds);
 }, 1000);
-
-init();
 
 declare module '@Shared/types/character.js' {
     export interface Character {

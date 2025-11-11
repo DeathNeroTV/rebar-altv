@@ -37,7 +37,6 @@ async function saveAppearance(player: alt.Player, appearance: Appearance) {
     }
 
     Rebar.player.useWebview(player).hide('CharacterCreator');
-    Rebar.player.useNative(player).invoke('displayRadar', true);
     player.deleteMeta(sessionKey);
     await characterDoc.set('appearance', appearance);
 

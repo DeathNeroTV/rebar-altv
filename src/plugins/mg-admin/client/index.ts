@@ -5,7 +5,7 @@ import { AdminEvents } from '../shared/events.js';
 import { useRebarClient } from '@Client/index.js';
 import { useTranslate } from '@Shared/translate.js';
 import { AdminConfig } from '../shared/config.js';
-import { WhitelistEntry } from '../shared/interfaces.js';
+import { WhitelistRequest } from '../shared/interfaces.js';
 
 const { t } = useTranslate(AdminConfig.language);
 
@@ -17,20 +17,20 @@ const keyBind: KeyInfo = {
     description: t('admin.keyBind.desc'),
     key: alt.KeyCode.P,
     allowIfDead: true,
-    keyDown: () => {        
-        if (alt.isConsoleOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+    keyDown: () => {
+        if (alt.isConsoleOpen() || alt.isMenuOpen()) return;
         alt.emitServer(AdminEvents.toServer.login);
     },
 };
 
 alt.everyTick(() => natives.disableControlAction(0, 199, true));
 
-function handleWhitelistRequest(request: WhitelistEntry) {
+function handleWhitelistRequest(request: WhitelistRequest) {
     if (!view.isSpecificPageOpen('Admin')) return;
     view.emit(AdminEvents.toWebview.whitelist.add, request);
 }
 
-function handleWhitelistUpdate(request: WhitelistEntry) {
+function handleWhitelistUpdate(request: WhitelistRequest) {
     if (!view.isSpecificPageOpen('Admin')) return;
     view.emit(AdminEvents.toWebview.whitelist.add, request);
 }

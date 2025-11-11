@@ -4,6 +4,7 @@ import { useEvents } from '@Composables/useEvents.js';
 import { DeathEvents } from '../shared/events.js';
 import { useTranslate } from '@Shared/translate.js';
 import '../translate/index';
+import { DeathConfig } from '../shared/config.js';
 
 const { t } = useTranslate('de');
 const events = useEvents();
@@ -20,6 +21,7 @@ const reviveProgress = ref(0);
 // === Timer Logic ===
 const timeLeft = ref(0);
 const totalTime = ref(0);
+let reviveInterval: NodeJS.Timeout | null = null;
 let timerInterval: NodeJS.Timeout | null = null;
 
 // === Computed Properties ===
@@ -49,6 +51,10 @@ const clearTimer = () => {
     if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
+    }
+    if (reviveInterval) {
+        clearInterval(reviveInterval);
+        reviveInterval = null;
     }
 }
 
@@ -83,8 +89,22 @@ events.on(DeathEvents.toWebview.stopTimer, () => {
 });
 
 events.on(DeathEvents.toWebview.startRevive, () => {
+    if (reviveInterval) return;
+    
     isReviving.value = true;
     reviveProgress.value = 0;
+
+    reviveInterval = setInterval(() => {
+        if (reviveProgress.value >= 100) {
+            clearInterval(reviveInterval);
+            events.emitClient(DeathEvents.toClient.reviveComplete);
+            resetState();
+            reviveInterval = null;
+            return;
+        }
+
+        reviveProgress.value += 5;
+    }, DeathConfig.reviveTime / 20);
 });
 
 events.on(DeathEvents.toWebview.stopRevive, () => {
@@ -92,15 +112,10 @@ events.on(DeathEvents.toWebview.stopRevive, () => {
     reviveProgress.value = 0;
 });
 
-events.on(DeathEvents.toWebview.reviveProgress, (progress: number) => {
-    reviveProgress.value = progress;
-});
-
 events.on(DeathEvents.toWebview.confirmEms, () => {
     calledEMS.value = true;
 });
 
-events.on(DeathEvents.toWebview.reviveComplete, resetState);
 events.on(DeathEvents.toWebview.respawned, resetState);
 
 // === Cleanup ===

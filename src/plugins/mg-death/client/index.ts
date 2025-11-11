@@ -9,9 +9,9 @@ import { DeathEvents } from '../shared/events.js';
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
 
-type ClientState = { canRespawn: boolean; calledEMS: boolean; isReviving: boolean; };
+type ClientState = { canRespawn: boolean; calledEMS: boolean; isReviving: boolean; isReviver: boolean };
 
-const state: ClientState = { canRespawn: false, calledEMS: false, isReviving: false };
+const state: ClientState = { canRespawn: false, calledEMS: false, isReviving: false, isReviver: false };
 
 function emitServerSafe(event: string, ...args: any[]) {
     if (!alt.Player.local || !alt.Player.local.valid) return;
@@ -30,7 +30,6 @@ async function registerKeybinds() {
                 if (!state.canRespawn || state.isReviving) return;
                 emitServerSafe(DeathEvents.toServer.toggleRespawn);
                 state.canRespawn = false;
-                state.calledEMS = false;
             },
             allowIfDead: true,
             restrictions: { isOnFoot: true }
@@ -52,11 +51,8 @@ async function registerKeybinds() {
             description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
             identifier: 'emergency-revive',
             keyDown: async () => {
-                if (state.isReviving) return;
-
                 const victim = alt.Utils.getClosestPlayer({ range: 3.0 });
                 if (!victim || !victim.valid) return;
-                state.isReviving = true;
 
                 // Positioniere Spieler neben das Opfer
                 const playerPos = alt.Player.local.pos;
@@ -89,25 +85,23 @@ async function registerKeybinds() {
     binds.forEach(b => keyBindApi.add(b));
 }
 
-function registerServerListeners() {
-    alt.onServer(DeathEvents.toClient.reviveProgress, (progress: number) => {
-        view.emit(DeathEvents.toWebview.reviveProgress, progress);
+function registerListeners() {
+    view.on(DeathEvents.toClient.reviveComplete, () => {
+        emitServerSafe(DeathEvents.toServer.reviveComplete, state.isReviver);
+        state.isReviving = false;
+        state.isReviver = false;
     });
 
-    alt.onServer(DeathEvents.toClient.startRevive, () => {
-        view.emit(DeathEvents.toWebview.startRevive);
+    alt.onServer(DeathEvents.toClient.startRevive, (isReviver: boolean) => {
         state.isReviving = true;
+        state.isReviver = isReviver;
+        view.emit(DeathEvents.toWebview.startRevive);
     });
 
     alt.onServer(DeathEvents.toClient.stopRevive, () => {
         view.emit(DeathEvents.toWebview.stopRevive);
         state.isReviving = false;
-    });
-
-    alt.onServer(DeathEvents.toClient.reviveComplete, () => {
-        view.emit(DeathEvents.toWebview.reviveComplete);
-        state.isReviving = false;
-        state.canRespawn = false;
+        state.isReviver = false;
     });
 
     alt.onServer(DeathEvents.toClient.startTimer, (timeLeft: number) => {
@@ -124,11 +118,19 @@ function registerServerListeners() {
         view.emit(DeathEvents.toWebview.confirmEms);
         state.calledEMS = true;
     });
+
+    alt.onServer(DeathEvents.toClient.respawned, () => {
+        view.emit(DeathEvents.toWebview.respawned);
+        state.calledEMS = false;
+        state.canRespawn = false;
+        state.isReviving = false;
+        state.isReviver = false;
+    });
 }
 
 async function init() {
     await registerKeybinds();
-    registerServerListeners();
+    registerListeners();
 }
 
 init();

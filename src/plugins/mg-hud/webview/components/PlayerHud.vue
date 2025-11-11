@@ -130,6 +130,7 @@ const relog = () => events.emitServer(CharacterSelectEvents.toServer.logoutChara
 onMounted(async () => {  
     const id = await events.emitServerRpc(HudEvents.toServer.fetchId);
     data.value.id = id ?? 0;
+    
     events.on(HudEvents.toWebview.syncTime, (hour: number, minute: number, second: number) => {
         const formattedHour = hour.toString().padStart(2, '0');
         const formattedMinute = minute.toString().padStart(2, '0');

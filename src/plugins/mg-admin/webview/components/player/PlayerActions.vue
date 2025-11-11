@@ -6,9 +6,14 @@ import { AdminEvents } from '@Plugins/mg-admin/shared/events';
 import type { AdminAction, PlayerStats } from '@Plugins/mg-admin/shared/interfaces';
 
 import Dropdown from '../DropDown.vue';
+import { AdminConfig } from '@Plugins/mg-admin/shared/config';
 
 const events = useEvents();
 const props = defineProps<{ player: PlayerStats | null }>();
+
+const emits = defineEmits<{
+    (e: 'close'): void;
+}>();
 
 const actions = [
     { type: ActionType.KICK, label: 'Kicken' },
@@ -16,9 +21,8 @@ const actions = [
     { type: ActionType.BAN, label: 'Bannen' },
     { type: ActionType.HEAL, label: 'Heilen' },
     { type: ActionType.SPECTATE, label: 'Beobachten' },
-    { type: ActionType.GIVE, label: 'Etwas geben' },
-    { type: ActionType.TAKE, label: 'Etwas nehmen' },
-    { type: ActionType.SET, label: 'Etwas setzen' },
+    { type: ActionType.GIVE, label: 'Geben' },
+    { type: ActionType.TAKE, label: 'Nehmen' },
     { type: ActionType.FREEZE, label: 'Einfrieren/Auftauen' },
 ];
 
@@ -28,17 +32,10 @@ const teleports = [
 ];
 
 const gives = [
-    { type: GiveType.BANK, label: 'Konto auffüllen' },
-    { type: GiveType.CASH, label: 'Bargeld geben' },
-    { type: GiveType.ITEM, label: 'Gegenstand geben' },
-    { type: GiveType.WEAPON, label: 'Waffe geben' },
-];
-
-const kickBanReasons = [
-  { label: 'Unfaire Spielweise', value: 'unfair' },
-  { label: 'Glitch/Bug ausnutzen', value: 'glitch' },
-  { label: 'Beleidigung', value: 'insult' },
-  { label: 'RDM', value: 'rdm' },
+    { type: GiveType.BANK, label: 'Konto' },
+    { type: GiveType.CASH, label: 'Bargeld' },
+    { type: GiveType.ITEM, label: 'Gegenstand' },
+    { type: GiveType.WEAPON, label: 'Waffe & Munition' },
 ];
 
 // Reactive state
@@ -59,16 +56,13 @@ const canExecute = computed(() => {
             return !!reason.value;
         case ActionType.GIVE:
         case ActionType.TAKE:
-        case ActionType.SET:
             if (!selectedGive.value) return false;
-            if ([GiveType.ITEM, GiveType.WEAPON].includes(selectedGive.value) || selectedAction.value === ActionType.SET) {
+            if ([GiveType.ITEM, GiveType.WEAPON].includes(selectedGive.value)) {
                 return !!itemName.value && !!amount.value;
             }
             return !!amount.value;
         case ActionType.TELEPORT:
             return !!selectedTeleport.value;
-        case ActionType.FREEZE:
-            return !!reason.value;
         default:
             return true;
     }
@@ -90,7 +84,7 @@ function doAction() {
     };
 
     events.emitServer(AdminEvents.toServer.action, data);
-
+    emits('close');
     // Reset
     selectedAction.value = null;
     selectedGive.value = null;
@@ -127,7 +121,7 @@ function doAction() {
         <!-- Kicken/Bannen Gründe -->
         <div v-if="selectedAction === ActionType.KICK || selectedAction === ActionType.BAN" class="mb-2">
             <Dropdown
-                :options="kickBanReasons"
+                :options="AdminConfig.kickAndBanReasons"
                 placeholder="Grund auswählen"
                 v-model="reason"
                 @selected="val => reason = val as string"
@@ -135,7 +129,7 @@ function doAction() {
         </div>
 
         <!-- Geben / Nehmen / Setzen -->
-        <div v-if="[ActionType.GIVE, ActionType.TAKE, ActionType.SET].includes(selectedAction)" class="mb-2">
+        <div v-if="[ActionType.GIVE, ActionType.TAKE].includes(selectedAction)" class="mb-2">
             <Dropdown
                 class="mb-2"
                 :options="gives.map(g => ({ label: g.label, value: g.type }))"
@@ -144,7 +138,7 @@ function doAction() {
                 @selected="val => selectedGive = val as GiveType"
             />
 
-            <input v-if="selectedGive === GiveType.ITEM || selectedGive === GiveType.WEAPON || selectedAction === ActionType.SET"
+            <input v-if="selectedGive === GiveType.ITEM || selectedGive === GiveType.WEAPON"
                 v-model="itemName"
                 placeholder="Name"
                 class="w-full p-2 rounded-lg bg-neutral-800 text-gray-100 mb-2"/>

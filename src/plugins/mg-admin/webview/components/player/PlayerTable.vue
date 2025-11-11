@@ -26,7 +26,7 @@ defineProps<{ players: PlayerStats[] }>();
                     <td class="p-2">{{ p.health }}</td>
                     <td class="p-2">{{ p.armour }}</td>
                     <td v-if="p.job && Array.isArray(p.job)" class="p-2">{{ p.job?.join(', ') || 'arbeitslos' }}</td>
-                    <td v-else-if ="p.job" class="p-2">{{ p.job || 'arbeitslos' }}</td>
+                    <td v-else class="p-2">{{ p.job || 'arbeitslos' }}</td>
                     <td class="p-2">{{ `${p.pos?.x?.toFixed(4) || 0.0000 }, ${p.pos?.y?.toFixed(4) || 0.0000}, ${p.pos?.z?.toFixed(4) || 0.0000}` }}</td>
                 </tr>
             </tbody>

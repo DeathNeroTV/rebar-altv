@@ -16,6 +16,7 @@ const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
 const { t } = useTranslate('de');
 
+const sessionKey = 'can-auth-account';
 const sessions: Array<DiscordSession> = [];
 const serverConfig = Rebar.useServerConfig();
 
@@ -46,6 +47,7 @@ function handleConnect(player: alt.Player) {
         id: player.id,
         expiration: Date.now() + 60000 * DiscordAuthConfig.SESSION_EXPIRE_TIME_IN_MINUTES
     });
+    player.setMeta(sessionKey, true);
 
     const view = Rebar.player.useWebview(player);
     view.show("DiscordAuth", "page");
@@ -110,32 +112,33 @@ async function handleToken(player: alt.Player, token: string) {
         if (DiscordAuthConfig.WHITELIST_ROLE_ID && DiscordAuthConfig.WHITELIST_ROLE_ID.length !== 0) {
             const role = guildMember.roles.cache.get(DiscordAuthConfig.WHITELIST_ROLE_ID);
             const request: WhitelistRequest = await db.get<WhitelistRequest>({ discordId: currentUser.id }, 'WhitelistRequests');
+
+            if (!request) {
+                const code = await generateWhitelistCode();
+                const data: WhitelistRequest = { code, date: new Date().toLocaleString(), discordId: guildMember.id, username: guildMember.displayName, state: 'pending' };
+
+                const _id = await db.create<WhitelistRequest>(data, 'WhitelistRequests');
+                data._id = _id.toString();
+
+                const channel: TextChannel = await getClient().channels.fetch(DiscordAuthConfig.WHITELIST_CHANNEL_ID) as TextChannel;
+                const embed = new EmbedBuilder()
+                .setAuthor({ name: "Test", })
+                .setTitle("Whitelist-Anfrage")
+                .addFields(
+                    { name: "Id", value: data._id, inline: false },
+                    { name: "Name", value: currentUser.username, inline: false },
+                    { name: "Code", value: data.code, inline: false },
+                    { name: "Status", value: data.state, inline: false },
+                )
+                .setColor("#008736");
+                await channel.send({ embeds: [embed] });
+
+                invokeWhitelistRequest(player, request);
+                Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.request.whitelist', { code: data.code }));
+                return;
+            }
+
             if (!role) { 
-                if (!request) {
-                    const code = await generateWhitelistCode();
-                    const data: WhitelistRequest = { code, date: new Date().toLocaleString(), discordId: guildMember.id, username: guildMember.displayName, state: 'pending' };
-
-                    const _id = await db.create<WhitelistRequest>(data, 'WhitelistRequests');
-                    data._id = _id.toString();
-
-                    const channel: TextChannel = await getClient().channels.fetch(DiscordAuthConfig.WHITELIST_CHANNEL_ID) as TextChannel;
-                    const embed = new EmbedBuilder()
-                    .setAuthor({ name: "Test", })
-                    .setTitle("Whitelist-Anfrage")
-                    .addFields(
-                        { name: "Id", value: data._id, inline: false },
-                        { name: "Name", value: currentUser.username, inline: false },
-                        { name: "Code", value: data.code, inline: false },
-                        { name: "Status", value: data.state, inline: false },
-                    )
-                    .setColor("#008736");
-                    await channel.send({ embeds: [embed] });
-                    
-                    invokeWhitelistRequest(player, request);
-                    Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.request.whitelist', { code: data.code }));
-                    return;
-                }
-
                 if (request.state === 'pending') {
                     Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.pending.whitelist', { code: request.code }));
                     return;
@@ -227,6 +230,7 @@ function setSessionFinish(player: alt.Player) {
 }
 
 function setAccount(player: alt.Player, account: Account) {
+    player.deleteMeta(sessionKey);
     Rebar.document.account.useAccountBinder(player).bind(account);
     const playerWorld = Rebar.player.useWorld(player);
     const view = Rebar.player.useWebview(player);
