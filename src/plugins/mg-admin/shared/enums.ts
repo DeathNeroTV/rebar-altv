@@ -6,7 +6,6 @@ export enum ActionType {
     HEAL = 'heal',
     GIVE = 'give',
     TAKE = 'take',
-    SET = 'set',
     FREEZE = 'freeze',
 };
 

@@ -1,11 +1,12 @@
 import alt from 'alt-server';
 
 import { AdminAction, PlayerStats } from '@Plugins/mg-admin/shared/interfaces.js';
-import { ActionType, TeleportType } from '@Plugins/mg-admin/shared/enums.js';
+import { ActionType, GiveType, TeleportType } from '@Plugins/mg-admin/shared/enums.js';
 import { AdminEvents } from '@Plugins/mg-admin/shared/events.js';
 import { useRebar } from '@Server/index.js';
 
 const Rebar = useRebar();
+const notifyApi = await useRebar().useApi().getAsync('notify-api');
 
 alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
     const players: PlayerStats[] = [];
@@ -32,13 +33,13 @@ alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
 });
 
 alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminAction) => {
-    const notifyApi = await useRebar().useApi().getAsync('notify-api');
-
     const target = alt.Player.all.find(p => p.id === data.playerId);
     if (!target || !target.valid) return;
+    const vehicle = target.vehicle ?? undefined;
 
     const documentAcc = Rebar.document.account.useAccount(target);
     const documentChar = Rebar.document.character.useCharacter(target);
+    const name = alt.getVehicleModelInfoByHash(vehicle?.model).title ?? documentChar?.getField('name').replaceAll('_', ' ') ?? target.name;
 
     switch (data.type) {
         case ActionType.KICK:
@@ -92,5 +93,100 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             break;
         case ActionType.SPECTATE:
             break;
+        case ActionType.GIVE:
+            await handleGiveAction(target, data.giveType, data.itemName, data.amount);
+            break;
+        case ActionType.TAKE:
+            await handleTakeAction(target, data.giveType, data.itemName, -data.amount);
+            break;
+        case ActionType.FREEZE:
+            if (vehicle) vehicle.frozen = !vehicle.frozen;
+            else target.frozen = !target.frozen;
+            notifyApi.general.send(admin, {
+                title: 'Admin-System',
+                subtitle: `${target.frozen ? 'Eingefroren' : 'Aufgetaut'}`,
+                icon: notifyApi.general.getTypes().INFO,
+                message: name,
+                oggFile: 'notification'
+            });
+            break;
     }
 });
+
+async function handleGiveAction(player: alt.Player, type: GiveType, id: string, amount: number) {
+    if (type === GiveType.ITEM) {
+        const success = await Rebar.services.useItemService().add(player,id, amount);
+        if (!success) return;
+
+        notifyApi.general.send(player, {
+            title: 'Admin-System',
+            subtitle: 'Gegeben',
+            icon: notifyApi.general.getTypes().INFO,
+            message: `${amount} x ${id} erhalten`,
+            oggFile: 'notification',
+        });
+        return;
+    }
+
+    if (type === GiveType.WEAPON) {
+        await Rebar.player.useWeapon(player).add(id, amount);
+        notifyApi.general.send(player, {
+            title: 'Admin-System',
+            subtitle: 'Gegeben',
+            icon: notifyApi.general.getTypes().INFO,
+            message: `${id} mit ${amount} Schuss erhalten`,
+            oggFile: 'notification',
+        });
+        return;
+    }
+
+    const success = await Rebar.services.useCurrencyService().add(player, type, amount);
+    if (!success) return;
+
+    notifyApi.general.send(player, {
+        title: 'Admin-System',
+        subtitle: 'Gegeben',
+        icon: notifyApi.general.getTypes().INFO,
+        message: `Sie haben $ ${amount} erhalten (${GiveType.BANK ? 'Bankkonto' : 'Bargeld'})`,
+        oggFile: 'notification',
+    });
+}
+
+async function handleTakeAction(player: alt.Player, type: GiveType, id: string, amount: number) {
+    if (type === GiveType.ITEM) {
+        const success = await Rebar.services.useItemService().sub(player, id, amount);
+        if (!success) return;
+
+        notifyApi.general.send(player, {
+            title: 'Admin-System',
+            subtitle: 'Abgenommen',
+            icon: notifyApi.general.getTypes().INFO,
+            message: `${amount} x ${id} abgenommen`,
+            oggFile: 'notification',
+        });
+        return;
+    }
+
+    if (type === GiveType.WEAPON) {
+        await Rebar.player.useWeapon(player).clearWeapon(id);
+        notifyApi.general.send(player, {
+            title: 'Admin-System',
+            subtitle: 'Abgenommen',
+            icon: notifyApi.general.getTypes().INFO,
+            message: `${id} wurde von Ihnen eingezogen`,
+            oggFile: 'notification',
+        });
+        return;
+    }
+
+    const success = await Rebar.services.useCurrencyService().sub(player, type, amount);
+    if (!success) return;
+
+    notifyApi.general.send(player, {
+        title: 'Admin-System',
+        subtitle: 'Gegeben',
+        icon: notifyApi.general.getTypes().INFO,
+        message: `Es wurden Ihnen $ ${amount} abgenommen (${GiveType.BANK ? 'Bankkonto' : 'Bargeld'})`,
+        oggFile: 'notification',
+    });
+}
