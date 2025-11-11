@@ -17,7 +17,7 @@ const progress = ref<number>(0);
 const addons = ref<string[]>([]);
 const targetProgress = ref<number>(0);
 const currentPluginIndex = ref<number>(0);
-const volume = ref<number>(35);
+const volume = ref<number>(25);
 
 const team = ref<{ name: string; role: string | string[] }[]>([
     { name: 'DeathNeroTV', role: [t('intro.team.manager'), t('intro.team.dev')] },

@@ -4,6 +4,7 @@ import { AdminAction, PlayerStats } from '@Plugins/mg-admin/shared/interfaces.js
 import { ActionType, GiveType, TeleportType } from '@Plugins/mg-admin/shared/enums.js';
 import { AdminEvents } from '@Plugins/mg-admin/shared/events.js';
 import { useRebar } from '@Server/index.js';
+import { AdminConfig } from '@Plugins/mg-admin/shared/config.js';
 
 const Rebar = useRebar();
 const notifyApi = await useRebar().useApi().getAsync('notify-api');
@@ -43,12 +44,26 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
 
     switch (data.type) {
         case ActionType.KICK:
-            target.kick(`Sie wurden von einem Teammitglied gekickt. Grund:  ${data.reason}`);
+            target.kick(`Sie wurden von einem Teammitglied gekickt. Grund:  ${AdminConfig.kickAndBanReasons[data.reason]}`);
+            notifyApi.general.send(admin, {
+                title: 'Admin-System',
+                subtitle: 'Spieler wurde gekickt',
+                icon: notifyApi.general.getTypes().INFO,
+                message: AdminConfig.kickAndBanReasons[data.reason],
+                oggFile: 'notification'
+            });
             break;
         case ActionType.BAN:
             if (!documentAcc.isValid()) return;
-            await documentAcc.setBulk({ banned: true, reason: data.reason });
-            target.kick(`Sie wurden von einem Teammitglied gebannt. Grund: ${data.reason}`);
+            await documentAcc.setBulk({ banned: true, reason: AdminConfig.kickAndBanReasons[data.reason] });
+            target.kick(`Sie wurden von einem Teammitglied gebannt. Grund: ${AdminConfig.kickAndBanReasons[data.reason]}`);
+            notifyApi.general.send(admin, {
+                title: 'Admin-System',
+                subtitle: 'Spieler wurde gebannt',
+                icon: notifyApi.general.getTypes().INFO,
+                message: AdminConfig.kickAndBanReasons[data.reason],
+                oggFile: 'notification'
+            });
             break;
         case ActionType.HEAL:
             if (documentChar.getField('isDead')) 
