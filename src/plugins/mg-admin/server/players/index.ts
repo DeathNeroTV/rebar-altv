@@ -41,27 +41,28 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
     const documentAcc = Rebar.document.account.useAccount(target);
     const documentChar = Rebar.document.character.useCharacter(target);
     const name = alt.getVehicleModelInfoByHash(vehicle?.model).title ?? documentChar?.getField('name').replaceAll('_', ' ') ?? target.name;
+    const reason = AdminConfig.kickAndBanReasons.find(x => x.value === data.reason)?.label ?? data.reason;
 
     switch (data.type) {
         case ActionType.KICK:
-            target.kick(`Sie wurden von einem Teammitglied gekickt. Grund:  ${AdminConfig.kickAndBanReasons[data.reason]}`);
+            target.kick(`Sie wurden von einem Teammitglied gekickt. Grund:  ${reason}`);
             notifyApi.general.send(admin, {
                 title: 'Admin-System',
-                subtitle: 'Spieler wurde gekickt',
+                subtitle: `${name} wurde gekickt`,
                 icon: notifyApi.general.getTypes().INFO,
-                message: AdminConfig.kickAndBanReasons[data.reason],
+                message: reason,
                 oggFile: 'notification'
             });
             break;
         case ActionType.BAN:
             if (!documentAcc.isValid()) return;
-            await documentAcc.setBulk({ banned: true, reason: AdminConfig.kickAndBanReasons[data.reason] });
-            target.kick(`Sie wurden von einem Teammitglied gebannt. Grund: ${AdminConfig.kickAndBanReasons[data.reason]}`);
+            await documentAcc.setBulk({ banned: true, reason });
+            target.kick(`Sie wurden von einem Teammitglied gebannt. Grund: ${reason}`);
             notifyApi.general.send(admin, {
                 title: 'Admin-System',
-                subtitle: 'Spieler wurde gebannt',
+                subtitle: `${name} wurde gebannt`,
                 icon: notifyApi.general.getTypes().INFO,
-                message: AdminConfig.kickAndBanReasons[data.reason],
+                message: reason,
                 oggFile: 'notification'
             });
             break;

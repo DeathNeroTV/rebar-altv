@@ -25,6 +25,7 @@ export const AdminConfig = {
     },
     kickAndBanReasons: [
         { label: 'Fail-RP', value: 'failRP' },
+        { label: 'Rechtemissbrauch', value: 'adminAbuse' },
         { label: 'Cheats angewendet', value: 'cheating' },
         { label: 'Modifizierung', value: 'modding' },
         { label: 'Glitch/Bug ausnutzen', value: 'glitch' },

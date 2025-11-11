@@ -56,10 +56,8 @@ alt.on('rebar:playerCharacterBound', (player: alt.Player, character: Character) 
 });
 
 alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
+    if (!player || !player.valid) return;
     if (!allowedPlayerKeys.includes(key)) return;
-    const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid()) return;
-
     Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
 });
 
@@ -131,32 +129,38 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid() || document.getField('isDead')) return;
 
-    let food = document.getField('food') || 100;
-    let water = document.getField('water') || 100;
-    let health = document.getField('health') || 200;
-    let multiplier = 1;
+    const food = document.getField('food') ?? 100;
+    const water = document.getField('water') ?? 100;
+    const health = document.getField('health') ?? 200;
 
-    if (data.isSprinting || data.isMoving || data.isJumping || data.isShooting) {
-        multiplier += (data.isSprinting ? HudConfig.actionMultipliers.sprinting : 0);
-        multiplier += (data.isMoving ? HudConfig.actionMultipliers.moving : 0);
-        multiplier += (data.isJumping ? HudConfig.actionMultipliers.jumping : 0);
-        multiplier += (data.isShooting ? HudConfig.actionMultipliers.shooting : 0);
-    }
+    // Multiplier basierend auf Aktionen
+    const multiplier = 
+        1 +
+        (data.isSprinting ? HudConfig.actionMultipliers.sprinting : 0) +
+        (data.isMoving ? HudConfig.actionMultipliers.moving : 0) +
+        (data.isJumping ? HudConfig.actionMultipliers.jumping : 0) +
+        (data.isShooting ? HudConfig.actionMultipliers.shooting : 0);
 
+    // Verbrauch
     const foodDrain = HudConfig.baseDrain * multiplier;
     const waterDrain = HudConfig.baseDrain * multiplier;
-    var damage: number = 0;
 
-    food = Math.max(food - foodDrain, 0);
-    water = Math.max(water - waterDrain, 0);
-    
-    if (food <= 0) damage += 0.25;
-    if (water <= 0) damage += 0.25;
+    const newFood = Math.max(food - foodDrain, 0);
+    const newWater = Math.max(water - waterDrain, 0);
 
-    health = Math.max(health - damage, 99);
+    // Health nur verringern, wenn Werte unter Threshold fallen
+    let healthLoss: number = 0;
+    if (newFood <= HudConfig.lowThreshold) healthLoss += HudConfig.healthDrain;
+    if (newWater <= HudConfig.lowThreshold) healthLoss += HudConfig.healthDrain;
 
-    await document.setBulk({ food, water, health });
-    Rebar.player.useState(player).apply({ health });
+    const newHealth = Math.max(health - healthLoss, 99);
+
+    await document.setBulk({ 
+        food: newFood, 
+        water: newWater, 
+        health: newHealth, 
+        ...(newHealth === 99 ? { isDead: true } : {}) 
+    });
 });
 
 alt.setInterval(() => {

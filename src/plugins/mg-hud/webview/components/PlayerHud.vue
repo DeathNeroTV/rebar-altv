@@ -58,13 +58,13 @@
                         <div class="relative flex flex-1 items-center place-content-center">{{ data.id }}</div>
                     </div>
                     <div class="relative w-8 h-8 flex items-center justify-center border-t border-b">
-                        <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${data.food}%` }"></div>
+                        <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${Math.max(0, Math.min(100, data.food))}%` }"></div>
                         <div class="relative items-center place-content-center">
                             <font-awesome-icon :icon="['fas', 'utensils']" class="text-lg text-gray-100" />
                         </div>
                     </div>
                     <div class="relative w-8 h-8 flex items-center justify-center border-t border-b">
-                        <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${data.water}%` }"></div>
+                        <div class="absolute bottom-0 left-0 w-full bg-green-700" :style="{ height: `${Math.max(0, Math.min(100, data.water))}%` }"></div>
                         <div class="z-10 items-center place-content-center">
                             <font-awesome-icon :icon="['fas', 'tint']" class="text-lg text-gray-100" />
                         </div>
@@ -127,10 +127,7 @@ const getWeapon = computed(() => {
 
 const relog = () => events.emitServer(CharacterSelectEvents.toServer.logoutCharacter);
 
-onMounted(async () => {  
-    const id = await events.emitServerRpc(HudEvents.toServer.fetchId);
-    data.value.id = id ?? 0;
-    
+onMounted(async () => {      
     events.on(HudEvents.toWebview.syncTime, (hour: number, minute: number, second: number) => {
         const formattedHour = hour.toString().padStart(2, '0');
         const formattedMinute = minute.toString().padStart(2, '0');
