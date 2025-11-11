@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, onUnmounted } from 'vue';
 import { useEvents } from '@Composables/useEvents';
 import { IntroEvents } from '../shared/events';
 import { useTranslate } from '@Shared/translate';
@@ -86,6 +86,12 @@ const handleVolume = (value: number) => {
 };
 
 onMounted(async() => handleStart());
+
+onUnmounted(() => {
+    audio.value.pause();
+    audio.value.currentTime = 0;
+    audio.value = null;
+});
 </script>
 
 <template>
