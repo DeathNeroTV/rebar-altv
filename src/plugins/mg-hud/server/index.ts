@@ -9,8 +9,11 @@ import { DateTimeHour } from 'alt-server';
 import { DateTimeMinute } from 'alt-server';
 import { DateTimeSecond } from 'alt-server';
 import { HudConfig } from '../shared/config.js';
+import { VitalCoolDowns } from '../shared/interfaces.js';
 
 const Rebar = useRebar();
+const notifyApi = await Rebar.useApi().getAsync('notify-api');
+const vitalWarnings: Map<string, VitalCoolDowns> = new Map();
 
 const allowedPlayerKeys: (keyof Character)[] = [
     'id',
@@ -52,7 +55,7 @@ alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
 
 alt.on('rebar:playerCharacterBound', (player: alt.Player, character: Character) => {
     Rebar.player.useWebview(player).show('Hud', 'overlay');
-    allowedPlayerKeys.forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value: character[key] })); 
+    allowedPlayerKeys.forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value: character[key] }));
 });
 
 alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
@@ -129,38 +132,80 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid() || document.getField('isDead')) return;
 
-    const food = document.getField('food') ?? 100;
-    const water = document.getField('water') ?? 100;
-    const health = document.getField('health') ?? 200;
+    const charId = document.getField('_id');
+    let food = document.getField('food') ?? 100;
+    let water = document.getField('water') ?? 100;
+    let health = document.getField('health') ?? 200;
 
     // Multiplier basierend auf Aktionen
-    const multiplier = 
+    const multiplier =
         1 +
-        (data.isSprinting ? HudConfig.actionMultipliers.sprinting : 0) +
-        (data.isMoving ? HudConfig.actionMultipliers.moving : 0) +
-        (data.isJumping ? HudConfig.actionMultipliers.jumping : 0) +
-        (data.isShooting ? HudConfig.actionMultipliers.shooting : 0);
+        (data.isSprinting ? HudConfig.actionMultipliers.sprinting * 0.5 : 0) +
+        (data.isMoving ? HudConfig.actionMultipliers.moving * 0.5 : 0) +
+        (data.isJumping ? HudConfig.actionMultipliers.jumping * 0.7 : 0) +
+        (data.isShooting ? HudConfig.actionMultipliers.shooting * 0.5 : 0);
 
-    // Verbrauch
+    // Food & Water Verbrauch
     const foodDrain = HudConfig.baseDrain * multiplier;
     const waterDrain = HudConfig.baseDrain * multiplier;
 
-    const newFood = Math.max(food - foodDrain, 0);
-    const newWater = Math.max(water - waterDrain, 0);
+    food = Math.max(food - foodDrain, 0);
+    water = Math.max(water - waterDrain, 0);
 
     // Health nur verringern, wenn Werte unter Threshold fallen
-    let healthLoss: number = 0;
-    if (newFood <= HudConfig.lowThreshold) healthLoss += HudConfig.healthDrain;
-    if (newWater <= HudConfig.lowThreshold) healthLoss += HudConfig.healthDrain;
+    let healthLoss = 0;
+    if (food <= HudConfig.lowThreshold)
+        healthLoss += HudConfig.healthDrain * ((HudConfig.lowThreshold - food) / HudConfig.lowThreshold);
 
-    const newHealth = Math.max(health - healthLoss, 99);
+    if (water <= HudConfig.lowThreshold)
+        healthLoss += HudConfig.healthDrain * ((HudConfig.lowThreshold - water) / HudConfig.lowThreshold);
 
-    await document.setBulk({ 
-        food: newFood, 
-        water: newWater, 
-        health: newHealth, 
-        ...(newHealth === 99 ? { isDead: true } : {}) 
-    });
+    health = Math.max(health - healthLoss, 99);
+
+    const isDead = health === 99;
+    const now = Date.now();
+    const cooldowns = vitalWarnings.get(charId) ?? {};
+
+    // Food-Warnung
+    if (food <= HudConfig.lowThreshold && (!cooldowns.food || now >= cooldowns.food)) {
+        notifyApi.general.send(player, {
+            title: 'Vital-Monitor',
+            subtitle: 'Ernährung kritisch',
+            icon: notifyApi.general.getTypes().WARNING,
+            message: `Aktueller Wert: ${food.toFixed(1)} %`,
+            oggFile: 'systemfault'
+        });
+        cooldowns.food = now + HudConfig.warnDelayInSeconds * 1000;
+    }
+
+    // Water-Warnung
+    if (water <= HudConfig.lowThreshold && (!cooldowns.water || now >= cooldowns.water)) {
+        notifyApi.general.send(player, {
+            title: 'Vital-Monitor',
+            subtitle: 'Hydration kritisch',
+            icon: notifyApi.general.getTypes().WARNING,
+            message: `Aktueller Wert: ${water.toFixed(1)} %`,
+            oggFile: 'systemfault'
+        });
+        cooldowns.water = now + HudConfig.warnDelayInSeconds * 1000;
+    }
+
+    // Health-Warnung
+    if (health <= HudConfig.lowThreshold && (!cooldowns.health || now >= cooldowns.health)) {
+        notifyApi.general.send(player, {
+            title: 'Vital-Monitor',
+            subtitle: 'Elektrolythaushalt kritisch',
+            icon: notifyApi.general.getTypes().WARNING,
+            message: `Aktueller Wert: ${health.toFixed(1)} %`,
+            oggFile: 'systemfault'
+        });
+        cooldowns.health = now + HudConfig.warnDelayInSeconds * 1000;
+    }
+
+    // Cooldowns zurück in Map speichern
+    vitalWarnings.set(charId, cooldowns);
+
+    await document.setBulk({ food, water, health, ...(isDead ? { isDead } : {}) });
 });
 
 alt.setInterval(() => {
