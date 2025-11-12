@@ -58,13 +58,13 @@ alt.onClient(AdminEvents.toServer.login, async (player: alt.Player) => {
 
     Rebar.player.useWebview(player).show('Admin', 'page');
     Rebar.player.useWorld(player).disableControls();
-    Rebar.player.useWorld(player).freezeCamera(true);
+    Rebar.player.useWorld(player).disableCameraControls(true);
 });
 
 alt.onClient(AdminEvents.toServer.logout, (player: alt.Player) => {
     Rebar.player.useWebview(player).hide('Admin');
     Rebar.player.useWorld(player).enableControls();
-    Rebar.player.useWorld(player).freezeCamera(false);
+    Rebar.player.useWorld(player).disableCameraControls(false);
 });
 
 alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, _id: string) => {
