@@ -7,6 +7,7 @@ import { useRebar } from '@Server/index.js';
 import { AdminConfig } from '@Plugins/mg-admin/shared/config.js';
 
 const Rebar = useRebar();
+const medicalService = Rebar.services.useServiceRegister().get('medicalService');
 const notifyApi = await useRebar().useApi().getAsync('notify-api');
 
 alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
@@ -68,7 +69,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             break;
         case ActionType.HEAL:
             if (documentChar.getField('isDead')) 
-                Rebar.services.useDeathService().respawn(target, target.pos);
+                medicalService.respawn(target, target.pos);
             
             await documentChar.setBulk({ food: 100, water: 100, health: 200 });
             

@@ -1,3 +1,6 @@
+import { Character } from "@Shared/types/character.js";
+import { Vehicle } from "@Shared/types/vehicle.js";
+
 export const HudConfig = {
     language: 'de',
     timePerSecond: 30,
@@ -10,5 +13,7 @@ export const HudConfig = {
         moving: 1.2,
         jumping: 1.5,
         shooting: 1.3
-    }
+    },
+    CharKeys: [ 'id', 'armour', 'food', 'water', 'health', 'voiceRange', 'isDead', 'weapon' ] as (keyof Character)[],
+    VehKeys: [ 'speed', 'gear', 'maxSpeed', 'fuel', 'rpm', 'stateProps' ] as (keyof Vehicle)[],
 };

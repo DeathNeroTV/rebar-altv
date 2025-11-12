@@ -1,24 +1,73 @@
 import * as alt from 'alt-server';
 import { useServiceRegister } from '@Server/services/index.js';
 
-export interface MedicalService {
-    /**
-     * Called when a player is respawned in a new location
-     *
-     * @memberof MedicalService
-     */
-    respawn: (player: alt.Player, pos: alt.Vector3) => void;
-
-    /**
-     * Called when a player is reviving another player
-     *
-     * @memberof MedicalService
-     */
-    revive: (player: alt.Player, victim: alt.Player) => void;
+export interface DeathService {
+    unconscious?: (player: alt.Player) => void;
+    revive?: (player: alt.Player, victim: alt.Player) => void;
+    revived?: (player: alt.Player, isReviver: boolean) => void;
+    respawn?: (player: alt.Player, pos: alt.Vector3) => void;
+    called?: (player: alt.Player) => void;
+    hospital?: (pos: alt.IVector3) => alt.IVector3;
 }
 
 declare global {
     interface RebarServices {
-        medicalService: MedicalService;
+        medicalService: DeathService;
     }
+}
+
+declare module 'alt-server' {
+    export interface ICustomEmitEvent {
+        'mg-death:playerUnconscious': (...args: Parameters<DeathService['unconscious']>) => void;
+        'mg-death:playerRevive': (...args: Parameters<DeathService['revive']>) => void;
+        'mg-death:playerRevived': (...args: Parameters<DeathService['revived']>) => void;
+        'mg-death:playerRespawned': (...args: Parameters<DeathService['respawn']>) => void;
+        'mg-death:playerCalledEms': (...args: Parameters<DeathService['called']>) => void;
+        'mg-death:playerHospital': (...args: Parameters<DeathService['hospital']>) => alt.IVector3;
+    }
+}
+
+export function useMedicalService() {
+    return {
+        unconscious(...args: Parameters<DeathService['unconscious']>) {
+            const service = useServiceRegister().get('medicalService');
+            if (service && service.unconscious) 
+                service.unconscious(...args);
+
+            alt.emit('mg-death:playerUnconscious', ...args);
+        },
+        revive(...args: Parameters<DeathService['revive']>) {
+            const service = useServiceRegister().get('medicalService');
+            if (service && service.revive) 
+                service.revive(...args);
+
+            alt.emit('mg-death:playerRevive', ...args);
+        },
+        revived(...args: Parameters<DeathService['revived']>) {
+            const service = useServiceRegister().get('medicalService');
+            if (service && service.revived) 
+                service.revived(...args);
+
+            alt.emit('mg-death:playerRevived', ...args);
+        },
+        respawn(...args: Parameters<DeathService['respawn']>) {
+            const service = useServiceRegister().get('medicalService');
+            if (service && service.respawn) 
+                service.respawn(...args);
+
+            alt.emit('mg-death:playerRespawned', ...args);
+        },
+        hospital(...args: Parameters<DeathService['hospital']>) {
+            const service = useServiceRegister().get('medicalService');            
+            alt.emit('mg-death:playerHospital', ...args);
+            return service.hospital(...args);
+        },
+        called(...args: Parameters<DeathService['called']>) {
+            const service = useServiceRegister().get('medicalService');
+            if (service && service.called) 
+                service.called(...args);
+
+            alt.emit('mg-death:playerCalledEms', ...args);
+        }
+    }; 
 }

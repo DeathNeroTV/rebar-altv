@@ -10,34 +10,11 @@ import { DateTimeMinute } from 'alt-server';
 import { DateTimeSecond } from 'alt-server';
 import { HudConfig } from '../shared/config.js';
 import { VitalCoolDowns } from '../shared/interfaces.js';
+import { useHudService } from './services.js';
 
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 const vitalWarnings: Map<string, VitalCoolDowns> = new Map();
-
-const allowedPlayerKeys: (keyof Character)[] = [
-    'id',
-    'armour',
-    'food',
-    'water',
-    'health',
-    'voiceRange',
-    'isDead',
-    'weapon',
-];
-
-const allowedVehicleKeys: (keyof Vehicle)[] = [
-    'speed',
-    'gear',
-    'maxSpeed',
-    'fuel',
-    'rpm',
-    'stateProps',
-];
-
-alt.onRpc(HudEvents.toServer.fetchId, (player: alt.Player) => {
-    return Rebar.document.character.useCharacter(player)?.getField('id') ?? 0;
-});
 
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
@@ -49,29 +26,29 @@ alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const m: DateTimeMinute = minute as DateTimeMinute;
     const s: DateTimeSecond = second as DateTimeSecond;
 
-    players.forEach(player => player.setDateTime(day, month, year, h, m, s));
-    alt.emitAllClients(HudEvents.toClient.syncTime, hour, minute, second);
+    players.forEach(player => {
+        player.setDateTime(day, month, year, h, m, s);
+        useHudService().updateTime(player, h, m, s);
+    });
+    
 });
 
 alt.on('rebar:playerCharacterBound', (player: alt.Player, character: Character) => {
     Rebar.player.useWebview(player).show('Hud', 'overlay');
-    allowedPlayerKeys.forEach(key => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value: character[key] }));
+    Object.keys(character).map(key => key).forEach(key => useHudService().updatePlayer(player, key as keyof Character, character[key]));
 });
 
 alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
     if (!player || !player.valid) return;
-    if (!allowedPlayerKeys.includes(key)) return;
-    Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
+    useHudService().updatePlayer(player, key, value);
 });
 
 alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value: any) => {
     if (!vehicle || !vehicle.valid) return;
-    if (!allowedVehicleKeys.includes(key)) return;
-
     const driver = vehicle.driver;
     if (!driver || !driver.valid) return;
 
-    Rebar.player.useWebview(driver).emit(HudEvents.toWebview.updateVehicle, { key, value });
+    useHudService().updateVehicle(driver, key, value);
 });
 
 alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
