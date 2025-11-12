@@ -8,8 +8,8 @@ import { DateTimeMonth } from 'alt-server';
 import { DateTimeHour } from 'alt-server';
 import { DateTimeMinute } from 'alt-server';
 import { DateTimeSecond } from 'alt-server';
-import { HudConfig } from '../shared/config.js';
-import { VitalCoolDowns } from '../shared/interfaces.js';
+import { getDrainMultiplier, Config } from '../shared/config.js';
+import { ActionModifiers, VitalCoolDowns } from '../shared/interfaces.js';
 import { useHudService } from './services.js';
 
 const Rebar = useRebar();
@@ -104,7 +104,7 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
     await vehicleData.setBulk({ fuel, rpm: data.rpm, gear: data.gear, speed: data.speed, maxSpeed: data.maxSpeed });
 });
 
-alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { isSprinting: boolean, isMoving: boolean, isJumping: boolean, isShooting: boolean }) => {
+alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: ActionModifiers) => {
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid() || document.getField('isDead')) return;
 
@@ -112,38 +112,41 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
     let food = document.getField('food') ?? 100;
     let water = document.getField('water') ?? 100;
     let health = document.getField('health') ?? 200;
+    let activityFactor = 0;
 
-    // Multiplier basierend auf Aktionen
-    const multiplier =
-        1 +
-        (data.isSprinting ? HudConfig.actionMultipliers.sprinting * 0.5 : 0) +
-        (data.isMoving ? HudConfig.actionMultipliers.moving * 0.5 : 0) +
-        (data.isJumping ? HudConfig.actionMultipliers.jumping * 0.7 : 0) +
-        (data.isShooting ? HudConfig.actionMultipliers.shooting * 0.5 : 0);
+    // === Aktivitätsfaktor dynamisch berechnen ===
+    for (const [action, active] of Object.entries(data)) {
+        if (!active) continue;
+        if (action in Config.factors) {
+            activityFactor += getDrainMultiplier(action as keyof typeof Config.factors);
+        }
+    }
 
-    // Food & Water Verbrauch
-    const foodDrain = HudConfig.baseDrain.food * multiplier;
-    const waterDrain = HudConfig.baseDrain.water * multiplier;
+    const multiplier = 1 + activityFactor;
+
+     // === Verbrauch berechnen ===
+    const foodDrain = Config.baseDrain.food * multiplier;
+    const waterDrain = Config.baseDrain.water * multiplier;
 
     food = Math.max(food - foodDrain, 0);
     water = Math.max(water - waterDrain, 0);
 
-    // Health nur verringern, wenn Werte unter Threshold fallen
+    // === Gesundheit nur bei Unterversorgung reduzieren ===
     let healthLoss = 0;
-    if (food <= HudConfig.lowThreshold)
-        healthLoss += HudConfig.baseDrain.health * ((HudConfig.lowThreshold - food) / HudConfig.lowThreshold);
+    if (food <= Config.lowThreshold.water)
+        healthLoss += Config.baseDrain.health * ((Config.lowThreshold.food - food) / Config.lowThreshold.food);
 
-    if (water <= HudConfig.lowThreshold)
-        healthLoss += HudConfig.baseDrain.health * ((HudConfig.lowThreshold - water) / HudConfig.lowThreshold);
+    if (water <= Config.lowThreshold.water)
+        healthLoss += Config.baseDrain.health * ((Config.lowThreshold.water - water) / Config.lowThreshold.water);
 
     health = Math.max(health - healthLoss, 99);
 
-    const isDead = health === 99;
+    // === Cooldown-System für Warnmeldungen ===
     const now = Date.now();
     const cooldowns = vitalWarnings.get(charId) ?? {};
 
     // Food-Warnung
-    if (food <= HudConfig.lowThreshold && (!cooldowns.food || now >= cooldowns.food)) {
+    if (food <= Config.lowThreshold.food && (!cooldowns.food || now >= cooldowns.food)) {
         notifyApi.general.send(player, {
             title: 'Vital-Monitor',
             subtitle: 'Ernährung kritisch',
@@ -151,11 +154,11 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
             message: `Aktueller Wert: ${food.toFixed(1)} %`,
             oggFile: 'systemfault'
         });
-        cooldowns.food = now + HudConfig.warnDelayInSeconds * 1000;
+        cooldowns.food = now + Config.warnDelayInSeconds * 1000;
     }
 
     // Water-Warnung
-    if (water <= HudConfig.lowThreshold && (!cooldowns.water || now >= cooldowns.water)) {
+    if (water <= Config.lowThreshold.water && (!cooldowns.water || now >= cooldowns.water)) {
         notifyApi.general.send(player, {
             title: 'Vital-Monitor',
             subtitle: 'Hydration kritisch',
@@ -163,24 +166,24 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
             message: `Aktueller Wert: ${water.toFixed(1)} %`,
             oggFile: 'systemfault'
         });
-        cooldowns.water = now + HudConfig.warnDelayInSeconds * 1000;
+        cooldowns.water = now + Config.warnDelayInSeconds * 1000;
     }
 
     // Health-Warnung
-    if (health <= HudConfig.lowThreshold && (!cooldowns.health || now >= cooldowns.health)) {
+    if (health <= Config.lowThreshold.health && (!cooldowns.health || now >= cooldowns.health)) {
         notifyApi.general.send(player, {
             title: 'Vital-Monitor',
-            subtitle: 'Elektrolythaushalt kritisch',
+            subtitle: 'Gesundheit kritisch',
             icon: notifyApi.general.getTypes().WARNING,
             message: `Aktueller Wert: ${health.toFixed(1)} %`,
             oggFile: 'systemfault'
         });
-        cooldowns.health = now + HudConfig.warnDelayInSeconds * 1000;
+        cooldowns.health = now + Config.warnDelayInSeconds * 1000;
     }
 
-    // Cooldowns zurück in Map speichern
     vitalWarnings.set(charId, cooldowns);
 
+    const isDead = health === 99;
     await document.setBulk({ food, water, health, ...(isDead ? { isDead } : {}) });
 });
 
@@ -188,7 +191,7 @@ alt.setInterval(() => {
     const timeService = Rebar.services.useTimeService();
     const time = timeService.getTime();
     let totalSeconds = time.second + time.minute * 60 + time.hour * 3600;
-    totalSeconds += HudConfig.timePerSecond;
+    totalSeconds += Config.timePerSecond;
 
     const ingameHours = Math.floor(totalSeconds / 3600) % 24;
     const ingameMinutes = Math.floor((totalSeconds % 3600) / 60);

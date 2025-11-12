@@ -3,7 +3,7 @@ import { useServiceRegister } from "@Server/services/index.js";
 import { useWebview } from '@Server/player/webview.js';
 import { Character, Vehicle } from '@Shared/types/index.js';
 import { HudEvents } from '../shared/events.js';
-import { HudConfig } from '../shared/config.js';
+import { Config } from '../shared/config.js';
 
 export interface HudService {
     updatePlayer<K extends keyof Character>(player:alt.Player, key: K, value: Character[K]): Promise<void>;
@@ -28,7 +28,7 @@ declare module 'alt-server' {
 export function useHudService() {
     return {
         updatePlayer(...args: Parameters<HudService['updatePlayer']>) {
-            if (!HudConfig.CharKeys.includes(args[1])) return;
+            if (!Config.CharKeys.includes(args[1])) return;
 
             const service = useServiceRegister().get('hudService');
             if (service && service.updatePlayer) 
@@ -40,7 +40,7 @@ export function useHudService() {
             alt.emit('mg-hud:playerUpdated', ...args);
         },
         updateVehicle(...args: Parameters<HudService['updateVehicle']>) {
-            if (!HudConfig.VehKeys.includes(args[1])) return;
+            if (!Config.VehKeys.includes(args[1])) return;
 
             const service = useServiceRegister().get('hudService');
             if (service && service.updateVehicle) 

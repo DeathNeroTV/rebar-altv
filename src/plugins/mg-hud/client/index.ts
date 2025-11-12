@@ -1,9 +1,12 @@
 import * as alt from 'alt-client';
 import * as natives from 'natives';
-import { HudEvents } from '../shared/events.js';
+
 import { useRebarClient } from '@Client/index.js';
 import { useClientApi } from '@Client/api/index.js';
+
+import { HudEvents } from '../shared/events.js';
 import { HudConfig } from '../shared/config.js';
+import { ActionModifiers } from '../shared/interfaces.js';
 
 const Rebar = useRebarClient();
 const api = useClientApi();
@@ -62,9 +65,12 @@ alt.setInterval(() => {
     
     const player = alt.Player.local;  
     const isMoving = natives.getEntitySpeed(player.scriptID) > 0.0;
-    const isJumping = natives.isPedJumping(player.scriptID)
+    const isClimbing = natives.isPedClimbing(player.scriptID);
+    const isJumping = natives.isPedJumping(player.scriptID);
     const isSprinting = natives.isPedSprinting(player.scriptID) || natives.isPedRunning(player.scriptID);
     const isShooting = natives.isPedShooting(player.scriptID);
+    const isSwimming = natives.isPedSwimming(player.scriptID) || natives.isPedDiving(player.scriptID);
 
-    alt.emitServer(HudEvents.toServer.updateStats, { isSprinting, isMoving, isJumping, isShooting });
+    const modifiers: ActionModifiers = { isSprinting, isMoving, isJumping, isShooting, isClimbing, isSwimming }; 
+    alt.emitServer(HudEvents.toServer.updateStats, modifiers);
 }, HudConfig.ticksInMS);
