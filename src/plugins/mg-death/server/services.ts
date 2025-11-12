@@ -2,12 +2,12 @@ import * as alt from 'alt-server';
 import { useServiceRegister } from '@Server/services/index.js';
 
 export interface DeathService {
-    unconscious?: (player: alt.Player) => void;
-    revive?: (player: alt.Player, victim: alt.Player) => void;
-    revived?: (player: alt.Player, isReviver: boolean) => void;
-    respawn?: (player: alt.Player, pos: alt.Vector3) => void;
-    called?: (player: alt.Player) => void;
-    hospital?: (pos: alt.IVector3) => alt.IVector3;
+    unconscious: (player: alt.Player) => void;
+    revive: (player: alt.Player, victim: alt.Player) => void;
+    revived: (player: alt.Player, isReviver: boolean) => void;
+    respawn: (player: alt.Player, pos: alt.Vector3) => void;
+    called: (player: alt.Player) => void;
+    hospital: (pos: alt.IVector3) => alt.IVector3;
 }
 
 declare global {
