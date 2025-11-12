@@ -1,13 +1,14 @@
 import alt from 'alt-server';
-
-import { AdminAction, PlayerStats } from '@Plugins/mg-admin/shared/interfaces.js';
-import { ActionType, GiveType, TeleportType } from '@Plugins/mg-admin/shared/enums.js';
-import { AdminEvents } from '@Plugins/mg-admin/shared/events.js';
 import { useRebar } from '@Server/index.js';
-import { AdminConfig } from '@Plugins/mg-admin/shared/config.js';
+import { useMedicalService } from '@Plugins/mg-death/server/services.js';
+
+import { AdminAction, PlayerStats } from '../../shared/interfaces.js';
+import { ActionType, GiveType, TeleportType } from '../../shared/enums.js';
+import { AdminEvents } from '../../shared/events.js';
+import { AdminConfig } from '../../shared/config.js';
 
 const Rebar = useRebar();
-const medicalService = Rebar.services.useServiceRegister().get('medicalService');
+const medicalService = useMedicalService();
 const notifyApi = await useRebar().useApi().getAsync('notify-api');
 
 alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
@@ -69,7 +70,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             break;
         case ActionType.HEAL:
             if (documentChar.getField('isDead')) 
-                medicalService.respawn(target, target.pos);
+                medicalService?.respawn(target, target.pos);
             
             await documentChar.setBulk({ food: 100, water: 100, health: 200 });
             

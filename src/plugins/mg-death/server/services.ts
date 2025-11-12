@@ -3,9 +3,9 @@ import { useServiceRegister } from '@Server/services/index.js';
 
 export interface DeathService {
     unconscious: (player: alt.Player) => void;
-    revive: (player: alt.Player, victim: alt.Player) => void;
-    revived: (player: alt.Player, isReviver: boolean) => void;
-    respawn: (player: alt.Player, pos: alt.Vector3) => void;
+    revive: (player: alt.Player, victim: alt.Player) => Promise<void>;
+    revived: (player: alt.Player, isReviver: boolean) => Promise<void>;
+    respawn: (player: alt.Player, pos: alt.Vector3) => Promise<void>;
     called: (player: alt.Player) => void;
     hospital: (pos: alt.IVector3) => { pos: alt.IVector3; rot: alt.IVector3 };
 }
@@ -36,21 +36,21 @@ export function useMedicalService() {
 
             alt.emit('mg-death:playerUnconscious', ...args);
         },
-        revive(...args: Parameters<DeathService['revive']>) {
+        async revive(...args: Parameters<DeathService['revive']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.revive) 
                 service.revive(...args);
 
             alt.emit('mg-death:playerRevive', ...args);
         },
-        revived(...args: Parameters<DeathService['revived']>) {
+        async revived(...args: Parameters<DeathService['revived']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.revived) 
                 service.revived(...args);
 
             alt.emit('mg-death:playerRevived', ...args);
         },
-        respawn(...args: Parameters<DeathService['respawn']>) {
+        async respawn(...args: Parameters<DeathService['respawn']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.respawn) 
                 service.respawn(...args);

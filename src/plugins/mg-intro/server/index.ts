@@ -21,21 +21,13 @@ import { readdir } from "fs/promises";
 const sessionKey = 'can-see-intro';
 const Rebar = useRebar();
 
-const showIntro = async (player: alt.Player) => {
-    const isReady = await Rebar.player.useWebview(player).isReady('Intro', 'page');
-    if (!isReady) {
-        await showIntro(player);
-        return;
-    }
+alt.on('playerConnect', (player: alt.Player) => {
+    Rebar.player.useWebview(player).show('Intro', 'page');
     Rebar.player.useWorld(player).setScreenFade(0);
     Rebar.player.useWorld(player).disableControls();
     Rebar.player.useWorld(player).disableCameraControls(true);
-};
-
-alt.on('playerConnect', (player: alt.Player) => player.setMeta(sessionKey, true));
-
-alt.onClient(IntroEvents.toServer.start, async (player: alt.Player) => {
-    await showIntro(player);
+    
+    player.setMeta(sessionKey, true);
 });
 
 alt.onRpc(IntroEvents.toServer.request, async (player: alt.Player) => {

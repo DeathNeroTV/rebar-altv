@@ -1,14 +1,14 @@
 import * as alt from 'alt-server';
 import { useServiceRegister } from "@Server/services/index.js";
-import { useWebview } from '@Server/player/webview.js';
 import { Character, Vehicle } from '@Shared/types/index.js';
-import { HudEvents } from '../shared/events.js';
-import { Config } from '../shared/config.js';
+
+import { HudConfig } from '../shared/interfaces.js';
 
 export interface HudService {
-    updatePlayer<K extends keyof Character>(player:alt.Player, key: K, value: Character[K]): Promise<void>;
-    updateVehicle<K extends keyof Vehicle>(player:alt.Player, key: K, value: Vehicle[K]): Promise<void>;
-    updateTime(player:alt.Player, hour: number, minute: number, second: number): Promise<void>;
+    updateConfig<K extends keyof HudConfig>(player:alt.Player, key: K, value: HudConfig[K]): Promise<void>;
+    updatePlayer<K extends keyof Character>(player:alt.Player, key: K, value: Character[K]): void;
+    updateVehicle<K extends keyof Vehicle>(player:alt.Player, key: K, value: Vehicle[K]): void;
+    updateTime(player:alt.Player, hour: number, minute: number, second: number): void;
 }
 
 declare global {
@@ -22,42 +22,37 @@ declare module 'alt-server' {
         'mg-hud:playerUpdated': (...args: Parameters<HudService['updatePlayer']>) => void;
         'mg-hud:vehicleUpdated': (...args: Parameters<HudService['updateVehicle']>) => void;
         'mg-hud:timeUpdated': (...args: Parameters<HudService['updateTime']>) => void;
+        'mg-hud:configUpdated': (...args: Parameters<HudService['updateConfig']>) => void;
     }
 }
 
 export function useHudService() {
     return {
-        updatePlayer(...args: Parameters<HudService['updatePlayer']>) {
-            if (!Config.CharKeys.includes(args[1])) return;
+        async updateConfig(...args: Parameters<HudService['updateConfig']>) {
+             const service = useServiceRegister().get('hudService');
+            if (service && service.updateConfig) 
+                service.updateConfig(...args);
 
+            alt.emit('mg-hud:configUpdated', ...args);
+        },        
+        async updatePlayer(...args: Parameters<HudService['updatePlayer']>) {
             const service = useServiceRegister().get('hudService');
             if (service && service.updatePlayer) 
                 service.updatePlayer(...args);
 
-            if (useWebview(args[0]).isReady('Hud', 'overlay'))
-                useWebview(args[0]).emit(HudEvents.toWebview.updatePlayer, { key: args[1], value: args[2] });
-
             alt.emit('mg-hud:playerUpdated', ...args);
         },
-        updateVehicle(...args: Parameters<HudService['updateVehicle']>) {
-            if (!Config.VehKeys.includes(args[1])) return;
-
+        async updateVehicle(...args: Parameters<HudService['updateVehicle']>) {
             const service = useServiceRegister().get('hudService');
             if (service && service.updateVehicle) 
                 service.updateVehicle(...args);
-            
-            if (useWebview(args[0]).isReady('Hud', 'overlay'))
-                useWebview(args[0]).emit(HudEvents.toWebview.updateVehicle, { key: args[1], value: args[2] });
 
             alt.emit('mg-hud:vehicleUpdated', ...args);
         },
-        updateTime(...args: Parameters<HudService['updateTime']>) {
+        async updateTime(...args: Parameters<HudService['updateTime']>) {
             const service = useServiceRegister().get('hudService');
             if (service && service.updateTime) 
                 service.updateTime(...args);
-            
-            if (useWebview(args[0]).isReady('Hud', 'overlay'))
-                useWebview(args[0]).emit(HudEvents.toWebview.syncTime, args[1], args[2], args[3]);
 
                 alt.emit('mg-hud:timeUpdated', ...args);
         }

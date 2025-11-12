@@ -37,17 +37,11 @@ const keyBind: KeyInfo = {
 alt.setMsPerGameMinute(msPerGameMinute);
 keyBindApi.add(keyBind);
 
-alt.onServer(HudEvents.toClient.syncTime, (hour: number, minute: number, second: number) => {
-    if (!view.isOverlayOpen('Hud')) return;
-    view.emit(HudEvents.toWebview.syncTime, hour, minute, second);
-});
-
 alt.setInterval(() => {
     if (!view.isOverlayOpen('Hud')) return;
-    const player = alt.Player.local;
-    const vehicle = player.vehicle;
+    if (!alt.Player.local.vehicle || !alt.Player.local.vehicle.valid) return;
 
-    if (!vehicle || !vehicle.valid) return;
+    const vehicle = alt.Player.local.vehicle;
     if (!vehicle.engineOn) return;
 
     const rpm = vehicle.rpm;
@@ -60,7 +54,7 @@ alt.setInterval(() => {
 alt.setInterval(() => {
     if (!alt.getConfigFlag(alt.ConfigFlag.DisableIdleCamera)) 
         alt.setConfigFlag(alt.ConfigFlag.DisableIdleCamera, true);
-
+    
     if (!view.isOverlayOpen('Hud')) return;
     
     const player = alt.Player.local;  

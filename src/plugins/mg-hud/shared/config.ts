@@ -3,13 +3,14 @@ import { Vehicle } from "@Shared/types/vehicle.js";
 import { HudConfig } from "./interfaces.js";
 
 export const Config: HudConfig = {
+    name: 'HUD-Einstellungen',
     language: 'de',
     timePerSecond: 30,
     ticksInMS: 100,
     baseDrain: {
-        food: 0.002,    // geringer Grundverbrauch, ~2% pro 10 min bei Ruhe
+        food: 0.0025,    // geringer Grundverbrauch, ~2% pro 10 min bei Ruhe
         water: 0.003,   // höherer Grundverbrauch, ~3% pro 10 min bei Ruhe
-        health: 0.004,  // Health sinkt nur bei Unterversorgung, langsam
+        health: 0.0035,  // Health sinkt nur bei Unterversorgung, langsam
     },
     lowThreshold:  {
         food: 20,       // in %

@@ -10,7 +10,8 @@ export interface VitalCoolDowns {
     health?: number;
 }
 export interface HudConfig {
-    
+    _id?: string;
+    name?: string;
     language: string;
     timePerSecond: number;
     ticksInMS: number;

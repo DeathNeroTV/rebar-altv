@@ -6,6 +6,7 @@ import { Character } from '@Shared/types/index.js';
 import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
+import { useAnimation } from '@Server/player/animation.js';
 
 const Rebar = useRebar();
 const api = Rebar.useApi();
@@ -60,6 +61,16 @@ const Internal = {
 };
 
 Rebar.services.useServiceRegister().register('medicalService', {
+
+    hospital(pos: alt.IVector3) {
+        const sorted = DeathConfig.hospitals.slice().sort((a, b) => {
+            const distA = Utility.vector.distance(pos, a.pos);
+            const distB = Utility.vector.distance(pos, b.pos);
+            return distA - distB;
+        });
+        return { pos: sorted[0].pos, rot: sorted[0].rot };
+    },
+
     unconscious(player: alt.Player) {
         if (!player || !player.valid) return;
 
@@ -100,31 +111,18 @@ Rebar.services.useServiceRegister().register('medicalService', {
         alt.setTimeout(() => player.frozen = true, 2000);
     },
 
-    revive(reviver: alt.Player, victim: alt.Player) {
+    async revive(reviver: alt.Player, victim: alt.Player) {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
 
         const victimDoc = Rebar.document.character.useCharacter(victim);
         if (!victimDoc.isValid() || !victimDoc.getField('isDead')) return;
 
-        Rebar.player.useAnimation(reviver).playFinite('mini@cpr@char_a@', 'cpr_intro', 1, 8.0, -8.0, 5000);
-        Rebar.player.useAnimation(victim).playFinite('mini@cpr@char_b@', 'cpr_intro', 1, 8.0, -8.0, 5000);
+        await Rebar.player.useAnimation(reviver).playFinite('mini@cpr@char_a@cpr_def', 'cpr_intro', 1, 8.0, -8.0, 5000);
 
-        alt.setTimeout(() =>  {
-            Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 1);
-            Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 1);
+        reviver.emit(DeathEvents.toClient.startRevive, true);
+        victim.emit(DeathEvents.toClient.startRevive, false);
 
-            reviver.emit(DeathEvents.toClient.startRevive, true);
-            victim.emit(DeathEvents.toClient.startRevive, false);
-        }, 5000);
-    },
-
-    hospital(pos: alt.IVector3) {
-        const sorted = DeathConfig.hospitals.slice().sort((a, b) => {
-            const distA = Utility.vector.distance(pos, a.pos);
-            const distB = Utility.vector.distance(pos, b.pos);
-            return distA - distB;
-        });
-        return { pos: sorted[0].pos, rot: sorted[0].rot };
+        await Rebar.player.useAnimation(reviver).playFinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 1, 8.0, -8.0, DeathConfig.reviveTime);
     },
 
     async revived(player: alt.Player, isReviver: boolean) {
@@ -175,10 +173,8 @@ Rebar.services.useServiceRegister().register('medicalService', {
         alt.setTimeout(() => {
             if (!player || !player.valid) return;
             player.frozen = false;
-            player.spawn(data.pos);
-            player.pos = new alt.Vector3(data.pos);
-            player.rot = new alt.Vector3(data.rot);
             player.clearBloodDamage();
+            Rebar.player.useState(player).sync();
             player.emit(DeathEvents.toClient.respawned);
 
             Rebar.player.useAnimation(player).clear();

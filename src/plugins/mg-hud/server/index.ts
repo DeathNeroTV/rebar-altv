@@ -9,12 +9,65 @@ import { DateTimeHour } from 'alt-server';
 import { DateTimeMinute } from 'alt-server';
 import { DateTimeSecond } from 'alt-server';
 import { getDrainMultiplier, Config } from '../shared/config.js';
-import { ActionModifiers, VitalCoolDowns } from '../shared/interfaces.js';
+import { ActionModifiers, HudConfig, VitalCoolDowns } from '../shared/interfaces.js';
 import { useHudService } from './services.js';
 
 const Rebar = useRebar();
+const db = Rebar.database.useDatabase();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 const vitalWarnings: Map<string, VitalCoolDowns> = new Map();
+let config: HudConfig;
+
+declare module '@Shared/types/character.js' {
+    export interface Character {
+        voiceRange?: number;
+        weapon?: (alt.IWeapon & { ammo: number; totalAmmo: number; });
+    }
+}
+
+declare module '@Shared/types/vehicle.js' {
+    export interface Vehicle {
+        speed?: number;
+        maxSpeed?: number;
+        rpm?: number;
+        gear?: number;
+    }
+}
+
+async function createCollections() {
+    await db.createCollection('Configs');
+
+    config = await db.get<HudConfig>({ name: 'HUD-Einstellungen' }, 'Configs');
+    if (config) return;
+
+    const _id = await db.create<HudConfig>(config, 'Configs');
+    if (!_id) return;
+
+    config = Config;
+    config._id = _id.toString();
+}
+
+Rebar.services.useServiceRegister().register('hudService', {
+    async updateConfig(player, key, value) {
+        config[key] = value;
+        const success = await db.update<HudConfig>(config, 'Configs');
+        const icon = success ? notifyApi.general.getTypes().SUCCESS : notifyApi.general.getTypes().ERROR;
+        const message = success ? 'Datensatz wurde aktualisiert' : 'Datensatz wurde nicht geändert';
+        const oggFile = success ? 'notification' : 'systemfault';
+        notifyApi.general.send(player, { icon, title: 'Hud-Manager', subtitle: 'Konfiguration', message, oggFile });
+    },
+    updatePlayer(player, key, value) {
+        if (!config.CharKeys.includes(key)) return;        
+        Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key, value });
+    },
+    updateTime(player, hour, minute, second) {
+        Rebar.player.useWebview(player).emit(HudEvents.toWebview.syncTime, hour, minute, second);
+    },
+    updateVehicle(player, key, value) {
+        if (!config.VehKeys.includes(key)) return;
+        Rebar.player.useWebview(player).emit(HudEvents.toWebview.updateVehicle, { key, value });
+    },
+});
 
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
@@ -34,21 +87,19 @@ alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
 });
 
 alt.on('rebar:playerCharacterBound', (player: alt.Player, character: Character) => {
+    if (!player || !player.valid) return;
     Rebar.player.useWebview(player).show('Hud', 'overlay');
-    Object.keys(character).map(key => key).forEach(key => useHudService().updatePlayer(player, key as keyof Character, character[key]));
+    useHudService().updatePlayer(player, 'id', character.id);
 });
 
 alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
-    if (!player || !player.valid) return;
+    if (!player || !player.valid || !config.CharKeys.includes(key)) return;
     useHudService().updatePlayer(player, key, value);
 });
 
 alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value: any) => {
-    if (!vehicle || !vehicle.valid) return;
-    const driver = vehicle.driver;
-    if (!driver || !driver.valid) return;
-
-    useHudService().updateVehicle(driver, key, value);
+    if (!vehicle || !vehicle.valid || !vehicle.driver || !vehicle.driver.valid || !config.VehKeys.includes(key)) return;
+    useHudService().updateVehicle(vehicle.driver, key, value);
 });
 
 alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
@@ -104,40 +155,40 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
     await vehicleData.setBulk({ fuel, rpm: data.rpm, gear: data.gear, speed: data.speed, maxSpeed: data.maxSpeed });
 });
 
-alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: ActionModifiers) => {
+alt.onClient(HudEvents.toServer.updateStats, async(player: alt.Player, data: ActionModifiers) => {
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid() || document.getField('isDead')) return;
 
     const charId = document.getField('_id');
-    let food = document.getField('food') ?? 100;
-    let water = document.getField('water') ?? 100;
-    let health = document.getField('health') ?? 200;
+    let food = document.getField('food') || 100;
+    let water = document.getField('water') || 100;
+    let health = document.getField('health') || player.health;
     let activityFactor = 0;
 
     // === Aktivitätsfaktor dynamisch berechnen ===
     for (const [action, active] of Object.entries(data)) {
         if (!active) continue;
-        if (action in Config.factors) {
-            activityFactor += getDrainMultiplier(action as keyof typeof Config.factors);
+        if (action in config.factors) {
+            activityFactor += getDrainMultiplier(action as keyof typeof config.factors);
         }
     }
 
     const multiplier = 1 + activityFactor;
 
      // === Verbrauch berechnen ===
-    const foodDrain = Config.baseDrain.food * multiplier;
-    const waterDrain = Config.baseDrain.water * multiplier;
+    const foodDrain = config.baseDrain.food * multiplier;
+    const waterDrain = config.baseDrain.water * multiplier;
 
     food = Math.max(food - foodDrain, 0);
     water = Math.max(water - waterDrain, 0);
 
     // === Gesundheit nur bei Unterversorgung reduzieren ===
     let healthLoss = 0;
-    if (food <= Config.lowThreshold.water)
-        healthLoss += Config.baseDrain.health * ((Config.lowThreshold.food - food) / Config.lowThreshold.food);
+    if (food <= config.lowThreshold.food)
+        healthLoss += config.baseDrain.health * ((config.lowThreshold.food - food) / config.lowThreshold.food);
 
-    if (water <= Config.lowThreshold.water)
-        healthLoss += Config.baseDrain.health * ((Config.lowThreshold.water - water) / Config.lowThreshold.water);
+    if (water <= config.lowThreshold.water)
+        healthLoss += config.baseDrain.health * ((config.lowThreshold.water - water) / config.lowThreshold.water);
 
     health = Math.max(health - healthLoss, 99);
 
@@ -146,7 +197,7 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: Ac
     const cooldowns = vitalWarnings.get(charId) ?? {};
 
     // Food-Warnung
-    if (food <= Config.lowThreshold.food && (!cooldowns.food || now >= cooldowns.food)) {
+    if (food <= config.lowThreshold.food && (!cooldowns.food || now >= cooldowns.food)) {
         notifyApi.general.send(player, {
             title: 'Vital-Monitor',
             subtitle: 'Ernährung kritisch',
@@ -154,11 +205,11 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: Ac
             message: `Aktueller Wert: ${food.toFixed(1)} %`,
             oggFile: 'systemfault'
         });
-        cooldowns.food = now + Config.warnDelayInSeconds * 1000;
+        cooldowns.food = now + config.warnDelayInSeconds * 1000;
     }
 
     // Water-Warnung
-    if (water <= Config.lowThreshold.water && (!cooldowns.water || now >= cooldowns.water)) {
+    if (water <= config.lowThreshold.water && (!cooldowns.water || now >= cooldowns.water)) {
         notifyApi.general.send(player, {
             title: 'Vital-Monitor',
             subtitle: 'Hydration kritisch',
@@ -166,11 +217,11 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: Ac
             message: `Aktueller Wert: ${water.toFixed(1)} %`,
             oggFile: 'systemfault'
         });
-        cooldowns.water = now + Config.warnDelayInSeconds * 1000;
+        cooldowns.water = now + config.warnDelayInSeconds * 1000;
     }
 
     // Health-Warnung
-    if (health <= Config.lowThreshold.health && (!cooldowns.health || now >= cooldowns.health)) {
+    if (health <= config.lowThreshold.health && (!cooldowns.health || now >= cooldowns.health)) {
         notifyApi.general.send(player, {
             title: 'Vital-Monitor',
             subtitle: 'Gesundheit kritisch',
@@ -178,7 +229,7 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: Ac
             message: `Aktueller Wert: ${(Math.max(health - 99, 0)).toFixed(1)} %`,
             oggFile: 'systemfault'
         });
-        cooldowns.health = now + Config.warnDelayInSeconds * 1000;
+        cooldowns.health = now + config.warnDelayInSeconds * 1000;
     }
 
     vitalWarnings.set(charId, cooldowns);
@@ -191,7 +242,7 @@ alt.setInterval(() => {
     const timeService = Rebar.services.useTimeService();
     const time = timeService.getTime();
     let totalSeconds = time.second + time.minute * 60 + time.hour * 3600;
-    totalSeconds += Config.timePerSecond;
+    totalSeconds += config.timePerSecond;
 
     const ingameHours = Math.floor(totalSeconds / 3600) % 24;
     const ingameMinutes = Math.floor((totalSeconds % 3600) / 60);
@@ -200,18 +251,9 @@ alt.setInterval(() => {
     timeService.setTime(ingameHours, ingameMinutes, ingameSeconds);
 }, 1000);
 
-declare module '@Shared/types/character.js' {
-    export interface Character {
-        voiceRange?: number;
-        weapon?: (alt.IWeapon & { ammo: number; totalAmmo: number; });
-    }
+async function init() {
+    await createCollections();
+    alt.log('[Hud-System]', 'Einstellungen wurden synchronisiert.');
 }
 
-declare module '@Shared/types/vehicle.js' {
-    export interface Vehicle {
-        speed?: number;
-        maxSpeed?: number;
-        rpm?: number;
-        gear?: number;
-    }
-}
+init();
