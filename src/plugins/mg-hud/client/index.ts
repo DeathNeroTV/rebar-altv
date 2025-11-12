@@ -5,7 +5,7 @@ import { useRebarClient } from '@Client/index.js';
 import { useClientApi } from '@Client/api/index.js';
 
 import { HudEvents } from '../shared/events.js';
-import { HudConfig } from '../shared/config.js';
+import { Config } from '../shared/config.js';
 import { ActionModifiers } from '../shared/interfaces.js';
 
 const Rebar = useRebarClient();
@@ -13,7 +13,7 @@ const api = useClientApi();
 const view = Rebar.webview.useWebview();
 const keyBindApi = await api.getAsync('keyBinds-api');
 
-const msPerGameSecond = 1000 / HudConfig.timePerSecond;
+const msPerGameSecond = 1000 / Config.timePerSecond;
 const msPerGameMinute = msPerGameSecond * 60;
 
 const keyBind: KeyInfo = {
@@ -55,7 +55,7 @@ alt.setInterval(() => {
     const speed = natives.getEntitySpeed(vehicle.scriptID) * 3.6;
     const maxSpeed = natives.getVehicleEstimatedMaxSpeed(vehicle.scriptID) * 3.6;
     alt.emitServer(HudEvents.toServer.updateFuel, { rpm, gear, speed, maxSpeed });
-}, HudConfig.ticksInMS);
+}, Config.ticksInMS);
 
 alt.setInterval(() => {
     if (!alt.getConfigFlag(alt.ConfigFlag.DisableIdleCamera)) 
@@ -73,4 +73,4 @@ alt.setInterval(() => {
 
     const modifiers: ActionModifiers = { isSprinting, isMoving, isJumping, isShooting, isClimbing, isSwimming }; 
     alt.emitServer(HudEvents.toServer.updateStats, modifiers);
-}, HudConfig.ticksInMS);
+}, Config.ticksInMS);

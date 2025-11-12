@@ -29,7 +29,7 @@ const showIntro = async (player: alt.Player) => {
     }
     Rebar.player.useWorld(player).setScreenFade(0);
     Rebar.player.useWorld(player).disableControls();
-    Rebar.player.useWorld(player).freezeCamera(true);
+    Rebar.player.useWorld(player).disableCameraControls(true);
 };
 
 alt.on('playerConnect', (player: alt.Player) => player.setMeta(sessionKey, true));
@@ -53,7 +53,7 @@ alt.onClient(IntroEvents.toServer.finished, (player: alt.Player) => {
     Rebar.player.useWebview(player).hide('Intro');
     Rebar.player.useWorld(player).clearScreenFade(0);
     Rebar.player.useWorld(player).enableControls();
-    Rebar.player.useWorld(player).freezeCamera(false);
+    Rebar.player.useWorld(player).disableCameraControls(false);
     Rebar.player.useAudio(player).stopAudio();
     invokeFinished(player);
 });
