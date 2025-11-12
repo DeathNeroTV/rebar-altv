@@ -106,11 +106,16 @@ Rebar.services.useServiceRegister().register('medicalService', {
         const victimDoc = Rebar.document.character.useCharacter(victim);
         if (!victimDoc.isValid() || !victimDoc.getField('isDead')) return;
 
-        Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 1);
-        Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 1);
+        Rebar.player.useAnimation(reviver).playFinite('mini@cpr@char_a@', 'cpr_intro', 1, 8.0, -8.0, 5000);
+        Rebar.player.useAnimation(victim).playFinite('mini@cpr@char_b@', 'cpr_intro', 1, 8.0, -8.0, 5000);
 
-        reviver.emit(DeathEvents.toClient.startRevive, true);
-        victim.emit(DeathEvents.toClient.startRevive, false);
+        alt.setTimeout(() =>  {
+            Rebar.player.useAnimation(reviver).playInfinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 1);
+            Rebar.player.useAnimation(victim).playInfinite('mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 1);
+
+            reviver.emit(DeathEvents.toClient.startRevive, true);
+            victim.emit(DeathEvents.toClient.startRevive, false);
+        }, 5000);
     },
 
     hospital(pos: alt.IVector3) {
@@ -119,7 +124,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
             const distB = Utility.vector.distance(pos, b.pos);
             return distA - distB;
         });
-        return sorted[0].pos;
+        return { pos: sorted[0].pos, rot: sorted[0].rot };
     },
 
     async revived(player: alt.Player, isReviver: boolean) {
@@ -152,14 +157,15 @@ Rebar.services.useServiceRegister().register('medicalService', {
         }
 
         // Unfreeze und setze neue Werte
-        const newPos = pos ?? useMedicalService().hospital(player.pos);
+        const data = pos ? { pos, rot: player.rot } : useMedicalService().hospital(player.pos);
 
         await document.setBulk({
             isDead: false,
             food: 100,
             water: 100,
             health: 124,
-            pos: newPos,
+            pos: data.pos,
+            rot: data.rot,
             dimension: player.dimension
         });
 
@@ -169,8 +175,9 @@ Rebar.services.useServiceRegister().register('medicalService', {
         alt.setTimeout(() => {
             if (!player || !player.valid) return;
             player.frozen = false;
-            player.spawn(newPos);
-            player.pos = new alt.Vector3(newPos);
+            player.spawn(data.pos);
+            player.pos = new alt.Vector3(data.pos);
+            player.rot = new alt.Vector3(data.rot);
             player.clearBloodDamage();
             player.emit(DeathEvents.toClient.respawned);
 

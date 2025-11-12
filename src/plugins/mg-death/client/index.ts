@@ -54,30 +54,38 @@ async function registerKeybinds() {
                 const victim = alt.Utils.getClosestPlayer({ range: 3.0 });
                 if (!victim || !victim.valid) return;
 
-                // Positioniere Spieler neben das Opfer
-                const playerPos = alt.Player.local.pos;
-                const victimPos = victim.pos;
-                const victimHeading = natives.getEntityHeading(victim);
-                const dx = playerPos.x - victimPos.x;
-                const dy = playerPos.y - victimPos.y;
-                const angleToPlayer = Math.atan2(dy, dx) * (180 / Math.PI);
-                let relativeAngle = (angleToPlayer - victimHeading + 360) % 360;
-                const isRightSide = relativeAngle > 0 && relativeAngle < 180;
-                const offsetX = isRightSide ? 0.5 : -0.5;
-
-                natives.taskGoStraightToCoordRelativeToEntity(alt.Player.local, victim, offsetX, 0.01, 0.0, 1.2, 5000);
-                await alt.Utils.wait(5100);
-
+                // Zielposition leicht vor dem Opfer
                 const chestPos = natives.getPedBoneCoords(victim, 24816, 0, 0, 0);
-                const dx2 = chestPos.x - alt.Player.local.pos.x;
-                const dy2 = chestPos.y - alt.Player.local.pos.y;
-                const headingToChest = Math.atan2(dy2, dx2) * (180 / Math.PI);
-                natives.setEntityHeading(alt.Player.local, headingToChest);
-                natives.taskLookAtEntity(alt.Player.local, victim, -1, 2048, 3);
+                const offsetDistance = 0.5; // Abstand vor dem Opfer
 
-                // Signal an den Server, dass wir reviven wollen
+                const victimHeading = natives.getEntityHeading(victim) * (Math.PI / 180);
+                const targetX = chestPos.x - Math.sin(victimHeading) * offsetDistance;
+                const targetY = chestPos.y + Math.cos(victimHeading) * offsetDistance;
+
+                let targetZ = chestPos.z;
+                const [found, groundZ] = natives.getGroundZFor3dCoord(targetX, targetY, targetZ, targetZ, false, false);
+                if (found) targetZ = groundZ;
+
+                // Spieler zum Ziel bewegen, dabei Collision berücksichtigen
+                natives.taskGoStraightToCoord(alt.Player.local, targetX, targetY, targetZ, 1.2, -1, 0.0, 0.0);
+
+                // Warten, bis Spieler ungefähr am Ziel ist (max. 5 Sekunden)
+                const startTime = Date.now();
+                while (alt.Player.local.pos.distanceTo({ x: targetX, y: targetY, z: targetZ }) > 0.3 && Date.now() - startTime < 5000) {
+                    await alt.Utils.wait(50);
+                }
+
+                // Spieler korrekt zum Opfer drehen
+                const turnStart = Date.now();
+                while (!natives.isPedFacingPed(alt.Player.local, victim, 10) && Date.now() - turnStart < 2000) {
+                    natives.taskTurnPedToFaceCoord(alt.Player.local, chestPos.x, chestPos.y, chestPos.z, 1000);
+                    await alt.Utils.wait(50);
+                }
+
+                // Server-Signal zum Reviven
                 emitServerSafe(DeathEvents.toServer.toggleRevive, victim);
             },
+
             restrictions: { isOnFoot: true }
         }
     ];

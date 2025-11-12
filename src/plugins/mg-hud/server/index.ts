@@ -175,7 +175,7 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: Ac
             title: 'Vital-Monitor',
             subtitle: 'Gesundheit kritisch',
             icon: notifyApi.general.getTypes().WARNING,
-            message: `Aktueller Wert: ${health.toFixed(1)} %`,
+            message: `Aktueller Wert: ${(Math.max(health - 99, 0)).toFixed(1)} %`,
             oggFile: 'systemfault'
         });
         cooldowns.health = now + Config.warnDelayInSeconds * 1000;

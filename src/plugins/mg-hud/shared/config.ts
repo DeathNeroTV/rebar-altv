@@ -7,14 +7,14 @@ export const Config: HudConfig = {
     timePerSecond: 30,
     ticksInMS: 100,
     baseDrain: {
-        food: 0.0015,   // geringer Grundverbrauch, ~1,5% pro 10 min bei Ruhe
-        water: 0.0035,  // höherer Grundverbrauch, ~3,5% pro 10 min bei Ruhe
+        food: 0.002,    // geringer Grundverbrauch, ~2% pro 10 min bei Ruhe
+        water: 0.003,   // höherer Grundverbrauch, ~3% pro 10 min bei Ruhe
         health: 0.004,  // Health sinkt nur bei Unterversorgung, langsam
     },
     lowThreshold:  {
         food: 20,       // in %
         water: 20,      // in %
-        health: 119     // absolute Health-Grenze (99 - 200)
+        health: 119     // in 99 + x %
     },
     warnDelayInSeconds: 300,
     factors: {
