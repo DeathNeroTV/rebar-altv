@@ -38,7 +38,8 @@ export interface AdminAction {
     playerId: number;
     reason?: string;
     amount?: number;
-    itemName?: string;
+    itemId?: string;
+    weaponId?: string;
     teleportType?: TeleportType;
     giveType?: GiveType;
     value?: any;

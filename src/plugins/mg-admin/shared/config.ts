@@ -12,6 +12,7 @@ export const AdminConfig = {
         { id: 'players', title: t('admin.panel.dashboard.players.title'), icon: 'users', value: 0 },
         { id: 'vehicles', title: t('admin.panel.dashboard.vehicles.title'), icon: 'car', value: 0 },
         { id: 'jobs', title: t('admin.panel.dashboard.jobs.title'), icon: 'briefcase', value: 0 },
+        { id: 'items', title: t('admin.panel.dashboard.items.title'), icon: 'dolly', value: 0 },
         { id: 'doors', title: t('admin.panel.dashboard.doors.title'), icon: 'door-closed', value: 0 },
         { id: 'garages', title: t('admin.panel.dashboard.garages.title'), icon: 'car-tunnel', value: 0 },
         { id: 'shops', title: t('admin.panel.dashboard.shops.title'), icon: 'shop', value: 0 },

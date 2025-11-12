@@ -44,7 +44,7 @@ function toggleDropdown() {
         </div>
 
         <!-- Dropdown -->
-        <ul v-if="showDropdown" class="absolute mt-1 w-full max-h-[20vh] bg-neutral-800 rounded-lg overflow-x-hidden overflow-y-auto z-10 shadow-lg">
+        <ul v-if="showDropdown" class="absolute mt-1 w-full min-h-[20vh] max-h-[20vh] bg-neutral-800 rounded-lg overflow-x-hidden overflow-y-auto z-10 shadow-lg">
             <li v-for="option in options" :key="option.value"
                 @click="selectOption(option)"
                 class="p-2 cursor-pointer hover:bg-[#008736] text-white"

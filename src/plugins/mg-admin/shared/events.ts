@@ -28,6 +28,8 @@ export const AdminEvents = {
             stats: 'mg-admin:request:stats',
             whitelist: 'mg-admin:request:whitelist',
             player: 'mg-admin:request:player',
+            items: 'mg-admin:request:items',
+            weapons: 'mg-admin:request:weapons',
         },
         action: 'mg-admin:action:invoke',
     }

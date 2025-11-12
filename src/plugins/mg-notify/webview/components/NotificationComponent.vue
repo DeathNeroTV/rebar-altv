@@ -1,9 +1,9 @@
 <template>
     <div
-        class="iphone-notification max-w-200 mx-auto mb-2 w-full rounded-lg p-4 shadow-lg sm:w-[350px] bg-neutral-950/80"
+        class="iphone-notification max-w-200 mx-auto mb-2 w-full rounded-lg p-4 shadow-lg sm:w-[350px] bg-neutral-950/25"
     >
         <div class="flex w-full items-center justify-between border-b border-gray-200 select-none">
-            <div class="iphone-title flex w-full items-center">
+            <div class="iphone-title flex w-full items-center mb-1">
                 <span class="text-lg font-semibold text-gray-100">
                     {{ notificationProp.icon }} {{ notificationProp.title }}
                 </span>

@@ -13,6 +13,7 @@ import GarageManager from './views/GarageManager.vue';
 import { AdminEvents } from '../shared/events';
 import { AdminConfig } from '../shared/config';
 import { DashboardStat } from '../shared/interfaces';
+import ItemManager from './views/ItemManager.vue';
 
 const events = useEvents();
 
@@ -28,6 +29,7 @@ const pages = {
     vehicles: VehicleManager,
     jobs: JobManager,
     garages: GarageManager,
+    items: ItemManager,
     settings: Settings
 };
 

@@ -40,19 +40,19 @@ onMounted(async() => await init());
 
 <template>
     <div class="w-full h-full p-5 flex flex-col gap-5 justify-between text-gray-100">
-        <div>
-            <h1 class="text-3xl font-semibold">{{ t('admin.panel.statistics.title') }}</h1>
-            <p class="text-gray-400">{{ t('admin.panel.statistics.subtitle') }}</p>
+        <div class="select-none">
+            <h1 class="text-3xl font-semibold mb-2">{{ t('admin.panel.statistics.title') }}</h1>
+            <h3 class="text-gray-400">{{ t('admin.panel.statistics.subtitle') }}</h3>
         </div>
 
         <!-- 🧭 Übersichtskarten (kompakte vertikale Liste) -->
         <div class="w-full max-w-full h-1/2 max-h-1/2 overflow-y-auto overflow-x-hidden">            
-            <div class="grid grid-cols-4 gap-5">
+            <div class="grid grid-cols-6 gap-4">
                 <div
                     v-for="stat in list"
                     :key="stat.id"
                     @click="navigate(stat.id)"
-                    class="cursor-pointer group relative bg-gradient-to-br from-emerald-600/40 to-emerald-800/30 rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 border border-neutral-800"
+                    class="cursor-pointer group relative bg-gradient-to-br from-[#008736]/40 to-[#008736]/20 rounded-xl p-5 shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 ring-1 ring-neutral-800"
                 >
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3">

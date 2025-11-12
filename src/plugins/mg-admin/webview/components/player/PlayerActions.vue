@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useEvents } from '@Composables/useEvents';
 import { ActionType, GiveType, TeleportType } from '@Plugins/mg-admin/shared/enums';
 import { AdminEvents } from '@Plugins/mg-admin/shared/events';
@@ -7,6 +7,7 @@ import type { AdminAction, PlayerStats } from '@Plugins/mg-admin/shared/interfac
 
 import Dropdown from '../DropDown.vue';
 import { AdminConfig } from '@Plugins/mg-admin/shared/config';
+import { Item } from '@Shared/types/items';
 
 const events = useEvents();
 const props = defineProps<{ player: PlayerStats | null }>();
@@ -44,7 +45,10 @@ const selectedGive = ref<GiveType | null>(null);
 const selectedTeleport = ref<TeleportType | null>(null);
 const reason = ref<string | null>(null);
 const amount = ref<number | null>(null);
-const itemName = ref<string | null>(null);
+const itemId = ref<string | null>(null);
+const weaponId = ref<string | null>(null);
+const items = ref<{ label: string; value: string }[]>([]);
+const weapons = ref<{ label: string; value: string }[]>([]);
 
 // Computed: Prüfen, ob alle Pflichtfelder ausgefüllt sind
 const canExecute = computed(() => {
@@ -57,8 +61,11 @@ const canExecute = computed(() => {
         case ActionType.GIVE:
         case ActionType.TAKE:
             if (!selectedGive.value) return false;
-            if ([GiveType.ITEM, GiveType.WEAPON].includes(selectedGive.value)) {
-                return !!itemName.value && !!amount.value;
+            if (selectedGive.value === GiveType.ITEM) {
+                return !!itemId.value && !!amount.value;
+            }
+            if (selectedGive.value === GiveType.WEAPON) {
+                return !!weaponId.value && !!amount.value;
             }
             return !!amount.value;
         case ActionType.TELEPORT:
@@ -78,7 +85,8 @@ function doAction() {
         playerId: props.player.id,
         reason: reason.value || undefined,
         amount: amount.value || undefined,
-        itemName: itemName.value || undefined,
+        itemId: itemId.value || undefined,
+        weaponId: weaponId.value || undefined,
         giveType: selectedGive.value || undefined,
         teleportType: selectedTeleport.value || undefined,
     };
@@ -91,15 +99,36 @@ function doAction() {
     selectedTeleport.value = null;
     reason.value = null;
     amount.value = null;
-    itemName.value = null;
+    itemId.value = null;
+    weaponId.value = null;
 }
+
+watch(selectedGive, (val) => {
+    amount.value = null;
+    itemId.value = null;
+    weaponId.value = null;
+});
+
+onMounted(async() => {
+    const itemList: Partial<Item>[] = (await events.emitServerRpc(AdminEvents.toServer.request.items)) ?? [
+        { uid: 'hamburger', name: 'Hamburger' }
+    ];
+    items.value = itemList.map(x => ({ label: x.name ?? 'Unbekannt', value: x.uid ?? '' }));
+
+    const weaponList: ({ name: string; model: string })[] = (await events.emitServerRpc(AdminEvents.toServer.request.weapons)) ?? [
+        { name: 'Deine Mamma', model: 'weapon_unarmed' }
+    ];
+    weapons.value = weaponList.map(x => ({ label: x.name, value: x.model }));
+});
 </script>
 
 <template>
-    <div class="p-4 text-gray-100 w-full h-full">
-        <h3 class="text-gray-400 text-sm mb-2">Aktionen</h3>
+    <div class="px-4 py-2 text-gray-100 w-full h-fit">
+        <h3 class="text-gray-400 text-lg">Spieler-Interaktion</h3>
+        
+        <div class="w-full h-[1px] bg-[#008736] my-2"></div>
 
-        <div class="flex gap-2 mb-4 items-center justify-between">
+        <div class="flex gap-2 mb-2 items-center justify-between">
             <!-- Aktion Dropdown -->
             <Dropdown
                 :options="actions.map(a => ({ label: a.label, value: a.type }))"
@@ -129,7 +158,7 @@ function doAction() {
         </div>
 
         <!-- Geben / Nehmen / Setzen -->
-        <div v-if="[ActionType.GIVE, ActionType.TAKE].includes(selectedAction)" class="mb-2">
+        <div v-if="selectedAction && [ActionType.GIVE, ActionType.TAKE].includes(selectedAction)" class="mb-2">
             <Dropdown
                 class="mb-2"
                 :options="gives.map(g => ({ label: g.label, value: g.type }))"
@@ -138,10 +167,23 @@ function doAction() {
                 @selected="val => selectedGive = val as GiveType"
             />
 
-            <input v-if="selectedGive === GiveType.ITEM || selectedGive === GiveType.WEAPON"
-                v-model="itemName"
-                placeholder="Name"
-                class="w-full p-2 rounded-lg bg-neutral-800 text-gray-100 mb-2"/>
+            <Dropdown 
+                v-if="selectedGive === GiveType.ITEM"
+                class="mb-2"
+                :options="items"
+                placeholder="Gegenstand auswählen"
+                v-model="itemId"
+                @selected="val => itemId = String(val) ?? null"
+            />
+
+            <Dropdown 
+                v-if="selectedGive === GiveType.WEAPON"
+                class="mb-2"
+                :options="weapons"
+                placeholder="Waffe auswählen"
+                v-model="weaponId"
+                @selected="val => weaponId = String(val) ?? null"
+            />
 
             <input v-if="selectedGive"
                 v-model.number="amount"

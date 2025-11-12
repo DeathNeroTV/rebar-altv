@@ -1,7 +1,7 @@
 <template>
     <div :class="notificationPositionClass">
         <transition-group :name="transitionNotificationName" tag="div">
-            <div v-for="(notification, index) in reversedNotifications" :key="notification.id">
+            <div v-for="notification in reversedNotifications" :key="notification.id">
                 <NotificationComponent :notification-prop="notification" :secondsAgo="notification.elapsedSeconds" />
             </div>
         </transition-group>
@@ -25,11 +25,7 @@ defineProps({
     secondsAgo: Number,
 });
 
-let debugMode = false; // Set to true for debugging
-
 const notifications = ref<VueNotification[]>([]);
-const labels = ref<Label>();
-
 let timer: NodeJS.Timeout | null = null;
 
 const reversedNotifications = computed(() => {
