@@ -4,8 +4,12 @@ import { Vehicle } from "@Shared/types/vehicle.js";
 export const HudConfig = {
     language: 'de',
     timePerSecond: 30,
-    baseDrain: 0.002,
-    healthDrain: 0.005,
+    ticksInMS: 100,
+    baseDrain: {
+        food: 0.002,
+        water: 0.004,
+        health: 0.005,
+    },
     lowThreshold: 20,
     warnDelayInSeconds: 300,
     actionMultipliers: {

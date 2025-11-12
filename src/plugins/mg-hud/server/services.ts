@@ -36,6 +36,8 @@ export function useHudService() {
 
             if (useWebview(args[0]).isReady('Hud', 'overlay'))
                 useWebview(args[0]).emit(HudEvents.toWebview.updatePlayer, { key: args[1], value: args[2] });
+
+            alt.emit('mg-hud:playerUpdated', ...args);
         },
         updateVehicle(...args: Parameters<HudService['updateVehicle']>) {
             if (!HudConfig.VehKeys.includes(args[1])) return;
@@ -46,6 +48,8 @@ export function useHudService() {
             
             if (useWebview(args[0]).isReady('Hud', 'overlay'))
                 useWebview(args[0]).emit(HudEvents.toWebview.updateVehicle, { key: args[1], value: args[2] });
+
+            alt.emit('mg-hud:vehicleUpdated', ...args);
         },
         updateTime(...args: Parameters<HudService['updateTime']>) {
             const service = useServiceRegister().get('hudService');
@@ -54,6 +58,8 @@ export function useHudService() {
             
             if (useWebview(args[0]).isReady('Hud', 'overlay'))
                 useWebview(args[0]).emit(HudEvents.toWebview.syncTime, args[1], args[2], args[3]);
+
+                alt.emit('mg-hud:timeUpdated', ...args);
         }
     };
 }

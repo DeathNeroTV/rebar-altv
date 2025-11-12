@@ -88,21 +88,20 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
     const vehicleData = Rebar.document.vehicle.useVehicle(player.vehicle);
     if (!vehicleData.isValid()) return;
 
-    let consumption = 0.0004;
-    consumption += Math.pow(data.rpm, 1.8) * 0.002;
-    consumption *= 1 + (1 / data.gear) * 0.5;
-    if (data.speed > 80) consumption *= 1 + Math.pow(data.speed / 100, 2) * 0.02;
+    let fuel = vehicleData.getField('fuel') ?? 100;
+    let consumption = 0.0002;
 
-    const intervalSeconds = 500 / 1000;
+    const rpmFactor = Math.min(1.0, Math.max(0.3, data.rpm));
+    const gearFactor = Math.max(0.8, 1.5 - data.gear * 0.1);
+    const speedFactor = 1 + Math.pow(data.speed / data.maxSpeed, 2) * 0.3;
+    consumption *= rpmFactor * gearFactor * speedFactor;
+
+    const intervalSeconds = 0.1;
     const fuelUsed = consumption * intervalSeconds * 10;
 
-    await vehicleData.setBulk({ 
-        fuel: fuelUsed,
-        rpm: data.rpm,
-        gear: data.gear,
-        speed: data.speed,
-        maxSpeed: data.maxSpeed
-    });
+    fuel = Math.max(0, fuel - fuelUsed);
+
+    await vehicleData.setBulk({ fuel, rpm: data.rpm, gear: data.gear, speed: data.speed, maxSpeed: data.maxSpeed });
 });
 
 alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { isSprinting: boolean, isMoving: boolean, isJumping: boolean, isShooting: boolean }) => {
@@ -123,8 +122,8 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
         (data.isShooting ? HudConfig.actionMultipliers.shooting * 0.5 : 0);
 
     // Food & Water Verbrauch
-    const foodDrain = HudConfig.baseDrain * multiplier;
-    const waterDrain = HudConfig.baseDrain * multiplier;
+    const foodDrain = HudConfig.baseDrain.food * multiplier;
+    const waterDrain = HudConfig.baseDrain.water * multiplier;
 
     food = Math.max(food - foodDrain, 0);
     water = Math.max(water - waterDrain, 0);
@@ -132,10 +131,10 @@ alt.onClient(HudEvents.toServer.updateStats, async (player: alt.Player, data: { 
     // Health nur verringern, wenn Werte unter Threshold fallen
     let healthLoss = 0;
     if (food <= HudConfig.lowThreshold)
-        healthLoss += HudConfig.healthDrain * ((HudConfig.lowThreshold - food) / HudConfig.lowThreshold);
+        healthLoss += HudConfig.baseDrain.health * ((HudConfig.lowThreshold - food) / HudConfig.lowThreshold);
 
     if (water <= HudConfig.lowThreshold)
-        healthLoss += HudConfig.healthDrain * ((HudConfig.lowThreshold - water) / HudConfig.lowThreshold);
+        healthLoss += HudConfig.baseDrain.health * ((HudConfig.lowThreshold - water) / HudConfig.lowThreshold);
 
     health = Math.max(health - healthLoss, 99);
 
