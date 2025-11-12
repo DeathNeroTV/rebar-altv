@@ -51,8 +51,7 @@ async function registerKeybinds() {
             key: alt.KeyCode.H,
             description: 'Reanimiere einen anderen Spieler, der bewusstlos ist',
             identifier: 'emergency-revive',
-            keyDown: async () => {
-                const player = alt.Player.local;
+            keyDown: async() => {
                 const victim = alt.Utils.getClosestPlayer({ range: 3.0 });
                 if (!victim || !victim.valid) return;
 
@@ -69,19 +68,21 @@ async function registerKeybinds() {
                 if (found) targetZ = groundZ;
 
                 // Spieler zum Ziel bewegen, dabei Collision berücksichtigen
-                natives.taskGoStraightToCoord(player, targetX, targetY, targetZ, 1.2, -1, 0.0, 0.0);
+                natives.taskGoStraightToCoord(alt.Player.local, targetX, targetY, targetZ, 1.2, -1, 0.0, 0.0);
 
                 // Warten, bis Spieler ungefähr am Ziel ist (max. 5 Sekunden)
                 const startTime = Date.now();
-                while (player.pos.distanceTo({ x: targetX, y: targetY, z: targetZ }) > 0.3 && Date.now() - startTime < 5000) {
-                    await alt.Utils.wait(0);
+                while (alt.Player.local.pos.distanceTo({ x: targetX, y: targetY, z: targetZ }) > 0.3 && Date.now() - startTime < 5000) {
+                    await alt.Utils.wait(50);
                 }
 
                 // Spieler korrekt zum Opfer drehen
+                natives.taskTurnPedToFaceCoord(alt.Player.local, chestPos.x, chestPos.y, chestPos.z, 1000);
+
+                // Warten, bis Spieler auf das Ziel schaut (max. 2 Sekunden)
                 const turnStart = Date.now();
-                while (!natives.isPedFacingPed(player, victim, 10) && Date.now() - turnStart < 2000) {
-                    natives.taskTurnPedToFaceCoord(player, chestPos.x, chestPos.y, chestPos.z, 1000);
-                    await alt.Utils.wait(0);
+                while (!natives.isPedFacingPed(alt.Player.local, victim, 10) && Date.now() - turnStart < 2000) {
+                    await alt.Utils.wait(50);
                 }
 
                 emitServerSafe(DeathEvents.toServer.toggleRevive, victim);

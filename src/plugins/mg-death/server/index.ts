@@ -6,7 +6,6 @@ import { Character } from '@Shared/types/index.js';
 import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
-import { useAnimation } from '@Server/player/animation.js';
 
 const Rebar = useRebar();
 const api = Rebar.useApi();
@@ -55,8 +54,6 @@ const Internal = {
         // Markiere character als tot (persist)
         if (!document.getField('isDead')) await document.set('isDead', true);
         else useMedicalService().unconscious(player);
-
-        alt.log(`[mg-death][PlayerDeath] ${document.getField('name').replaceAll('_', ' ')} wurde bewusstlos.`);
     },
 };
 
@@ -83,8 +80,10 @@ Rebar.services.useServiceRegister().register('medicalService', {
         // spawn am zuletzt gespeicherten char pos, nicht an CharSelect default
         const savedPos = document.getField('pos') ?? player.pos;
         player.spawn(savedPos);
-
-        Rebar.player.useAnimation(player).playInfinite('missfinale_c1@', 'lying_dead_player0', 1);
+        player.pos = new alt.Vector3(savedPos);
+        player.health = 124;
+        player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
+        alt.setTimeout(() => player.frozen = true, 2000);
 
         const label = Rebar.controllers.useTextLabelGlobal({
             pos: savedPos,
@@ -105,29 +104,39 @@ Rebar.services.useServiceRegister().register('medicalService', {
 
             alt.clearTimeout(timeout);
             ActiveTasks.delete(charId);
-        }, DeathConfig.respawnTime);        
+        }, DeathConfig.respawnTime);
         ActiveTasks.set(charId, { timeout });
-
-        alt.setTimeout(() => player.frozen = true, 2000);
     },
 
-    async revive(reviver: alt.Player, victim: alt.Player) {
+    revive(reviver: alt.Player, victim: alt.Player) {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
+        //TODO: Abfrage ob Mediziner im Dienst sind, sende Dispatch zu diesen!
 
         const victimDoc = Rebar.document.character.useCharacter(victim);
         if (!victimDoc.isValid() || !victimDoc.getField('isDead')) return;
 
-        await Rebar.player.useAnimation(reviver).playFinite('mini@cpr@char_a@cpr_def', 'cpr_intro', 1, 8.0, -8.0, 5000);
+        reviver.clearTasks();
+        victim.clearTasks();
 
-        reviver.emit(DeathEvents.toClient.startRevive, true);
-        victim.emit(DeathEvents.toClient.startRevive, false);
+        reviver.playAnimation('mini@cpr@char_a@cpr_def', 'cpr_intro', 8.0, 8.0, 5000, 1);
+        victim.playAnimation('mini@cpr@char_b@cpr_def', 'cpr_intro', 8.0, 8.0, 5000, 1);
 
-        await Rebar.player.useAnimation(reviver).playFinite('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 1, 8.0, -8.0, DeathConfig.reviveTime);
+        alt.setTimeout(() => {
+            reviver.clearTasks();
+            victim.clearTasks();
+
+            reviver.emit(DeathEvents.toClient.startRevive, true);
+            victim.emit(DeathEvents.toClient.startRevive, false);
+
+            reviver.playAnimation('mini@cpr@char_a@cpr_str', 'cpr_pumpchest', 8.0, 8.0, -1, 1);
+            victim.playAnimation('mini@cpr@char_b@cpr_str', 'cpr_pumpchest', 8.0, 8.0, -1, 1);
+        }, 5000);
     },
 
     async revived(player: alt.Player, isReviver: boolean) {
-        if (isReviver) alt.setTimeout(() => Rebar.player.useAnimation(player).clear(), COOLDOWN_DELAY);
-        else await useMedicalService().respawn(player, player.pos);
+        alt.setTimeout(() => player.clearTasks(), COOLDOWN_DELAY);
+        if (isReviver) return; 
+        await useMedicalService().respawn(player, player.pos);
     },
 
     async respawn(player: alt.Player, pos: alt.IVector3) {
@@ -173,14 +182,15 @@ Rebar.services.useServiceRegister().register('medicalService', {
         alt.setTimeout(() => {
             if (!player || !player.valid) return;
             player.frozen = false;
+            player.spawn(data.pos);
+            player.pos = new alt.Vector3(data.pos);
             player.clearBloodDamage();
-            Rebar.player.useState(player).sync();
             player.emit(DeathEvents.toClient.respawned);
 
-            Rebar.player.useAnimation(player).clear();
             Rebar.player.useWorld(player).clearScreenFade(FADE_DELAY);
         }, COOLDOWN_DELAY);
     },
+
     called(player: alt.Player) {
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid() || !document.getField('isDead')) return;
