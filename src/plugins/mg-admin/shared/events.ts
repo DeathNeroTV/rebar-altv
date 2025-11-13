@@ -31,6 +31,11 @@ export const AdminEvents = {
             items: 'mg-admin:request:items',
             weapons: 'mg-admin:request:weapons',
         },
+        item: {
+            create: 'mg-admin:item:create',
+            save: 'mg-admin:item:save',
+            delete: 'mg-admin:item:delete',
+        },
         action: 'mg-admin:action:invoke',
     }
 };

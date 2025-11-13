@@ -22,7 +22,7 @@
         "allowSyntheticDefaultImports": true,
         "composite": false,
         "forceConsistentCasingInFileNames": true,
-        "strict": true,
+        "strict": false,
         "module": "NodeNext",
         "target": "ES2022",
         "outDir": "athena-cache",

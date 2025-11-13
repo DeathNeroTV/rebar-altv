@@ -1,58 +1,80 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted } from "vue";
-
+import { computed, onMounted, ref } from "vue";
 import { useEvents } from "@Composables/useEvents";
-import { AdminEvents } from "@Plugins/mg-admin/shared/events";
+
+import { PlayerStats } from "../../shared/interfaces";
+import { AdminEvents } from "../../shared/events";
 
 import PlayerTable from "../components/player/PlayerTable.vue";
 import PlayerDetails from "../components/player/PlayerDetails.vue";
-import { PlayerStats } from "@Plugins/mg-admin/shared/interfaces";
 
 const events = useEvents();
-
 const players = ref<PlayerStats[]>([
-    { id: 1, name: 'DeathNeroTV', health: 200, armour: 100, job: ['police', 'ambulance'] , ping: 0, pos: { x: 0, y: 0, z: 0 } }
+    { id: 1, name: 'Roman Jackson', health: 200, armour: 0, ping: 13, pos: { x: 0, y: 0, z: 0 }, job: ['police', 'ambulance'] }
 ]);
-const selectedPlayer = ref<PlayerStats | null>(null);
 const search = ref<string>('');
-
-const filteredPlayers = computed(() => players.value.filter((p) => p.name.toLowerCase().includes(search.value.toLowerCase())));
-
-function openPlayerDetails(player) {
-    selectedPlayer.value = player;
-}
+const selectedPlayer = ref<PlayerStats | null>(null);
 
 async function refreshPlayers() {
-    const response = await events.emitServerRpc(AdminEvents.toServer.request.player);
-    if (response) players.value = response;
+    const result: PlayerStats[] = await events.emitServerRpc(AdminEvents.toServer.request.player);
+    if (Array.isArray(result)) players.value = result;
 }
 
-onMounted(refreshPlayers);
+const filteredPlayers = computed(() => {
+    const s = search.value.toLowerCase();
+    return players.value.filter((p) => p.name?.toLowerCase().includes(s) || String(p.id).includes(s));
+});
+
+function openPlayerDetails(player: any) {
+  selectedPlayer.value = player;
+}
+
+onMounted(async() => await refreshPlayers());
 </script>
 
 <template>
-    <div class="p-4 text-gray-100">
-        <h1 class="text-2xl font-semibold mb-4 select-none">Spielerverwaltung</h1>
+    <div class="h-full flex flex-col p-4 text-gray-100 bg-neutral-900/90 rounded-2xl shadow-lg">
+        <!-- 🧩 Titel & Suche -->
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-semibold select-none">Spielerverwaltung</h1>
 
-        <div class="mb-4 flex justify-between items-center">
-            <input
-                v-model="search"
-                type="text"
-                placeholder="Spieler suchen..."
-                class="bg-neutral-800 text-gray-100 rounded-lg px-4 py-2 w-1/3"
-            />
-            <font-awesome-icon
-                :icon="['fas', 'rotate']"
-                @click="refreshPlayers"
-                class="bg-[#008736] hover:bg-green-700 px-4 py-2 rounded-lg"
-            />
+            <div class="flex items-center gap-3">
+                <input
+                    v-model="search"
+                    type="text"
+                    placeholder="🔍 Spieler suchen..."
+                    class="bg-neutral-800 text-gray-100 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#008736] focus:outline-none w-72"
+                />
+
+                <button
+                    @click="refreshPlayers"
+                    class="bg-[#008736]/90 hover:bg-[#008736] text-gray-100 px-5 py-3 rounded-lg transition-all flex items-center gap-2"
+                >
+                    <font-awesome-icon :icon="['fas', 'rotate']" />
+                </button>
+            </div>
         </div>
 
-        <PlayerTable :players="filteredPlayers" @selectPlayer="openPlayerDetails" />
+        <!-- 📊 Spielertabelle -->
+        <div class="flex-1 overflow-hidden ring ring-neutral-800 rounded-lg">
+            <PlayerTable :players="filteredPlayers" @selectPlayer="openPlayerDetails" />
+        </div>
 
-        <PlayerDetails :visible="selectedPlayer !== null" :player="selectedPlayer" @close="selectedPlayer = null" />
+        <!-- 🧍 Detailmodal -->
+        <PlayerDetails v-if="selectedPlayer" :visible="selectedPlayer !== null" :player="selectedPlayer" @close="selectedPlayer = null" />
     </div>
 </template>
 
 <style scoped>
+/* Dezente Scrollbar für dunkle Themes */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
 </style>
