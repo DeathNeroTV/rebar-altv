@@ -42,14 +42,20 @@ function openItemDetails(item: Item) {
 
 async function saveItem(item: Item) {
     const eventName = item.id === 0 ? AdminEvents.toServer.item.create : AdminEvents.toServer.item.save;
-    events.emitServer(eventName, item);
     selectedItem.value = null;
+
+    const success = await events.emitServerRpc(eventName, item);
+    if (!success) return;
+
     await refreshItems();
 }
 
-async function deleteItem(uid: string) {
-    events.emitServer(AdminEvents.toServer.item.delete, uid);
+async function deleteItem(id: number) {
     selectedItem.value = null;
+
+    const success = await events.emitServerRpc(AdminEvents.toServer.item.delete, id);
+    if (!success) return;
+
     await refreshItems();
 }
 
@@ -71,7 +77,7 @@ onMounted(async() => await refreshItems());
                 />
 
                 <button
-                    @click="selectedItem = defaultItem"
+                    @click="openItemDetails(defaultItem)"
                     class="bg-[#008736]/90 hover:bg-[#008736] text-gray-100 px-5 py-3 rounded-lg transition-all flex items-center gap-2"
                 >
                     <font-awesome-icon :icon="['fas', 'plus']" />
@@ -92,7 +98,7 @@ onMounted(async() => await refreshItems());
         </div>
 
         <!-- 🧍 Detailmodal -->
-        <ItemDetails v-if="selectedItem" :visible="selectedItem !== null" :item="selectedItem" @close="selectedItem = null" @delete="deleteItem" @edit="saveItem" />
+        <ItemDetails v-if="selectedItem" :visible="selectedItem !== null" :item="selectedItem" @close="selectedItem = null" @delete="deleteItem" @save="saveItem" />
     </div>
 </template>
 

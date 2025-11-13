@@ -10,7 +10,7 @@ const props = defineProps<{
 const emits = defineEmits<{
     (e: 'close'): void;
     (e: 'save', item: Partial<Item>): void;
-    (e: 'delete', uid: string): void;
+    (e: 'delete', id: number): void;
 }>();
 
 const localItem = ref<Partial<Item>>({});
@@ -71,7 +71,7 @@ function removeDataField(key: string) {
                     />
                     <font-awesome-icon
                         :icon="['fas', 'trash']"
-                        @click="emits('delete', localItem.uid)"
+                        @click="emits('delete', Number(localItem.id))"
                         class="text-neutral-600 hover:text-orange-500 transition text-2xl cursor-pointer"
                     />
                     <div class="w-0.5 h-8 bg-neutral-600 rounded-full"></div>
@@ -165,7 +165,7 @@ function removeDataField(key: string) {
                         <button
                             v-if="editing"
                             @click="addDataField"
-                            class="text-[#008736] hover:text-emerald-400 text-sm transition"
+                            class="text-[#008736] bg-neutral-900 hover:text-gray-100 hover:bg-[#008736] px-2 py-1 rounded-full text-sm transition"
                         >
                             + Feld hinzufügen
                         </button>
