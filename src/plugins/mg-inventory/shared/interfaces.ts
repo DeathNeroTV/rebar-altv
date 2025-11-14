@@ -6,6 +6,12 @@ export interface Inventory {
     capacity: number;
 }
 
+export interface Modifiers {
+    shift: boolean;
+    ctrl: boolean;
+    alt: boolean;
+}
+
 export interface Player {
     id: number;
     name: string;
