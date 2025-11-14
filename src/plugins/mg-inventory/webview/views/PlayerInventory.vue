@@ -88,11 +88,12 @@
 	}
 
 	function onRightClick(uid: string) {
-		const [_, fromSlot] = uid.split('-');
-		const index = Number(fromSlot);
+		const [_, slot] = uid.split('-');
+		const index = Number(slot);
 		const item = props.inventory.slots[index];
 		if (!item) return;
-		const leftOver = Math.max(0, item.quantity--);
+
+		const leftOver = Math.max(0, item.quantity - 1);
 		if (leftOver > 0) {
 			props.inventory.slots[index] = {
 				...item,
