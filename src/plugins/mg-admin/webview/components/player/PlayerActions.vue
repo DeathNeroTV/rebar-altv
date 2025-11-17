@@ -7,7 +7,7 @@
 
 	import Dropdown from '../DropDown.vue';
 	import { AdminConfig } from '@Plugins/mg-admin/shared/config';
-	import { Item } from '@Shared/types/items';
+	import { TlrpItem } from '@Plugins/mg-inventory/shared/interfaces';
 
 	const events = useEvents();
 	const props = defineProps<{ player: PlayerStats | null }>();
@@ -46,7 +46,6 @@
 	const reason = ref<string | null>(null);
 	const amount = ref<number | null>(null);
 	const itemId = ref<string | null>(null);
-	const weaponId = ref<string | null>(null);
 	const items = ref<{ label: string; value: string }[]>([]);
 	const weapons = ref<{ label: string; value: string }[]>([]);
 
@@ -61,11 +60,8 @@
 			case ActionType.GIVE:
 			case ActionType.TAKE:
 				if (!selectedGive.value) return false;
-				if (selectedGive.value === GiveType.ITEM) {
+				if (selectedGive.value === GiveType.ITEM || selectedGive.value === GiveType.WEAPON) {
 					return !!itemId.value && !!amount.value;
-				}
-				if (selectedGive.value === GiveType.WEAPON) {
-					return !!weaponId.value && !!amount.value;
 				}
 				return !!amount.value;
 			case ActionType.TELEPORT:
@@ -99,17 +95,15 @@
 		reason.value = null;
 		amount.value = null;
 		itemId.value = null;
-		weaponId.value = null;
 	}
 
 	watch(selectedGive, (val) => {
 		amount.value = null;
 		itemId.value = null;
-		weaponId.value = null;
 	});
 
 	onMounted(async () => {
-		const itemList: Partial<Item>[] = (await events.emitServerRpc(AdminEvents.toServer.request.items)) ?? [{ uid: 'hamburger', name: 'Hamburger' }];
+		const itemList: Partial<TlrpItem>[] = (await events.emitServerRpc(AdminEvents.toServer.request.items, true)) ?? [{ uid: 'hamburger', name: 'Hamburger' }];
 		items.value = itemList.map((x) => ({ label: x.name ?? 'Unbekannt', value: x.uid ?? '' }));
 
 		const weaponList: { name: string; model: string }[] = (await events.emitServerRpc(AdminEvents.toServer.request.weapons)) ?? [

@@ -1,10 +1,10 @@
-import { Item } from "@Shared/types/items.js";
+import { RebarBaseItem } from "@Shared/types/items.js";
 import { IWeapon } from "alt-shared";
 
 export interface Inventory {
     owner: string;
     type: 'player' | 'vehicle' | 'storage' | 'shop';
-    slots: Item[];
+    slots: TlrpItem[];
     capacity: number;
 }
 
@@ -36,4 +36,12 @@ export interface ActiveInventorySession {
     playerInventory: Inventory;
     otherInventory: Inventory | null;
     weapons: Weapon[];
+}
+
+export interface TlrpItem extends RebarBaseItem {
+    _id?: string;
+    uid: string;
+    category?: 'medical' | 'eatable' | 'weapons' | 'drugs' | 'resources';
+    quantity: number;
+    data?: { [key: string]: any };
 }

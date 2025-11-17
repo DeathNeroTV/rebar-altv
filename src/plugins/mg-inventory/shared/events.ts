@@ -1,6 +1,6 @@
 export const InventoryEvents = {
     toServer: {
-        fetchLocalData: 'mg-inventory:fetch:localData',
+        fetchData: 'mg-inventory:fetch:data',
         fetchItemFromWeapon: 'mg-inventory:fetch:itemOfWeapon',
         leftClick: 'mg-inventory:click:left',
         rightClick: 'mg-inventory:click:right',

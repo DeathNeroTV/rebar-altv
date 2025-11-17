@@ -18,7 +18,7 @@ const keyBind: KeyInfo = {
     key: alt.KeyCode.P,
     allowIfDead: true,
     keyDown: () => {
-        if (alt.isConsoleOpen() || alt.isMenuOpen()) return;
+        if (alt.isConsoleOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
         alt.emitServer(AdminEvents.toServer.login);
     },
 };
@@ -37,6 +37,7 @@ function handleWhitelistUpdate(request: WhitelistRequest) {
 
 async function init() {
     const keyBindApi = await Rebar.useClientApi().getAsync('keyBinds-api');
+    if (!keyBindApi) throw Error('KeyBind Api not found');
     keyBindApi.add(keyBind);
 
     alt.onServer(AdminEvents.toClient.whitelist.add, handleWhitelistRequest);

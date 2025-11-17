@@ -1,7 +1,6 @@
 import * as alt from 'alt-server';
-import { Item } from '@Shared/types/items.js';
 import { useServiceRegister } from '@Server/services/index.js';
-import { Inventory, Weapon } from '../shared/interfaces.js';
+import { Inventory, TlrpItem, Weapon } from '../shared/interfaces.js';
 
 export interface InventoryService {
     getInventoryByEntity: (entity: alt.Entity) => Promise<Inventory>;
@@ -13,8 +12,8 @@ export interface InventoryService {
     split: (entity: alt.Entity, slot: number, quantity: number) => Promise<boolean>;
     remove: (entity: alt.Entity, slot: number) => Promise<boolean>;
     use: (entity: alt.Entity, slot: number) => Promise<boolean>;
-    hasSpace: (entity: alt.Entity, item: Item) => Promise<boolean>;
-    itemCreate: (data: Item) => Promise<boolean>;
+    hasSpace: (entity: alt.Entity, item: TlrpItem) => Promise<boolean>;
+    itemCreate: (data: TlrpItem) => Promise<boolean>;
     itemRemove: (uid: string) => Promise<boolean>;
 }
 

@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 	import { computed, ref } from 'vue';
-	import { Item } from '@Shared/types/items.js';
 
-	import type { Inventory as InventoryType, Modifiers } from '../../shared/interfaces';
+	import type { Inventory as InventoryType, Modifiers, TlrpItem } from '../../shared/interfaces';
 
 	import Draggable from './Draggable.vue';
 
@@ -13,7 +12,7 @@
 	}>();
 
 	const emits = defineEmits<{
-		(e: 'hoverOver', item: Item | null): void;
+		(e: 'hoverOver', item: TlrpItem | null): void;
 		(e: 'leftClick', uid: string, modifiers: { shift: boolean; ctrl: boolean }): void;
 		(e: 'doubleClick', uid: string): void;
 		(e: 'rightClick', uid: string): void;
@@ -54,7 +53,7 @@
 		});
 
 		const totalSlots = Math.max(filtered.length, 30);
-		const grid: (Item | null)[] = [];
+		const grid: (TlrpItem | null)[] = [];
 		for (let i = 0; i < totalSlots; i++) {
 			grid.push(filtered[i] || null);
 		}
@@ -62,12 +61,12 @@
 		return grid;
 	});
 
-	const draggingItem = ref<Item | null>(null);
+	const draggingItem = ref<TlrpItem | null>(null);
 	const ghostStyle = ref<{ top: string; left: string }>({ top: '0px', left: '0px' });
 	let dragOffsetX = 0;
 	let dragOffsetY = 0;
 
-	function startDragging(item: Item, event: MouseEvent) {
+	function startDragging(item: TlrpItem, event: MouseEvent) {
 		draggingItem.value = item;
 
 		const target = event.target as HTMLElement;

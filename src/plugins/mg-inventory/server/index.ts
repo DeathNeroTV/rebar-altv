@@ -1,28 +1,19 @@
 import * as alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
 import { GTA_WEAPONS } from '../shared/weapons.js';
-import { Item } from '@Shared/types/items.js';
 import { InventoryConfig } from '../shared/config.js';
 import { InventoryEvents } from '../shared/events.js';
-import { ActiveInventorySession, Inventory, Modifiers, Player, Weapon } from '../shared/interfaces.js';
+import { ActiveInventorySession, Inventory, Modifiers, Player, TlrpItem, Weapon } from '../shared/interfaces.js';
 import { useInventoryService } from './itemService.js';
 
-const inventoryService = useInventoryService();
 const Rebar = useRebar();
-const notifyApi = await Rebar.useApi().getAsync('notify-api');
 const db = Rebar.database.useDatabase();
+const notifyApi = await Rebar.useApi().getAsync('notify-api');
 
 const activeInventories: Map<string, ActiveInventorySession> = new Map();
 
-declare module '@Shared/types/items.js' {
-    export interface RebarBaseItem {
-        category?: string;
-    }
-}
-
 declare module '@Shared/types/character.js' {
     export interface Character {
-        items?: Item[];
         jobs?: string[] | string;
         phone?: string;
     }
@@ -60,9 +51,14 @@ function resolveInventoryFromUID(session: ActiveInventorySession, uid: string) {
 
 async function handleDataFetch(player: alt.Player) {
     const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid()) return [null, null, null, null];
+    if (!document.isValid()) return;
+
+    Rebar.player.useWebview(player).show('Inventory', 'page');
+    const isReady = await Rebar.player.useWebview(player).isReady('Inventory', 'page');
+    if (!isReady) return;
 
     const charId = document.getField('_id');
+    const weapons = document.getField('weapons') ?? [];
 
     const pData: Player = {
         id: document.getField('id') ?? -1,
@@ -73,7 +69,6 @@ async function handleDataFetch(player: alt.Player) {
         phone: document.getField('phone') ?? '',
     };
     
-    const weapons = document.getField('weapons') ?? [];
     const wData: Weapon[] = weapons.map(entry => {
         const weaponInfo = alt.getWeaponModelInfoByHash(entry.hash);
         return {
@@ -84,10 +79,17 @@ async function handleDataFetch(player: alt.Player) {
         };
     });
 
-    const iData: Inventory = await inventoryService.getInventoryByOwner(charId);
+    const iData: Inventory = await useInventoryService().getInventoryByOwner(charId) || {
+        capacity: InventoryConfig.maxWeight,
+        slots: Array(30).fill(null),
+        owner: charId,
+        type: 'player'
+    };
+
     const oData: Inventory = null;
-    activeInventories.set(charId, { player: pData, otherInventory: oData, playerInventory: iData, weapons: wData });
-    return [pData, wData, iData, oData];
+    const session = { player: pData, otherInventory: oData, playerInventory: iData, weapons: wData };
+    Rebar.player.useWebview(player).emit(InventoryEvents.toWebview.updateView, session);
+    activeInventories.set(charId, session);    
 }
 
 function handleClearSession(player: alt.Player) {
@@ -118,7 +120,7 @@ async function handleLeftClick(player: alt.Player, uid: string, modifiers: Modif
         const amount = Math.floor(item.quantity / 2);
         if (amount <= 0) return;
 
-        const splitted = await inventoryService.split(player, index, amount);
+        const splitted = await useInventoryService().split(player, index, amount);
         if (!splitted) return;
 
         await db.update<Inventory>(inventory, "Inventories");
@@ -138,7 +140,7 @@ async function handleLeftClick(player: alt.Player, uid: string, modifiers: Modif
     if (modifiers.ctrl) {
         if (item.quantity <= 1) return;
 
-        const splitted = await inventoryService.split(player, index, 1);
+        const splitted = await useInventoryService().split(player, index, 1);
         if (!splitted) return;
 
         await db.update<Inventory>(inventory, "Inventories");
@@ -171,7 +173,7 @@ async function handleRightClick(player: alt.Player, uid: string) {
     const item = inventory.slots[index];
     if (!item) return;
 
-    const success = await inventoryService.use(player, index);
+    const success = await useInventoryService().use(player, index);
     if (!success) return;
 
     await db.update<Inventory>(inventory, "Inventories");
@@ -200,10 +202,10 @@ async function handleMiddleClick(player: alt.Player, uid: string) {
     const slots = inventory.slots;
     const totalSlots = slots.length;
 
-    const items = slots.filter((i): i is Item => i !== null);
+    const items = slots.filter((i): i is TlrpItem => i !== null);
     items.sort((a, b) => a.uid.localeCompare(b.uid));
 
-    const merged: Item[] = [];
+    const merged: TlrpItem[] = [];
     for (const item of items) {
         const existing = merged.find(
             (i) => i.id === item.id && i.quantity < (i.maxStack ?? 1)
@@ -506,18 +508,200 @@ async function handleDragItem(player: alt.Player, fromId: string, toId: string) 
     });
 }
 
+Rebar.services.useServiceRegister().register('inventoryService', {
+    async add(entity, uid, slot, quantity, data) {
+        const inventory = await useInventoryService().getInventoryByEntity(entity);
+        if (!inventory) return false;
+
+        const cloned = await db.get<TlrpItem>({ uid }, 'Items');
+        if (!cloned) return false;
+
+        const item = inventory[slot];
+        if (item) return false;
+
+        const newItem = { ...cloned, quantity, data };
+        const hasSpace = await useInventoryService().hasSpace(entity, newItem);
+        if (!hasSpace) return false;
+
+        const freeSlot = findFreeSlot(inventory);
+        if (freeSlot === -1) return false;
+        inventory.slots[freeSlot] = newItem;
+
+        const result = await db.update<Inventory>(inventory, 'Inventories');
+        return result;
+    },
+    async sub(entity, slot, quantity) {
+        const inventory = await useInventoryService().getInventoryByEntity(entity);
+        if (!inventory) return false;
+
+        const item = inventory[slot];
+        if ((item?.quantity || 0) >= quantity) {
+            item.quantity -= quantity;
+            if (item.quantity <= 0) inventory.slots[slot] = null;
+            return true;
+        }
+
+        let remaining = quantity;
+        for (let data of inventory.slots) {
+            if (!data || data.uid !== item?.uid) continue;
+
+            if (data.quantity! >= remaining) {
+                data.quantity! -= remaining;
+                if (data.quantity! <= 0) data = null;
+                return true;
+            } else {
+                remaining -= data.quantity!;
+                data.quantity = 0;
+                const index = inventory.slots.indexOf(data);
+                if (index !== -1) inventory.slots[index] = null;
+            }
+        }
+
+        const result = await db.update<Inventory>(inventory, 'Inventories');
+        return result;
+    },
+    async split(entity, slot, quantity) {
+        const inventory = await useInventoryService().getInventoryByEntity(entity);
+        if (!inventory) return false;
+
+        const original = inventory.slots[slot];
+        if (!original || original.quantity <= 1 || quantity <= 0) return null;
+
+        const taken = Math.min(quantity, original.quantity);
+
+        original.quantity -= taken;
+
+        const freeIndex = findFreeSlot(inventory);
+        if (freeIndex === -1) return null;
+
+        const newItem: TlrpItem = { ...original, quantity: taken };
+        inventory.slots[freeIndex] = newItem;
+        inventory.slots[slot] = original;
+
+        const result = await db.update<Inventory>(inventory, 'Inventories');
+        return result;
+    },
+    async has(entity, uid, quantity) {
+        const inventory = await useInventoryService().getInventoryByEntity(entity);
+        if (!inventory) return false;
+
+        const amount = inventory.slots
+        .filter(slot => slot?.uid === uid)
+        .reduce((sum, slot) => sum + slot?.quantity || 0, 0);
+        return amount >= quantity;
+    },
+    async hasSpace(entity, item) {
+        const inventory = await useInventoryService().getInventoryByEntity(entity);
+        if (!inventory) return false;
+        const currentWeight = inventory.slots.reduce((sum, slot) => sum + (slot?.weight * slot?.quantity || 0), 0);
+        const newWeight = currentWeight + (item.weight * item.quantity);
+        return newWeight <= inventory.capacity;
+    },
+    async itemCreate(data) {
+        const found = await db.get<TlrpItem>({ uid: data.uid }, 'Items');
+        if (found) {
+            alt.logError('Item bereits mit der gegebenen uid vorhanden');
+            return false;
+        }
+
+        const identifier = Rebar.database.useIncrementalId('Items');
+        const id = await identifier.getNext();
+
+        const _id = await db.create({ ...data, id }, 'Items');
+        if (!_id) {
+            alt.logError('Item konnte nicht erstellt werden', JSON.stringify(data));
+            return false;
+        }
+        return true;
+    },
+    async itemRemove(uid) {
+        const found = await db.get<TlrpItem>({ uid }, 'Items');
+        if (!found) return false;
+
+        const success = await db.destroy(found._id, 'Items');
+        return success;
+    },
+    async remove(entity, slot) {
+        const inventory = await useInventoryService().getInventoryByEntity(entity);
+        if (!inventory) return false;
+
+        const item = inventory[slot];
+        if (!item) return false;
+        inventory.slots.splice(slot, 1);
+
+        const result = await db.update<Inventory>(inventory, 'Inventories');
+        return result;
+    },
+    async use(entity, slot) {
+        const inventory = await useInventoryService().getInventoryByEntity(entity);
+        if (!inventory) return false;
+
+        const item = inventory.slots[slot];
+        if (!item) return false;
+
+        const leftOver = Math.max(0, item.quantity - 1);
+        if (leftOver > 0) item.quantity = leftOver;
+        else inventory.slots[slot] = null;
+
+        const result = await db.update<Inventory>(inventory, 'Inventories');
+        return result;
+    },
+    async getInventoryByEntity(entity) {
+        if (entity.type !== alt.BaseObjectType.Player && entity.type !== alt.BaseObjectType.Vehicle) return null;
+        if (entity.type === alt.BaseObjectType.Player) {
+            const charId = Rebar.document.character.useCharacter(entity as alt.Player)?.getField('_id') ?? null;
+            if (!charId) return null;
+            const inventory = await db.get<Inventory>({ owner: charId }, 'Inventories');
+            return inventory;
+        }
+
+        const vehId = Rebar.document.vehicle.useVehicle(entity as alt.Vehicle)?.getField('_id') ?? null;
+        if (!vehId) return null;
+        const inventory = await db.get<Inventory>({ owner: vehId }, 'Inventories');
+        return inventory;
+    },
+    async getInventoryByOwner(owner) {
+        const document = await db.get<Inventory>({ owner }, 'Inventories');
+        return document;
+    },
+    async getWeapons(entity) {
+        const document = Rebar.document.character.useCharacter(entity as alt.Player);
+        if (!document.isValid()) return [];
+        const weapons = document.getField('weapons').map(x => {
+            const weaponInfo = alt.getWeaponModelInfoByHash(x.hash);
+            return {
+                ...x,
+                ammoType: weaponInfo.ammoType,
+                totalAmmo: weaponInfo.defaultMaxAmmoMp,
+                uid: weaponInfo.name.toLowerCase()
+            } as Weapon;
+        });
+        return weapons;
+    },
+});
+
+// RPC-Events
+alt.onRpc(InventoryEvents.toServer.fetchData, handleDataFetch);
+
+// Client Events
+alt.onClient(InventoryEvents.toServer.clearSession, handleClearSession);
+alt.onClient(InventoryEvents.toServer.leftClick, handleLeftClick);
+alt.onClient(InventoryEvents.toServer.rightClick, handleRightClick);
+alt.onClient(InventoryEvents.toServer.middleClick, handleMiddleClick);
+alt.onClient(InventoryEvents.toServer.dragItem, handleDragItem);
+
 async function init() {
     await db.createCollection('Items');
     await db.createCollection('Inventories');
     
     for (const weapon of GTA_WEAPONS) {
         const weaponInfo = alt.getWeaponModelInfoByHash(weapon.hash);
-        const foundItem = await db.get<Item & { _id: string }>({ uid: weaponInfo.name.toLowerCase() }, 'Items');
+        const foundItem = await db.get<TlrpItem>({ uid: weaponInfo.name.toLowerCase() }, 'Items');
         if (foundItem) continue;
 
         const id = await Rebar.database.useIncrementalId('Items').getNext();
 
-        const item: Item = {
+        const item: TlrpItem = {
             id,
             desc: weapon.desc[InventoryConfig.language],
             icon: weaponInfo.name.toLowerCase(),
@@ -536,183 +720,8 @@ async function init() {
                 ammoType: weaponInfo.ammoType
             }
         };
-        const _id = await db.create<Item>(item, 'Items');
+        const _id = await db.create<TlrpItem>(item, 'Items');
     }
-
-    Rebar.services.useServiceRegister().register('inventoryService', {
-        async add(entity, uid, slot, quantity, data) {
-            const inventory = await inventoryService.getInventoryByEntity(entity);
-            if (!inventory) return false;
-
-            const cloned = await db.get<Item>({ uid }, 'Items');
-            if (!cloned) return false;
-
-            const item = inventory[slot];
-            if (item) return false;
-
-            const newItem = { ...cloned, quantity, data };
-            const hasSpace = await inventoryService.hasSpace(entity, newItem);
-            if (!hasSpace) return false;
-
-            const freeSlot = findFreeSlot(inventory);
-            if (freeSlot === -1) return false;
-            inventory.slots[freeSlot] = newItem;
-
-            const result = await db.update<Inventory>(inventory, 'Inventories');
-            return result;
-        },
-        async sub(entity, slot, quantity) {
-            const inventory = await inventoryService.getInventoryByEntity(entity);
-            if (!inventory) return false;
-            
-            const item = inventory[slot];
-            if ((item?.quantity || 0) >= quantity) {
-                item.quantity -= quantity;
-                if (item.quantity <= 0) inventory.slots[slot] = null;
-                return true;
-            }
-
-            let remaining = quantity;
-            for (let data of inventory.slots) {
-                if (!data || data.uid !== item?.uid) continue;
-
-                if (data.quantity! >= remaining) {
-                    data.quantity! -= remaining;
-                    if (data.quantity! <= 0) data = null;
-                    return true;
-                } else {
-                    remaining -= data.quantity!;
-                    data.quantity = 0;
-                    const index = inventory.slots.indexOf(data);
-                    if (index !== -1) inventory.slots[index] = null;
-                }
-            }
-
-            const result = await db.update<Inventory>(inventory, 'Inventories');
-            return result;
-        },
-        async split(entity, slot, quantity) {
-            const inventory = await inventoryService.getInventoryByEntity(entity);
-            if (!inventory) return false;
-
-            const original = inventory.slots[slot];
-            if (!original || original.quantity <= 1 || quantity <= 0) return null;
-
-            const taken = Math.min(quantity, original.quantity);
-
-            original.quantity -= taken;
-
-            const freeIndex = findFreeSlot(inventory);
-            if (freeIndex === -1) return null;
-
-            const newItem: Item = { ...original, quantity: taken };
-            inventory.slots[freeIndex] = newItem;
-            inventory.slots[slot] = original;
-
-            const result = await db.update<Inventory>(inventory, 'Inventories');
-            return result;
-        },
-        async has(entity, uid, quantity) {
-            const inventory = await inventoryService.getInventoryByEntity(entity);
-            if (!inventory) return false;
-
-            const amount = inventory.slots
-            .filter(slot => slot?.uid === uid)
-            .reduce((sum, slot) => sum + slot?.quantity || 0, 0);
-            return amount >= quantity;
-        },
-        async hasSpace(entity, item) {
-            const inventory = await inventoryService.getInventoryByEntity(entity);
-            if (!inventory) return false;
-            const currentWeight = inventory.slots.reduce((sum, slot) => sum + (slot?.weight * slot?.quantity || 0), 0);
-            const newWeight = currentWeight + (item.weight * item.quantity);
-            return newWeight <= inventory.capacity;
-        },
-        async itemCreate(data) {
-            const found = await db.get<Item>({ uid: data.uid }, 'Items');
-            if (found) return false;
-
-            const identifier = Rebar.database.useIncrementalId('Items');
-            data.id = await identifier.getNext();
-            const _id = await db.create<Item>(data, 'Items');
-            return !_id ? false : true;
-        },
-        async itemRemove(uid) {
-            const found = await db.get<Item & { _id: string }>({ uid }, 'Items');
-            if (!found) return false;
-
-            const success = await db.destroy(found._id, 'Items');
-            return success;
-
-        },
-        async remove(entity, slot) {
-            const inventory = await inventoryService.getInventoryByEntity(entity);
-            if (!inventory) return false;
-
-            const item = inventory[slot];
-            if (!item) return false;
-            inventory.slots.splice(slot, 1);
-
-            const result = await db.update<Inventory>(inventory, 'Inventories');
-            return result;
-        },
-        async use(entity, slot) {
-            const inventory = await inventoryService.getInventoryByEntity(entity);
-            if (!inventory) return false;
-
-            const item = inventory.slots[slot];
-            if (!item) return false;
-
-            const leftOver = Math.max(0, item.quantity - 1);
-            if (leftOver > 0) item.quantity = leftOver;
-            else inventory.slots[slot] = null;
-
-            const result = await db.update<Inventory>(inventory, 'Inventories');
-            return result;
-        },
-        async getInventoryByEntity(entity) {
-            if (entity.type !== alt.BaseObjectType.Player && entity.type !== alt.BaseObjectType.Vehicle) return null;
-            if (entity.type === alt.BaseObjectType.Player) {
-                const charId = Rebar.document.character.useCharacter(entity as alt.Player)?.getField('_id') ?? null;
-                if (!charId) return null;
-                const inventory = await db.get<Inventory>({ owner: charId }, 'Inventories');
-                return inventory;
-            }
-
-            const vehId = Rebar.document.vehicle.useVehicle(entity as alt.Vehicle)?.getField('_id') ?? null;
-            if (!vehId) return null;
-            const inventory = await db.get<Inventory>({ owner: vehId }, 'Inventories');
-            return inventory;
-        },
-        async getInventoryByOwner(owner) {
-            const document = await db.get<Inventory>({ owner }, 'Inventories');
-            return document;
-        },
-        async getWeapons(entity) {
-            const document = Rebar.document.character.useCharacter(entity as alt.Player);
-            if (!document.isValid()) return [];
-            const weapons = document.getField('weapons').map(x => {
-                const weaponInfo = alt.getWeaponModelInfoByHash(x.hash);
-                return {
-                    ...x,
-                    ammoType: weaponInfo.ammoType,
-                    totalAmmo: weaponInfo.defaultMaxAmmoMp,
-                    uid: weaponInfo.name.toLowerCase()
-                } as Weapon;
-            });
-            return weapons;
-        },
-    });
-
-    // RPC-Events
-    alt.onRpc(InventoryEvents.toServer.fetchLocalData, handleDataFetch);
-
-    // Client Events
-    alt.onClient(InventoryEvents.toServer.clearSession, handleClearSession);
-    alt.onClient(InventoryEvents.toServer.leftClick, handleLeftClick);
-    alt.onClient(InventoryEvents.toServer.rightClick, handleRightClick);
-    alt.onClient(InventoryEvents.toServer.middleClick, handleMiddleClick);
-    alt.onClient(InventoryEvents.toServer.dragItem, handleDragItem);
 }
 
 init();
