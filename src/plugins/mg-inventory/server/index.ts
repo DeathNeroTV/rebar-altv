@@ -53,9 +53,7 @@ async function handleDataFetch(player: alt.Player) {
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
 
-    Rebar.player.useWebview(player).show('Inventory', 'page');
-    const isReady = await Rebar.player.useWebview(player).isReady('Inventory', 'page');
-    if (!isReady) return;
+    Rebar.player.useWebview(player).show('Inventory', 'page', true);
 
     const charId = document.getField('_id');
     const weapons = document.getField('weapons') ?? [];

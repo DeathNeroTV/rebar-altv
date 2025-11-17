@@ -3,7 +3,6 @@ import { useRebarClient } from '@Client/index.js';
 import { useWebview } from '@Client/webview/index.js';
 
 import { InventoryEvents } from '../shared/events.js';
-import { ActiveInventorySession } from '../shared/interfaces.js';
 
 const Rebar = useRebarClient();
 const view = useWebview();

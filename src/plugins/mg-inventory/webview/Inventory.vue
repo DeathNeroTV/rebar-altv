@@ -1,18 +1,31 @@
 <script lang="ts" setup>
 	import { onMounted, onUnmounted, ref } from 'vue';
-	import PlayerInventory from './views/PlayerInventory.vue';
-	import { ActiveInventorySession, Inventory, Player, Weapon } from '../shared/interfaces';
-	import StorageInventory from './views/StorageInventory.vue';
 	import { useEvents } from '@Composables/useEvents';
+
+	import { ActiveInventorySession, Inventory, Player, Weapon } from '../shared/interfaces';
 	import { InventoryEvents } from '../shared/events';
+
+	import PlayerInventory from './views/PlayerInventory.vue';
+	import StorageInventory from './views/StorageInventory.vue';
 
 	const events = useEvents();
 
-	const playerInventory = ref<Inventory>(null);
-	const otherInventory = ref<Inventory>(null);
-
-	const player = ref<Player>(null);
-	const weapons = ref<Weapon[] | null>(null);
+	const player = ref<Player>({
+		bank: 0,
+		cash: 0,
+		id: 1,
+		job: '',
+		name: '',
+		phone: '',
+	});
+	const playerInventory = ref<Inventory>({
+		capacity: 20,
+		slots: [],
+		owner: '',
+		type: 'player',
+	});
+	const weapons = ref<Weapon[]>([]);
+	const otherInventory = ref<Inventory | null>(null);
 
 	onMounted(() => {
 		events.on(InventoryEvents.toWebview.updateView, (session: ActiveInventorySession) => {
@@ -21,13 +34,6 @@
 			playerInventory.value = session.playerInventory;
 			otherInventory.value = session.otherInventory;
 		});
-	});
-
-	onUnmounted(() => {
-		player.value = null;
-		weapons.value = null;
-		playerInventory.value = null;
-		otherInventory.value = null;
 	});
 </script>
 

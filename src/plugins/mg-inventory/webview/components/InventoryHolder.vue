@@ -199,6 +199,14 @@
 						class="w-full h-24 bg-neutral-800 rounded-lg border border-neutral-700"
 					></div>
 				</template>
+
+				<template v-for="n in 30 - displayedItems.length">
+					<div
+						:id="uid + '-' + n"
+						@mousedown.middle.prevent="handleMiddleClick(uid + '-' + n)"
+						class="w-full h-24 bg-neutral-800 rounded-lg border border-neutral-700"
+					></div>
+				</template>
 			</div>
 		</div>
 
