@@ -7,27 +7,18 @@
 
 	import ItemTable from '../components/items/ItemTable.vue';
 	import ItemDetails from '../components/items/ItemDetails.vue';
+	import { TlrpItem } from '@Plugins/mg-inventory/shared/interfaces';
 
 	const events = useEvents();
-	const items = ref<Item[]>([
-		{
-			id: 1,
-			name: 'Hamburger',
-			uid: 'food-burger',
-			desc: 'Ein saftiger Rindfleisch Burger der einen gut Sättigt',
-			icon: 'icon-hamburger',
-			maxStack: 10,
-			quantity: 1,
-			weight: 0.25,
-		},
-	]);
+	const items = ref<TlrpItem[]>([]);
 	const search = ref<string>('');
-	const selectedItem = ref<Item | null>(null);
-	const defaultItem: Item = {
+	const selectedItem = ref<TlrpItem | null>(null);
+	const defaultItem: TlrpItem = {
 		uid: '',
 		desc: '',
 		icon: '',
 		maxStack: 1,
+		category: 'resources',
 		name: '',
 		weight: 0.0,
 		id: -1,
@@ -36,7 +27,7 @@
 	};
 
 	async function refreshItems() {
-		const result: Item[] = await events.emitServerRpc(AdminEvents.toServer.request.items);
+		const result: TlrpItem[] = await events.emitServerRpc(AdminEvents.toServer.request.items);
 		if (Array.isArray(result)) items.value = result;
 	}
 
@@ -45,11 +36,11 @@
 		return items.value.filter((p) => p.name?.toLowerCase().includes(s) || String(p.id).includes(s));
 	});
 
-	function openItemDetails(item: Item) {
+	function openItemDetails(item: TlrpItem) {
 		selectedItem.value = item;
 	}
 
-	async function saveItem(item: Item) {
+	async function saveItem(item: TlrpItem) {
 		const success = await events.emitServerRpc(AdminEvents.toServer.item.save, item);
 		if (!success) return;
 

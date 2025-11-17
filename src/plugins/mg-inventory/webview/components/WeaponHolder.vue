@@ -82,7 +82,7 @@
 			</template>
 
 			<!-- Leere Slots -->
-			<template v-for="i in Math.max(0, 4 - weapons.length)" :key="`empty-${i}`">
+			<template v-for="i in Math.max(0, 4 - weapons.length)" :key="`empty-${uid}-${i}`">
 				<div :id="`${uid}-${weapons.length + i}`" class="w-50 h-44 bg-neutral-800 border border-neutral-700 rounded-xl" />
 			</template>
 		</div>

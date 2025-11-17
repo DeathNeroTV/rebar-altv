@@ -125,14 +125,14 @@
 </script>
 
 <template>
-	<div class="flex flex-col gap-2 p-5 bg-neutral-950/90 rounded-3xl min-w-full w-full min-h-full h-full overflow-hidden">
+	<div class="flex flex-col gap-2 p-5 bg-neutral-950/90 rounded-3xl w-full h-full overflow-hidden">
 		<!-- Ghost Item -->
 		<div v-if="draggingItem" class="pointer-events-none z-[9999] w-24 h-24 fixed" :style="{ top: ghostStyle.top, left: ghostStyle.left }">
 			<img :src="'/images/' + draggingItem.icon + '.png'" />
 		</div>
 
 		<!-- Searchbar -->
-		<div class="flex gap-5 items-center">
+		<div class="w-full flex gap-5 items-center">
 			<div class="w-1/2 flex flex-row gap-2 p-2 rounded-full bg-neutral-800 items-center">
 				<font-awesome-icon :icon="['fas', 'search']" class="text-neutral-600 pl-3" />
 				<div class="bg-neutral-600 w-0.5 h-5"></div>
@@ -151,8 +151,8 @@
 		</div>
 
 		<!-- Inventory Grid -->
-		<div class="min-w-full min-h-full w-full h-full overflow-y-auto">
-			<div class="min-w-full min-h-full w-full h-full grid grid-cols-5 gap-3 p-2" @mousedown.middle.prevent="handleMiddleClick(`${uid}-0`)">
+		<div class="w-full h-full overflow-y-auto">
+			<div class="w-full h-full grid grid-cols-5 gap-3 p-2" @mousedown.middle.prevent="handleMiddleClick(`${uid}-0`)">
 				<template v-for="(item, index) in displayedItems">
 					<Draggable
 						v-if="item"
@@ -200,10 +200,10 @@
 					></div>
 				</template>
 
-				<template v-for="n in Math.max(0, 30 - displayedItems.length)">
+				<template v-for="i in Math.max(0, 30 - displayedItems.length)" :key="`empty-${uid}-${i}`">
 					<div
-						:id="uid + '-' + n"
-						@mousedown.middle.prevent="handleMiddleClick(uid + '-' + n)"
+						:id="uid + '-' + i"
+						@mousedown.middle.prevent="handleMiddleClick(uid + '-' + i)"
 						class="w-full h-24 bg-neutral-800 rounded-lg border border-neutral-700"
 					></div>
 				</template>

@@ -1,19 +1,28 @@
 <script lang="ts" setup>
 	import { ref, watch } from 'vue';
-	import { Item } from '@Shared/types/items';
+	import { TlrpItem } from '@Plugins/mg-inventory/shared/interfaces';
+	import DropDown from '../DropDown.vue';
 
 	const props = defineProps<{
-		item: Partial<Item> | null;
+		item: Partial<TlrpItem> | null;
 		visible: boolean;
 	}>();
 
+	const categories = [
+		{ label: 'Drogen', value: 'drugs' },
+		{ label: 'Medizinisch', value: 'medical' },
+		{ label: 'Nahrung/Getränk', value: 'eatable' },
+		{ label: 'Werkstoff', value: 'resources' },
+		{ label: 'Waffe', value: 'weapons' },
+	];
+
 	const emits = defineEmits<{
 		(e: 'close'): void;
-		(e: 'save', item: Partial<Item>): void;
+		(e: 'save', item: Partial<TlrpItem>): void;
 		(e: 'delete', id: number): void;
 	}>();
 
-	const localItem = ref<Partial<Item>>({});
+	const localItem = ref<Partial<TlrpItem>>({});
 	const show = ref<boolean>(props.visible);
 	const editing = ref<boolean>(false);
 
@@ -30,6 +39,7 @@
 
 	function saveChanges() {
 		emits('save', localItem.value);
+		localItem.value.category = 'weapons';
 		editing.value = false;
 	}
 
@@ -138,7 +148,7 @@
 				</div>
 
 				<!-- Icon -->
-				<div class="bg-neutral-800 p-3 rounded-lg col-span-2">
+				<div class="bg-neutral-800 p-3 rounded-lg">
 					<label class="text-gray-400 text-sm">Icon</label>
 					<input
 						v-if="editing"
@@ -147,6 +157,19 @@
 						class="w-full mt-1 bg-neutral-900 border border-[#008736]/40 rounded-lg p-2 focus:ring-2 focus:ring-[#008736]"
 					/>
 					<p v-else class="text-lg font-medium mt-1">{{ localItem.icon || '—' }}</p>
+				</div>
+
+				<!-- Category -->
+				<div class="bg-neutral-800 p-3 rounded-lg">
+					<label class="text-gray-400 text-sm">Kategorie</label>
+					<DropDown
+						v-if="editing"
+						:model-value="localItem.category"
+						:options="categories"
+						placeholder="Kategorie auswählen"
+						@selected="(val) => (localItem.category = val)"
+					/>
+					<p v-else class="text-lg font-medium mt-1">{{ localItem.category || '—' }}</p>
 				</div>
 
 				<!-- Beschreibung -->
