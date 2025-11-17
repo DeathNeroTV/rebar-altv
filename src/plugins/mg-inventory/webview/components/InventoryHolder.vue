@@ -125,7 +125,7 @@
 </script>
 
 <template>
-	<div class="flex flex-col gap-2 p-5 bg-neutral-950/90 rounded-3xl w-full h-full overflow-hidden">
+	<div class="flex flex-col gap-2 p-5 bg-neutral-950/90 rounded-3xl min-w-full w-full min-h-full h-full overflow-hidden">
 		<!-- Ghost Item -->
 		<div v-if="draggingItem" class="pointer-events-none z-[9999] w-24 h-24 fixed" :style="{ top: ghostStyle.top, left: ghostStyle.left }">
 			<img :src="'/images/' + draggingItem.icon + '.png'" />
@@ -151,8 +151,8 @@
 		</div>
 
 		<!-- Inventory Grid -->
-		<div class="w-full h-full overflow-y-auto">
-			<div class="w-full h-full grid grid-cols-5 gap-3 p-2" @mousedown.middle.prevent="handleMiddleClick(`${uid}-0`)">
+		<div class="min-w-full min-h-full w-full h-full overflow-y-auto">
+			<div class="min-w-full min-h-full w-full h-full grid grid-cols-5 gap-3 p-2" @mousedown.middle.prevent="handleMiddleClick(`${uid}-0`)">
 				<template v-for="(item, index) in displayedItems">
 					<Draggable
 						v-if="item"
@@ -200,7 +200,7 @@
 					></div>
 				</template>
 
-				<template v-for="n in 30 - displayedItems.length">
+				<template v-for="n in Math.max(0, 30 - displayedItems.length)">
 					<div
 						:id="uid + '-' + n"
 						@mousedown.middle.prevent="handleMiddleClick(uid + '-' + n)"

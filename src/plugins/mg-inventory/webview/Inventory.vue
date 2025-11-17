@@ -38,8 +38,10 @@
 </script>
 
 <template>
-	<div v-if="playerInventory" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] overflow-hidden">
-		<PlayerInventory v-if="!otherInventory" :inventory="playerInventory" :player-weapons="weapons" :player="player" />
-		<StorageInventory v-else :player-inventory="playerInventory" :other-inventory="otherInventory" />
+	<div class="w-screen h-screen bg-transparent overflow-hidden">
+		<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] overflow-hidden">
+			<PlayerInventory v-if="!otherInventory" :inventory="playerInventory" :player-weapons="weapons" :player="player" />
+			<StorageInventory v-else :player-inventory="playerInventory" :other-inventory="otherInventory" />
+		</div>
 	</div>
 </template>

@@ -6,6 +6,7 @@ import { AdminAction, PlayerStats } from '../../shared/interfaces.js';
 import { ActionType, GiveType, TeleportType } from '../../shared/enums.js';
 import { AdminEvents } from '../../shared/events.js';
 import { AdminConfig } from '../../shared/config.js';
+import { useInventoryService } from '@Plugins/mg-inventory/server/itemService.js';
 
 const Rebar = useRebar();
 const medicalService = useMedicalService();
@@ -133,7 +134,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
 
 async function handleGiveAction(player: alt.Player, type: GiveType, id: string, amount: number) {
     if (type === GiveType.ITEM) {
-        const success = await Rebar.services.useItemService().add(player, id, amount);
+        const success = await useInventoryService().add(player, id, amount);
         if (!success) return;
 
         notifyApi.general.send(player, {
@@ -172,7 +173,7 @@ async function handleGiveAction(player: alt.Player, type: GiveType, id: string, 
 
 async function handleTakeAction(player: alt.Player, type: GiveType, id: string, amount: number) {
     if (type === GiveType.ITEM) {
-        const success = await Rebar.services.useItemService().sub(player, id, amount);
+        const success = await useInventoryService().sub(player, id, amount);
         if (!success) return;
 
         notifyApi.general.send(player, {

@@ -3,11 +3,14 @@ import { useServiceRegister } from '@Server/services/index.js';
 import { Inventory, TlrpItem, Weapon } from '../shared/interfaces.js';
 
 export interface InventoryService {
+    getFreeSlot: (entity: alt.Entity) => Promise<number>;
     getInventoryByEntity: (entity: alt.Entity) => Promise<Inventory>;
     getInventoryByOwner: (owner: string) => Promise<Inventory>;
-    getWeapons: (entity: alt.Entity) => Promise<Weapon[]>;
-    add: (entity: alt.Entity, uid: string, slot: number, quantity: number, data?: any) => Promise<boolean>;
-    sub: (entity: alt.Entity, slot: number, quantity: number) => Promise<boolean>;
+    getWeapons: (entity: alt.Entity) => Promise<Weapon[]>;    
+    add: (entity: alt.Entity, uid: string, quantity: number, data?: any) => Promise<boolean>;
+    sub: (entity: alt.Entity, uid: string, quantity: number) => Promise<boolean>;
+    addSlot: (entity: alt.Entity, uid: string, slot: number, quantity: number, data?: any) => Promise<boolean>;
+    subSlot: (entity: alt.Entity, slot: number, quantity: number) => Promise<boolean>;
     has: (entity: alt.Entity, uid: string, quantity: number) => Promise<boolean>;
     split: (entity: alt.Entity, slot: number, quantity: number) => Promise<boolean>;
     remove: (entity: alt.Entity, slot: number) => Promise<boolean>;
@@ -25,8 +28,10 @@ declare global {
 
 declare module 'alt-server' {
     export interface ICustomEmitEvent {
-        'mg-inventory:entityItemAdd': (entity: alt.Entity, id: string, slot: number, quantity: number, data?: any) => void;
-        'mg-inventory:entityItemSub': (entity: alt.Entity, slot: number, quantity: number) => void;
+        'mg-inventory:entityItemAdd': (entity: alt.Entity, id: string, quantity: number, data?: any) => void;
+        'mg-inventory:entityItemSub': (entity: alt.Entity, uid: string, quantity: number) => void;
+        'mg-inventory:entityItemAddOnSlot': (entity: alt.Entity, id: string, slot: number, quantity: number, data?: any) => void;
+        'mg-inventory:entityItemSubOnSlot': (entity: alt.Entity, slot: number, quantity: number) => void;
         'mg-inventory:entityItemSplit': (entity: alt.Entity, slot: number, quantity: number) => void;
         'mg-inventory:entityItemUse': (entity: alt.Entity, slot: number) => void;
         'mg-inventory:entityItemRemove': (entity: alt.Entity, slot: number) => void;
@@ -35,6 +40,12 @@ declare module 'alt-server' {
 
 export function useInventoryService() {
     const service = useServiceRegister().get('inventoryService');
+
+    async function getFreeSlot(...args: Parameters<InventoryService['getFreeSlot']>) {
+        if (!service?.getFreeSlot) return null;
+        const result = await service.getFreeSlot(...args);
+        return result;
+    }
 
     async function getInventoryByEntity(...args: Parameters<InventoryService['getInventoryByEntity']>) {
         if (!service?.getInventoryByEntity) return null;
@@ -65,6 +76,20 @@ export function useInventoryService() {
         if (!service?.sub) return false;
         const result = await service.sub(...args);
         if (result) alt.emit('mg-inventory:entityItemSub', ...args);
+        return result;
+    }
+
+    async function addSlot(...args: Parameters<InventoryService['addSlot']>) {
+        if (!service?.addSlot) return false;
+        const result = await service.addSlot(...args);
+        if (result) alt.emit('mg-inventory:entityItemAddOnSlot', ...args);
+        return result;
+    }
+
+    async function subSlot(...args: Parameters<InventoryService['subSlot']>) {
+        if (!service?.subSlot) return false;
+        const result = await service.subSlot(...args);
+        if (result) alt.emit('mg-inventory:entityItemSubOnSlot', ...args);
         return result;
     }
 
@@ -112,11 +137,14 @@ export function useInventoryService() {
     }
 
     return {
+        getFreeSlot,
         getInventoryByEntity,
         getInventoryByOwner,
         getWeapons,
         add,
+        addSlot,
         sub,
+        subSlot,
         split,
         has,
         hasSpace,
