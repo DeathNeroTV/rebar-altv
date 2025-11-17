@@ -83,6 +83,10 @@ alt.onRpc(AdminEvents.toServer.request.stats, async () => {
     const vehicles = await db.getAll(Rebar.database.CollectionNames.Vehicles) ?? [];
     const vehicleIndex = stats.findIndex(data => data.id === 'vehicles');
     if (vehicleIndex !== -1) stats[vehicleIndex].value = vehicles.length;
+
+    const items = await db.getAll('Items') ?? [];
+    const itemIndex = stats.findIndex(data => data.id === 'items');
+    if (itemIndex !== -1) stats[itemIndex].value = items.length;
     
     return AdminConfig.useWhitelist ? stats : stats.filter(data => data.id !== 'whitelist');
 });

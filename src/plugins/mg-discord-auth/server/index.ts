@@ -242,7 +242,7 @@ function setAccount(player: alt.Player, account: Account) {
 }
 
 async function init() {
-    await requestInit();
+    requestInit();
 
     const introApi = await Rebar.useApi().getAsync('mg-intro-api');   
     if (!introApi) throw new Error("no intro api found");

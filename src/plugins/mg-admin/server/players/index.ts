@@ -112,10 +112,10 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
         case ActionType.SPECTATE:
             break;
         case ActionType.GIVE:
-            await handleGiveAction(target, data.giveType, data.id, data.amount);
+            await handleGiveAction(target, data.giveType, data.itemId!, data.amount);
             break;
         case ActionType.TAKE:
-            await handleTakeAction(target, data.giveType, data.id, -data.amount);
+            await handleTakeAction(target, data.giveType, data.itemId!, -data.amount);
             break;
         case ActionType.FREEZE:
             if (vehicle) vehicle.frozen = !vehicle.frozen;
@@ -133,7 +133,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
 
 async function handleGiveAction(player: alt.Player, type: GiveType, id: string, amount: number) {
     if (type === GiveType.ITEM) {
-        const success = await Rebar.services.useItemService().add(player,id, amount);
+        const success = await Rebar.services.useItemService().add(player, id, amount);
         if (!success) return;
 
         notifyApi.general.send(player, {

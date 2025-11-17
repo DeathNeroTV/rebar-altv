@@ -3,6 +3,11 @@
 	import type { Inventory as InventoryType, Modifiers, Player, Weapon } from '../../shared/interfaces';
 	import InventoryHolder from '../components/InventoryHolder.vue';
 	import { Item } from '@Shared/types/items.js';
+	import WeaponHolder from '../components/WeaponHolder.vue';
+	import { useEvents } from '@Composables/useEvents';
+	import { InventoryEvents } from '@Plugins/mg-inventory/shared/events';
+
+	const events = useEvents();
 
 	const props = defineProps<{
 		inventory: InventoryType;
@@ -11,7 +16,6 @@
 	}>();
 
 	const hoveringItem = ref<Item | null>(null);
-	const draggingItem = ref<Item | null>(null);
 
 	// Gewicht berechnen
 	const currentWeight = computed(() => {
@@ -21,10 +25,10 @@
 	const maxWeight = props.inventory.capacity;
 
 	// Kreisberechnung
-	const radius = 56; // muss mit SVG übereinstimmen
+	const radius = 70; // muss mit SVG übereinstimmen
 	const circumference = 2 * Math.PI * radius;
 	const dashOffset = computed(() => {
-		const progress = Math.min(currentWeight.value / maxWeight, 1);
+		const progress = Math.min(Math.max(0, currentWeight.value / maxWeight), 1);
 		return circumference - progress * circumference;
 	});
 
@@ -47,155 +51,28 @@
 		hoveringItem.value = item;
 	}
 
-	function findItemByIndex(index: number) {
-		return props.inventory.slots[index];
-	}
-
-	function findFreeSlot() {
-		return props.inventory.slots.findIndex((x) => x === null);
-	}
-
-	function splitStack(slotIndex: number, amount: number) {
-		const original = findItemByIndex(slotIndex);
-		if (!original || original.quantity <= 1 || amount <= 0) return;
-
-		const taken = Math.min(amount, original.quantity);
-		original.quantity -= taken;
-
-		draggingItem.value = { ...original, quantity: taken };
-
-		const freeIndex = findFreeSlot();
-		if (freeIndex === -1) return;
-		props.inventory.slots[freeIndex] = draggingItem.value;
-		props.inventory.slots[slotIndex] = original;
-	}
-
 	function onLeftClick(uid: string, modifiers: Modifiers) {
-		const [_, fromSlot] = uid.split('-');
-		const index = Number(fromSlot);
-		const item = props.inventory.slots[index];
-		if (!item) return;
-
-		if (modifiers.shift) {
-			splitStack(index, Math.floor(item.quantity / 2));
-			return;
-		}
-
-		if (modifiers.ctrl) {
-			splitStack(index, 1);
-			return;
-		}
+		if (!modifiers.alt && !modifiers.ctrl && !modifiers.shift) return;
+		events.emitServer(InventoryEvents.toServer.leftClick, uid, modifiers);
 	}
 
 	function onRightClick(uid: string) {
-		const [_, slot] = uid.split('-');
-		const index = Number(slot);
-		const item = props.inventory.slots[index];
-		if (!item) return;
-
-		const leftOver = Math.max(0, item.quantity - 1);
-		if (leftOver > 0) {
-			props.inventory.slots[index] = {
-				...item,
-				quantity: leftOver,
-			};
-		} else props.inventory.slots[index] = null;
+		events.emitServer(InventoryEvents.toServer.rightClick, uid);
 	}
 
 	function onMiddleClick(uid: string) {
-		const slots = props.inventory.slots;
-		const totalSlots = slots.length;
-
-		// 1) Alle Items extrahieren
-		const items = slots.filter((i): i is Item => i !== null);
-
-		// 2) Items nach uid sortieren
-		items.sort((a, b) => a.uid.localeCompare(b.uid));
-
-		// 3) Items nach id zusammenführen
-		const merged: Item[] = [];
-
-		for (const item of items) {
-			const existing = merged.find((i) => i.id === item.id && i.quantity < (i.maxStack || 1));
-			if (existing) {
-				const max = existing.maxStack || 1;
-				const free = max - existing.quantity;
-
-				if (item.quantity <= free) existing.quantity += item.quantity;
-				else {
-					existing.quantity = max;
-					merged.push({
-						...item,
-						quantity: item.quantity - free,
-						uid: crypto.randomUUID(),
-					});
-				}
-			} else merged.push({ ...item });
-		}
-
-		// 4) Slots neu befüllen
-		props.inventory.slots = [...merged, ...Array(totalSlots - merged.length).fill(null)];
+		events.emitServer(InventoryEvents.toServer.middleClick, uid);
 	}
 
 	function onItemDragged(fromId: string, toId: string) {
-		console.log(fromId, toId);
-		const [fromInv, fromSlot] = fromId.split('-');
-		const [toInv, toSlot] = toId.split('-');
-		const fromIndex = Number(fromSlot);
-		const toIndex = Number(toSlot);
-
-		const fromItem = findItemByIndex(fromIndex);
-		const toItem = findItemByIndex(toIndex);
-
-		if (!fromItem) return;
-
-		// -------------------------------
-		// 1) ZIEL-PLATZ IST LEER
-		// -------------------------------
-		if (!toItem) {
-			props.inventory.slots[toIndex] = fromItem;
-			props.inventory.slots[fromIndex] = null;
-			return;
-		}
-
-		// -------------------------------
-		// 2) GLEICHES ITEM → STACK MERGEN
-		// -------------------------------
-		if (toItem.uid === fromItem.uid) {
-			const max = toItem.maxStack || 1;
-			const free = max - toItem.quantity;
-			const moveAmount = fromItem.quantity;
-			const add = Math.min(free, moveAmount);
-			toItem.quantity += add;
-
-			const leftOver = moveAmount - add;
-
-			if (leftOver > 0) props.inventory.slots[fromIndex] = { ...fromItem, quantity: leftOver };
-			else props.inventory.slots[fromIndex] = null;
-
-			props.inventory.slots[toIndex] = toItem;
-			return;
-		}
-
-		// -------------------------------
-		// 3) ANDERES ITEM → TAUSCH
-		// -------------------------------
-		props.inventory.slots[toIndex] = fromItem;
-		props.inventory.slots[fromIndex] = toItem;
+		events.emitServer(InventoryEvents.toServer.dragItem, fromId, toId);
 	}
 </script>
 
 <template>
 	<div class="w-full h-full flex gap-2 select-none overflow-hidden">
 		<!-- Linke Seite: Spielerwaffen / zusätzliche Infos -->
-		<div class="min-w-64 flex flex-col gap-4">
-			<div class="w-full h-full bg-neutral-950/90 rounded-3xl p-3 shadow-md">
-				<h3 class="w-full text-center text-gray-100 bg-[#008736] rounded-full font-semibold px-2 py-1 mt-4">Ausgerüstete Waffen</h3>
-				<ul class="space-y-2">
-					<li v-for="weapon in playerWeapons" :key="weapon.hash" class="text-gray-200">{{ weapon.name }} ({{ weapon.ammo }})</li>
-				</ul>
-			</div>
-		</div>
+		<WeaponHolder uid="weapons" :weapons="playerWeapons" @dragged="onItemDragged" @hover-over="" />
 
 		<!-- Mittlere Spalte: Inventar Slots + Schnellleiste + Such/Filter -->
 		<InventoryHolder
@@ -240,19 +117,19 @@
 
 				<!-- Kreis -->
 				<div class="relative w-40 h-40 flex items-center justify-center">
-					<svg class="w-full h-full transform -rotate-90" viewBox="0 0 150 150">
-						<circle class="text-neutral-800/70" stroke="currentColor" stroke-width="5" fill="transparent" r="70" cx="75" cy="75" />
+					<svg class="w-full h-full transform -rotate-90" :viewBox="`0 0 ${(radius + 5) * 2} ${(radius + 5) * 2}`">
+						<circle class="text-neutral-800/75" stroke="currentColor" stroke-width="5" fill="transparent" :r="radius" :cx="radius + 5" :cy="radius + 5" />
 						<circle
-							class="transition-all duration-700 ease-out"
+							class="transition-all duration-500 ease-out"
 							:stroke="circleColor"
 							stroke-width="10"
 							stroke-linecap="round"
 							fill="transparent"
 							:stroke-dasharray="circumference"
 							:stroke-dashoffset="dashOffset"
-							r="70"
-							cx="75"
-							cy="75"
+							:r="radius"
+							:cx="radius + 5"
+							:cy="radius + 5"
 						/>
 					</svg>
 

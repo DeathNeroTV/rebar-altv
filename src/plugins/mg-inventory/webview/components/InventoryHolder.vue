@@ -184,8 +184,6 @@
 							v-else
 							@mouseenter="emits('hoverOver', item)"
 							@mouseleave="emits('hoverOver', null)"
-							@mousedown.right.prevent="handleRightClick(uid + '-' + index)"
-							@mousedown.left.prevent="handleLeftClick(uid + '-' + index, { shift: $event.shiftKey, ctrl: $event.ctrlKey, alt: $event.altKey })"
 							draggable="false"
 							class="flex items-center justify-center bg-neutral-800 rounded-lg relative border border-neutral-700 hover:border-[#008736] transition-transform cursor-pointer"
 						>
