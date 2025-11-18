@@ -254,7 +254,7 @@ function findItemWithSlot(inventory: Inventory, uid: string) {
 
 async function persistInventory(inv: Inventory | null) {
     if (!inv) return false;
-    return await db.update<Inventory>(inv, 'Inventories');
+    return await db.update<Inventory>(inv, CollectionNames.Inventories);
 }
 
 async function persistWeaponsForPlayer(player: alt.Player, weapons: (Weapon | null)[]) {
@@ -354,8 +354,6 @@ async function handleLeftClick(player: alt.Player, uid: string, modifiers: Modif
         const splitted = await useInventoryService().split(player, index, amount);
         if (!splitted) return;
 
-        await db.update<Inventory>(inventory, "Inventories");
-
         notifyApi.general.send(player, {
             icon: notifyApi.general.getTypes().SUCCESS,
             title: "Tasche",
@@ -373,8 +371,6 @@ async function handleLeftClick(player: alt.Player, uid: string, modifiers: Modif
 
         const splitted = await useInventoryService().split(player, index, 1);
         if (!splitted) return;
-
-        await db.update<Inventory>(inventory, "Inventories");
 
         notifyApi.general.send(player, {
             icon: notifyApi.general.getTypes().SUCCESS,
@@ -407,8 +403,6 @@ async function handleRightClick(player: alt.Player, uid: string) {
     const success = await useInventoryService().use(player, index);
     if (!success) return;
 
-    await db.update<Inventory>(inventory, "Inventories");
-
     notifyApi.general.send(player, {
         icon: notifyApi.general.getTypes().SUCCESS,
         title: "Tasche",
@@ -431,8 +425,6 @@ async function handleMiddleClick(player: alt.Player, uid: string) {
     if (!inventory) return;
 
     const slots = inventory.slots;
-    const totalSlots = slots.length;
-
     const items = slots.filter((i): i is TlrpItem => i !== null);
     items.sort((a, b) => a.uid.localeCompare(b.uid));
 
@@ -454,17 +446,13 @@ async function handleMiddleClick(player: alt.Player, uid: string) {
                     uid: crypto.randomUUID(),
                 });
             }
-        } else {
-            merged.push({ ...item });
-        }
+        } else merged.push({ ...item });
     }
 
-    inventory.slots = [
-        ...merged,
-        ...Array(totalSlots - merged.length).fill(null)
-    ];
+    inventory.slots = [...merged];
 
-    await db.update<Inventory>(inventory, "Inventories");
+    const success = await persistInventory(inventory);
+    if (!success) return;
 
     notifyApi.general.send(player, {
         icon: notifyApi.general.getTypes().SUCCESS,
@@ -472,6 +460,7 @@ async function handleMiddleClick(player: alt.Player, uid: string) {
         message: `Inventar sortiert`,
         subtitle: "Sortierung"
     });
+    
     await refreshSession(player); 
 }
 
