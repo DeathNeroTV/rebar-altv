@@ -20,7 +20,8 @@ const sessionKey = 'can-auth-account';
 const sessions: Array<DiscordSession> = [];
 const serverConfig = Rebar.useServerConfig();
 
-const sections = [
+const disable = [
+    'disableVehicleEngineAutoStop',
     'disableVehicleSeatSwap',
     'disableAmbientNoise',
     'disableWeaponRadial',
@@ -35,7 +36,7 @@ const sections = [
     'hideVehicleName',
 ] as const satisfies (keyof ServerConfig)[];
 
-sections.forEach(section => serverConfig.set(section, true));
+disable.forEach(section => serverConfig.set(section, true));
 
 function handleConnect(player: alt.Player) {
     const playerWorld = Rebar.player.useWorld(player);

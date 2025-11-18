@@ -69,8 +69,7 @@ alt.everyTick(() => {
         matchedTarget = findMatchingTarget(hit);
 
         if (!matchedTarget && hit.entity !== 0) {
-            try { Rebar.screen.text.drawText3D(`Model: ${natives.getEntityModel(hit.entity)}`, hit.pos, 0.5, new alt.RGBA(255, 255, 255, 155), new alt.Vector2(0, 0.02));} 
-            catch(err) { }
+            if (hit.entity) Rebar.screen.text.drawText3D(`Model: ${natives.getEntityModel(hit.entity)}`, hit.pos, 0.5, new alt.RGBA(255, 255, 255, 155), new alt.Vector2(0, 0.02));
         }
     }
     

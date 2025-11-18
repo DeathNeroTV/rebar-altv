@@ -1,15 +1,16 @@
 import * as alt from 'alt-server';
+import * as natives from 'natives';
 
 import { useRebar } from '@Server/index.js';
 import * as Utility from '@Shared/utility/index.js';
-import { Character, Vehicle } from '@Shared/types/index.js';
+import { Character } from '@Shared/types/index.js';
 
 import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
 
 const Rebar = useRebar();
-const api = Rebar.useApi();
+const notifyApi = await Rebar.useApi().getAsync('notify-api');
 const FADE_DELAY = 3000;
 const COOLDOWN_DELAY = FADE_DELAY + 500;
 
@@ -60,18 +61,62 @@ const Internal = {
     },
 
     async handleRescue(player: alt.Player) {
-        player.frozen = false;
-        player.spawn(player.pos);
-        player.clearTasks();
-        Rebar.player.useWorld(player).disableControls();
-        
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().INFO,
+            title: 'Rettungsdienst',
+            subtitle: 'Notruf',
+            message: 'Es wurde eine Rettungshelikopter entsendet'
+        });
+        const natives = Rebar.player.useNative(player);
+        const startPoint = Internal.getRescuePoint(player.pos, 3, 5);
         const landPoint = Internal.getRescuePoint(player.pos, 1, 3);
-        const endPoint = useMedicalService().hospital(player.pos);
-        const helicopter = new alt.Vehicle('polmav', landPoint.x, landPoint.y, landPoint.z, 0, 0, 0, 500, true);
-        const pilot = new alt.Ped('s_m_m_pilot_02', landPoint, player.rot, 500, true);
+        const { pos, rot } = useMedicalService().hospital(player.pos);
 
-        await player.emitRpc(DeathEvents.toClient.startRescue, { pilot, helicopter, landPoint, endPoint });
-        Rebar.player.useWorld(player).enableControls();
+        const helicopter = new alt.Vehicle('polmav', startPoint, player.rot, 500);
+        const pilot = new alt.Ped('s_m_m_pilot_02', startPoint, player.rot, 500);
+        helicopter.setNetOwner(player);
+        pilot.setNetOwner(player);
+        const pedDoc = Rebar.controllers.usePed(pilot);
+
+        pedDoc.setOption('makeStupid', true);
+        pedDoc.setOption('invincible', true);
+        pedDoc.invoke('taskEnterVehicle', helicopter, 0, -1, 2.0, 1, 0);
+        helicopter.engineOn = true;
+
+        const [foundZ, groundZ] = await natives.invokeWithResult('getGroundZFor3dCoord', landPoint.x, landPoint.y, landPoint.z, 0, false, false);
+        const z = foundZ ? groundZ : landPoint.z;
+
+        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, landPoint.x, landPoint.y, z + 20, 4, 30.0, 10.0, 0.0, 50, 20, 50.0, 0);
+
+        let attempts = 0;
+        while(helicopter.pos.distanceTo(new alt.Vector3(landPoint.x, landPoint.y, z + 20)) > 5 && attempts < 500) {
+            attempts++;
+            await alt.Utils.wait(20);
+        }
+
+        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, landPoint.x, landPoint.y, z, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
+        await alt.Utils.wait(3000);
+
+        player.setIntoVehicle(helicopter, 4);
+
+        const [foundEndZ, groundEndZ] = await natives.invokeWithResult('getGroundZFor3dCoord', pos.x, pos.y, pos.z, 0, false, false);
+        const hoverZ = 100; // Immer 100m Höhe über Ziel
+        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, pos.x, pos.y, hoverZ, 4, 35.0, 10.0, 0.0, 50, 20, 50.0, 0);
+
+        attempts = 0;
+        while(helicopter.pos.distanceTo(new alt.Vector3(pos.x, pos.y, hoverZ)) > 5 && attempts < 500) {
+            attempts++;
+            await alt.Utils.wait(20);
+        }
+
+        const finalZ = foundEndZ ? groundEndZ : pos.z;
+        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, pos.x, pos.y, finalZ, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
+        await alt.Utils.wait(3000);
+
+        pedDoc.invoke('taskLeaveVehicle', helicopter, 0);
+        helicopter.destroy();
+        pilot.destroy();
+
         await useMedicalService().respawn(player);
     },
     
@@ -136,12 +181,44 @@ Rebar.services.useServiceRegister().register('medicalService', {
         ActiveTasks.set(charId, { timeout });
     },
 
-    revive(reviver: alt.Player, victim: alt.Player) {
+    async revive(reviver: alt.Player, victim: alt.Player) {
         if (!reviver || !victim || !reviver.valid || !victim.valid) return;
         //TODO: Abfrage ob Mediziner im Dienst sind, sende Dispatch zu diesen!
 
+        const natives = Rebar.player.useNative(reviver);
         const victimDoc = Rebar.document.character.useCharacter(victim);
         if (!victimDoc.isValid() || !victimDoc.getField('isDead')) return;
+        victim.frozen = true;
+
+        // Zielposition leicht vor dem Opfer
+        const chestPos = await natives.invokeWithResult('getPedBoneCoords', victim, 24816, 0, 0, 0);
+        const offsetDistance = 0.5; // Abstand vor dem Opfer
+
+        const victimHeading = (await natives.invokeWithResult('getEntityHeading', victim)) * (Math.PI / 180);
+        const targetX = chestPos.x - Math.sin(victimHeading) * offsetDistance;
+        const targetY = chestPos.y + Math.cos(victimHeading) * offsetDistance;
+
+        let targetZ = chestPos.z;
+        const [found, groundZ] = await natives.invokeWithResult('getGroundZFor3dCoord', targetX, targetY, targetZ, targetZ, false, false);
+        if (found) targetZ = groundZ;
+
+        // Spieler zum Ziel bewegen, dabei Collision berücksichtigen
+        natives.invoke('taskGoStraightToCoord', reviver, targetX, targetY, targetZ, 1.2, -1, 0.0, 0.0);
+
+        // Warten, bis Spieler ungefähr am Ziel ist (max. 5 Sekunden)
+        const startTime = Date.now();
+        while (reviver.pos.distanceTo({ x: targetX, y: targetY, z: targetZ }) > 0.3 && Date.now() - startTime < 5000) {
+            await alt.Utils.wait(50);
+        }
+
+        // Spieler korrekt zum Opfer drehen
+        natives.invoke('taskTurnPedToFaceCoord', reviver, chestPos.x, chestPos.y, chestPos.z, 1000);
+
+        // Warten, bis Spieler auf das Ziel schaut (max. 2 Sekunden)
+        const turnStart = Date.now();
+        while (!(await natives.invokeWithResult('isPedFacingPed', reviver, victim, 10)) && Date.now() - turnStart < 2000) {
+            await alt.Utils.wait(50);
+        }
 
         reviver.clearTasks();
         victim.clearTasks();
@@ -199,17 +276,14 @@ Rebar.services.useServiceRegister().register('medicalService', {
         });
 
         Rebar.player.useWorld(player).setScreenFade(FADE_DELAY);
+        await alt.Utils.wait(COOLDOWN_DELAY);
 
-        alt.setTimeout(() => {
-            if (!player || !player.valid) return;
-            player.frozen = false;
-            player.spawn(data.pos);
-            player.pos = new alt.Vector3(data.pos);
-            player.clearBloodDamage();
-            player.emit(DeathEvents.toClient.respawned);
-
-            Rebar.player.useWorld(player).clearScreenFade(FADE_DELAY);
-        }, COOLDOWN_DELAY);
+        player.frozen = false;
+        player.spawn(data.pos);
+        player.pos = new alt.Vector3(data.pos);
+        player.clearBloodDamage();
+        player.emit(DeathEvents.toClient.respawned);
+        Rebar.player.useWorld(player).clearScreenFade(FADE_DELAY);
     },
 
     async respawn(player: alt.Player, pos: alt.IVector3) {
@@ -251,17 +325,14 @@ Rebar.services.useServiceRegister().register('medicalService', {
 
         // Visual respawn
         Rebar.player.useWorld(player).setScreenFade(FADE_DELAY);
+        await alt.Utils.wait(COOLDOWN_DELAY);
 
-        alt.setTimeout(() => {
-            if (!player || !player.valid) return;
-            player.frozen = false;
-            player.spawn(data.pos);
-            player.pos = new alt.Vector3(data.pos);
-            player.clearBloodDamage();
-            player.emit(DeathEvents.toClient.respawned);
-
-            Rebar.player.useWorld(player).clearScreenFade(FADE_DELAY);
-        }, COOLDOWN_DELAY);
+        player.frozen = false;
+        player.spawn(data.pos);
+        player.pos = new alt.Vector3(data.pos);
+        player.clearBloodDamage();
+        player.emit(DeathEvents.toClient.respawned);
+        Rebar.player.useWorld(player).clearScreenFade(FADE_DELAY);
     },
 
     called(player: alt.Player) {
@@ -274,7 +345,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
 });
 
 async function init() {
-    const charEditorApi = await api.getAsync('character-creator-api');
+    const charEditorApi = await Rebar.useApi().getAsync('character-creator-api');
     charEditorApi.onSkipCreate(Internal.handleSkipCreate);
 
     Rebar.services.useServiceRegister().remove('deathService');

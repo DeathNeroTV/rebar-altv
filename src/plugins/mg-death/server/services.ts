@@ -3,7 +3,7 @@ import { useServiceRegister } from '@Server/services/index.js';
 
 export interface DeathService {
     unconscious: (player: alt.Player) => void;
-    revive: (player: alt.Player, victim: alt.Player) => void;
+    revive: (player: alt.Player, victim: alt.Player) => Promise<void>;
     revived: (player: alt.Player, isReviver: boolean) => Promise<void>;
     respawn: (player: alt.Player, pos?: alt.Vector3) => Promise<void>;
     called: (player: alt.Player) => void;
@@ -36,7 +36,7 @@ export function useMedicalService() {
 
             alt.emit('mg-death:playerUnconscious', ...args);
         },
-        revive(...args: Parameters<DeathService['revive']>) {
+        async revive(...args: Parameters<DeathService['revive']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.revive) 
                 service.revive(...args);

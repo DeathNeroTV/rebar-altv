@@ -53,37 +53,6 @@ async function registerKeybinds() {
             keyDown: async() => {
                 const victim = alt.Utils.getClosestPlayer({ range: 3.0 });
                 if (!victim || !victim.valid) return;
-
-                // Zielposition leicht vor dem Opfer
-                const chestPos = natives.getPedBoneCoords(victim, 24816, 0, 0, 0);
-                const offsetDistance = 0.5; // Abstand vor dem Opfer
-
-                const victimHeading = natives.getEntityHeading(victim) * (Math.PI / 180);
-                const targetX = chestPos.x - Math.sin(victimHeading) * offsetDistance;
-                const targetY = chestPos.y + Math.cos(victimHeading) * offsetDistance;
-
-                let targetZ = chestPos.z;
-                const [found, groundZ] = natives.getGroundZFor3dCoord(targetX, targetY, targetZ, targetZ, false, false);
-                if (found) targetZ = groundZ;
-
-                // Spieler zum Ziel bewegen, dabei Collision berücksichtigen
-                natives.taskGoStraightToCoord(alt.Player.local, targetX, targetY, targetZ, 1.2, -1, 0.0, 0.0);
-
-                // Warten, bis Spieler ungefähr am Ziel ist (max. 5 Sekunden)
-                const startTime = Date.now();
-                while (alt.Player.local.pos.distanceTo({ x: targetX, y: targetY, z: targetZ }) > 0.3 && Date.now() - startTime < 5000) {
-                    await alt.Utils.wait(50);
-                }
-
-                // Spieler korrekt zum Opfer drehen
-                natives.taskTurnPedToFaceCoord(alt.Player.local, chestPos.x, chestPos.y, chestPos.z, 1000);
-
-                // Warten, bis Spieler auf das Ziel schaut (max. 2 Sekunden)
-                const turnStart = Date.now();
-                while (!natives.isPedFacingPed(alt.Player.local, victim, 10) && Date.now() - turnStart < 2000) {
-                    await alt.Utils.wait(50);
-                }
-
                 emitServerSafe(DeathEvents.toServer.toggleRevive, victim);
             },
 
@@ -137,29 +106,19 @@ function registerListeners() {
     });
 
     alt.onRpc(DeathEvents.toClient.startRescue, async(payload: { 
-        pilot: alt.Ped, 
-        helicopter: alt.Vehicle, 
+        pilot: alt.Ped;
+        helicopter: alt.Vehicle;
+        startPoint: alt.IVector3, 
         landPoint: alt.IVector3, 
         endPoint: alt.IVector3 
     }) => {
-        const player = alt.Player.local;
-        const helicopter = payload.helicopter;
         const pilot = payload.pilot;
+        const helicopter = payload.helicopter;
+        const player = alt.Player.local;
         const landPoint = payload.landPoint;
         const endPoint = payload.endPoint;
 
-        natives.freezeEntityPosition(helicopter.scriptID, true);
-        natives.freezeEntityPosition(pilot.scriptID, true);
-
-        natives.taskWarpPedIntoVehicle(pilot.scriptID, helicopter.scriptID, 0);
-        natives.setVehicleEngineOn(helicopter.scriptID, true, true, true);
-        natives.setVehicleLivery(helicopter.scriptID, 2);
-        natives.setVehicleDoorsLocked(helicopter.scriptID, 2);
-
-        await alt.Utils.wait(2000);
-
-        natives.freezeEntityPosition(helicopter.scriptID, false);
-        natives.freezeEntityPosition(pilot.scriptID, false);
+        natives.taskWarpPedIntoVehicle(pilot.scriptID, helicopter.scriptID, -1);
 
         // Bodenhöhe
         const [foundZ, groundZ] = natives.getGroundZFor3dCoord(landPoint.x, landPoint.y, landPoint.z, 0, false, false);
@@ -201,13 +160,14 @@ function registerListeners() {
         natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, endPoint.x, endPoint.y, finalZ, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
         await alt.Utils.wait(3000);
 
-        natives.deleteEntity(helicopter);
-        natives.deleteEntity(pilot);
-        return;
+        natives.deleteVehicle(helicopter.scriptID);
+        natives.deletePed(pilot.scriptID);
+        return {};
     });
 }
 
 async function init() {
+    alt.setConfigFlag('DISABLE_VEHICLE_ENGINE_SHUTDOWN_ON_LEAVE', true);
     await registerKeybinds();
     registerListeners();
 }
