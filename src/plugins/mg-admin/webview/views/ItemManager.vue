@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 	import { computed, onMounted, ref } from 'vue';
-	import { Item } from '@Shared/types/items';
 	import { useEvents } from '@Composables/useEvents';
 
 	import { AdminEvents } from '../../shared/events';
@@ -19,9 +18,9 @@
 		icon: '',
 		maxStack: 1,
 		category: 'resources',
-		name: '',
+		name: 'Neuer Gegenstand',
 		weight: 0.0,
-		id: -1,
+		id: 0,
 		quantity: 1,
 		data: {},
 	};
@@ -35,10 +34,6 @@
 		const s = search.value.toLowerCase();
 		return items.value.filter((p) => p.name?.toLowerCase().includes(s) || String(p.id).includes(s));
 	});
-
-	function openItemDetails(item: TlrpItem) {
-		selectedItem.value = item;
-	}
 
 	async function saveItem(item: TlrpItem) {
 		const success = await events.emitServerRpc(AdminEvents.toServer.item.save, item);
@@ -74,7 +69,10 @@
 					class="bg-neutral-800 text-gray-100 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#008736] focus:outline-none w-72"
 				/>
 
-				<button @click="openItemDetails(defaultItem)" class="bg-[#008736]/90 hover:bg-[#008736] text-gray-100 px-5 py-3 rounded-lg transition-all flex items-center gap-2">
+				<button
+					@click="selectedItem = { ...defaultItem }"
+					class="bg-[#008736]/90 hover:bg-[#008736] text-gray-100 px-5 py-3 rounded-lg transition-all flex items-center gap-2"
+				>
 					<font-awesome-icon :icon="['fas', 'plus']" />
 				</button>
 
@@ -86,11 +84,11 @@
 
 		<!-- 📊 Spielertabelle -->
 		<div class="flex-1 overflow-hidden ring ring-neutral-800 rounded-lg">
-			<ItemTable :items="filteredItems" @selectItem="openItemDetails" />
+			<ItemTable :items="filteredItems" @selectItem="(item: TlrpItem) => selectedItem = { ...item }" />
 		</div>
 
 		<!-- 🧍 Detailmodal -->
-		<ItemDetails v-if="selectedItem" :visible="selectedItem !== null" :item="selectedItem" @close="selectedItem = null" @delete="deleteItem" @save="saveItem" />
+		<ItemDetails :visible="selectedItem !== null" :item="selectedItem" @close="selectedItem = null" @delete="deleteItem" @save="saveItem" />
 	</div>
 </template>
 

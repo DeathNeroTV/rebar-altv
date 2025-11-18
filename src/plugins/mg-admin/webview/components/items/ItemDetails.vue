@@ -4,7 +4,7 @@
 	import DropDown from '../DropDown.vue';
 
 	const props = defineProps<{
-		item: Partial<TlrpItem> | null;
+		item: TlrpItem | null;
 		visible: boolean;
 	}>();
 
@@ -18,28 +18,20 @@
 
 	const emits = defineEmits<{
 		(e: 'close'): void;
-		(e: 'save', item: Partial<TlrpItem>): void;
+		(e: 'save', item: TlrpItem): void;
 		(e: 'delete', id: number): void;
 	}>();
 
-	const localItem = ref<Partial<TlrpItem>>({});
-	const show = ref<boolean>(props.visible);
+	const localItem = ref<TlrpItem | null>(null);
 	const editing = ref<boolean>(false);
 
 	watch(
 		() => props.item,
-		(val) => {
-			localItem.value = JSON.parse(JSON.stringify(val || {}));
-		}
-	);
-	watch(
-		() => props.visible,
-		(val) => (show.value = val)
+		(val) => (localItem.value = val)
 	);
 
 	function saveChanges() {
 		emits('save', localItem.value);
-		localItem.value.category = 'weapons';
 		editing.value = false;
 	}
 
@@ -56,7 +48,7 @@
 </script>
 
 <template>
-	<div v-if="show" class="fixed inset-0 bg-neutral-950/90 flex items-center justify-center z-50 select-none">
+	<div v-if="localItem" class="fixed inset-0 bg-neutral-950/90 flex items-center justify-center z-50 select-none">
 		<div
 			class="bg-neutral-900 rounded-2xl shadow-2xl w-[42vw] max-h-[90vh] border-2 border-[#008736]/40 p-6 text-gray-200 flex flex-col transition-all duration-500 overflow-y-auto"
 		>
@@ -64,10 +56,10 @@
 			<div class="flex items-center justify-between mb-3">
 				<div>
 					<h2 class="text-3xl font-semibold text-[#008736]">
-						{{ localItem.name || 'Neuer Gegenstand' }}
+						{{ localItem.name }}
 					</h2>
 					<div class="w-full h-full flex flex-row gap-2 items-center text-center mt-2 ml-2">
-						<p class="text-neutral-500 text-sm">ID: {{ localItem.id || 0 }}</p>
+						<p class="text-neutral-500 text-sm">ID: {{ localItem.id }}</p>
 						<template v-if="editing">
 							<label class="text-neutral-500 text-sm">UID: </label>
 							<input

@@ -141,7 +141,7 @@ async function handleGiveAction(player: alt.Player, type: GiveType, id: string, 
             title: 'Admin-System',
             subtitle: 'Gegeben',
             icon: notifyApi.general.getTypes().INFO,
-            message: `${amount} x ${id} erhalten`,
+            message: `${Math.abs(amount)} x ${id} erhalten`,
             oggFile: 'notification',
         });
         return;
@@ -180,7 +180,7 @@ async function handleTakeAction(player: alt.Player, type: GiveType, id: string, 
             title: 'Admin-System',
             subtitle: 'Abgenommen',
             icon: notifyApi.general.getTypes().INFO,
-            message: `${amount} x ${id} abgenommen`,
+            message: `${Math.abs(amount)} x ${id} abgenommen`,
             oggFile: 'notification',
         });
         return;
