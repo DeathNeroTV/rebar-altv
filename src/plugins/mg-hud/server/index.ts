@@ -164,7 +164,7 @@ alt.onClient(HudEvents.toServer.updateStats, async(player: alt.Player, data: Act
     let water = document.getField('water') || 100;
     let health = document.getField('health') || player.health;
     let activityFactor = 0;
-
+    
     // === Aktivitätsfaktor dynamisch berechnen ===
     for (const [action, active] of Object.entries(data)) {
         if (!active) continue;

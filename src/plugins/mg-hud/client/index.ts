@@ -58,7 +58,7 @@ alt.setInterval(() => {
     if (!view.isOverlayOpen('Hud')) return;
     
     const player = alt.Player.local;  
-    const isMoving = natives.getEntitySpeed(player.scriptID) > 0.0;
+    const isMoving = natives.isPedWalking(player.scriptID);
     const isClimbing = natives.isPedClimbing(player.scriptID);
     const isJumping = natives.isPedJumping(player.scriptID);
     const isSprinting = natives.isPedSprinting(player.scriptID) || natives.isPedRunning(player.scriptID);
