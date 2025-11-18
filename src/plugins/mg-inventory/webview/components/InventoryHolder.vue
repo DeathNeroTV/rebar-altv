@@ -200,10 +200,10 @@
 					></div>
 				</template>
 
-				<template v-for="i in Math.max(0, 30 - displayedItems.length)" :key="`empty-${uid}-${i}`">
+				<template v-for="i in Math.max(0, 30 - displayedItems.length)" :key="`empty-${uid}-${displayedItems.length + i}`">
 					<div
-						:id="uid + '-' + i"
-						@mousedown.middle.prevent="handleMiddleClick(uid + '-' + i)"
+						:id="`${uid}-${displayedItems.length + i}`"
+						@mousedown.middle.prevent="handleMiddleClick(`${uid}-${displayedItems.length + i}`)"
 						class="w-full h-24 bg-neutral-800 rounded-lg border border-neutral-700"
 					></div>
 				</template>
