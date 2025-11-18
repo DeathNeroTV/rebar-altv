@@ -29,16 +29,21 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         const { item } = findItemWithSlot(inventory, uid);
         if (item) return false;
 
-        const newItem = { ...cloned, quantity, data };
+        const baseData = cloned.data ?? {};
+        const extraData = data ?? {};
+        const newData = { ...baseData, ...extraData };
+
+        const newItem: TlrpItem = { ...cloned, quantity, data: newData };
+
         const hasSpace = await useInventoryService().hasSpace(entity, newItem);
         if (!hasSpace) return false;
 
         const freeSlot = await useInventoryService().getFreeSlot(entity);
         if (freeSlot === -1) return false;
+
         inventory.slots[freeSlot] = newItem;
 
-        const result = await persistInventory(inventory);
-        return result;
+        return await persistInventory(inventory);
     },
     async sub(entity, uid, quantity) {
         const inventory = await useInventoryService().getInventoryByEntity(entity);
@@ -59,6 +64,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
                 inventory.slots[i] = null;
             }
         }
+
         const result = await persistInventory(inventory);
         return result;
     },
@@ -69,49 +75,59 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         const cloned = await db.get<TlrpItem>({ uid }, 'Items');
         if (!cloned) return false;
 
-        const item = inventory[slot];
-        if (item) return false;
+        // 1. Slot MUSS existieren
+        if (slot < 0 || slot >= inventory.slots.length) return false;
 
-        const newItem = { ...cloned, quantity, data };
-        const hasSpace = await useInventoryService().hasSpace(entity, newItem);
-        if (!hasSpace) return false;
+        // 2. Slot MUSS leer sein
+        if (inventory.slots[slot]) return false;
 
-        const freeSlot = await useInventoryService().getFreeSlot(entity);
-        if (freeSlot === -1) return false;
-        inventory.slots[freeSlot] = newItem;
+        // 3. Data mergen
+        const baseData = (cloned.data && typeof cloned.data === 'object') ? cloned.data : {};
+        const extraData = (data && typeof data === 'object') ? data : {};
+        const newData = { ...baseData, ...extraData };
 
-        const result = await persistInventory(inventory);
-        return result;
+        // 4. Item erstellen
+        const newItem = { ...cloned, quantity, data: newData };
+
+        // 5. Direkt in den gewünschten Slot
+        inventory.slots[slot] = newItem;
+
+        // 6. Inventar speichern
+        return await persistInventory(inventory);
     },
     async subSlot(entity, slot, quantity) {
         const inventory = await useInventoryService().getInventoryByEntity(entity);
         if (!inventory) return false;
 
-        const item = inventory[slot];
-        if ((item?.quantity || 0) >= quantity) {
+        const item = inventory.slots[slot];
+        if (!item) return false;
+
+        // 1) Slot selbst reicht aus
+        if (item.quantity >= quantity) {
             item.quantity -= quantity;
             if (item.quantity <= 0) inventory.slots[slot] = null;
-            return true;
+            return await persistInventory(inventory);
         }
 
+        // 2) Mehrere Slots nutzen
         let remaining = quantity;
-        for (let data of inventory.slots) {
-            if (!data || data.uid !== item?.uid) continue;
+        const uid = item.uid;
 
-            if (data.quantity! >= remaining) {
-                data.quantity! -= remaining;
-                if (data.quantity! <= 0) data = null;
-                return true;
+        for (let i = 0; i < inventory.slots.length; i++) {
+            const itm = inventory.slots[i];
+            if (!itm || itm.uid !== uid) continue;
+
+            if (itm.quantity >= remaining) {
+                itm.quantity -= remaining;
+                if (itm.quantity <= 0) inventory.slots[i] = null;
+                return await persistInventory(inventory);
             } else {
-                remaining -= data.quantity!;
-                data.quantity = 0;
-                const index = inventory.slots.indexOf(data);
-                if (index !== -1) inventory.slots[index] = null;
+                remaining -= itm.quantity;
+                inventory.slots[i] = null;
             }
         }
 
-        const result = await persistInventory(inventory);
-        return result;
+        return await persistInventory(inventory);
     },
     async use(entity, slot) {
         const inventory = await useInventoryService().getInventoryByEntity(entity);
@@ -748,7 +764,7 @@ async function refreshSession(player: alt.Player) {
     const otherInventory = session.otherInventory?.owner
         ? (await db.get<Inventory>({ owner: session.otherInventory.owner }, CollectionNames.Inventories) || null)
         : null;
-        
+
     const weaponList = document.getField('weapons') || [];
     const weapons = weaponList.map(entry => { 
         const weaponInfo = alt.getWeaponModelInfoByHash(entry.hash);
@@ -831,7 +847,7 @@ async function init() {
 
             const currentFood   = document.getField('food') ?? 0;
             const currentWater  = document.getField('water') ?? 0;
-            const currentHealth = document.getField('health') ?? 100;
+            const currentHealth = document.getField('health') ?? 99;
             const currentArmour = document.getField('armour') ?? 0;
 
             const newFood   = Math.min(100, Math.max(0, currentFood + food));

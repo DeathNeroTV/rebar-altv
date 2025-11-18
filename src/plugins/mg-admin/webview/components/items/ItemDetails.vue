@@ -31,6 +31,13 @@
 	);
 
 	function saveChanges() {
+		for (const [key, value] of Object.entries(localItem.value.data)) {
+			// Prüfen, ob der Wert eine echte Zahl ist (auch wenn als String)
+			if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) {
+				localItem.value.data[key] = Number(value);
+			}
+		}
+
 		emits('save', localItem.value);
 		editing.value = false;
 	}
@@ -203,11 +210,23 @@
 								placeholder="Schlüssel"
 								class="bg-neutral-900 border border-[#008736]/40 rounded-lg p-2 w-1/3 focus:ring-2 focus:ring-[#008736]"
 							/>
-							<input
-								v-model="localItem.data[key]"
-								placeholder="Wert"
-								class="bg-neutral-900 border border-[#008736]/40 rounded-lg p-2 flex-1 focus:ring-2 focus:ring-[#008736]"
-							/>
+							<template v-if="!Number.isNaN(localItem.data[key])">
+								<input
+									v-model.number="localItem.data[key]"
+									type="number"
+									placeholder="Wert"
+									class="bg-neutral-900 border border-[#008736]/40 rounded-lg p-2 flex-1 focus:ring-2 focus:ring-[#008736]"
+								/>
+							</template>
+							<template v-else>
+								<input
+									v-model="localItem.data[key]"
+									type="text"
+									placeholder="Wert"
+									class="bg-neutral-900 border border-[#008736]/40 rounded-lg p-2 flex-1 focus:ring-2 focus:ring-[#008736]"
+								/>
+							</template>
+
 							<font-awesome-icon
 								:icon="['fas', 'trash']"
 								@click="removeDataField(key as string)"
