@@ -14,7 +14,7 @@ export interface InventoryService {
     has: (entity: alt.Entity, uid: string, quantity: number) => Promise<boolean>;
     split: (entity: alt.Entity, slot: number, quantity: number) => Promise<boolean>;
     remove: (entity: alt.Entity, slot: number) => Promise<boolean>;
-    use: (entity: alt.Entity, slot: number) => Promise<boolean>;
+    use: (entity: alt.Entity, slot: number) => Promise<TlrpItem>;
     hasSpace: (entity: alt.Entity, item: TlrpItem) => Promise<boolean>;
     itemCreate: (data: TlrpItem) => Promise<boolean>;
     itemRemove: (uid: string) => Promise<boolean>;
@@ -28,12 +28,12 @@ declare global {
 
 declare module 'alt-server' {
     export interface ICustomEmitEvent {
-        'mg-inventory:entityItemAdd': (entity: alt.Entity, id: string, quantity: number, data?: any) => void;
+        'mg-inventory:entityItemAdd': (entity: alt.Entity, uid: string, quantity: number, data?: any) => void;
         'mg-inventory:entityItemSub': (entity: alt.Entity, uid: string, quantity: number) => void;
         'mg-inventory:entityItemAddOnSlot': (entity: alt.Entity, id: string, slot: number, quantity: number, data?: any) => void;
         'mg-inventory:entityItemSubOnSlot': (entity: alt.Entity, slot: number, quantity: number) => void;
         'mg-inventory:entityItemSplit': (entity: alt.Entity, slot: number, quantity: number) => void;
-        'mg-inventory:entityItemUse': (entity: alt.Entity, slot: number) => void;
+        'mg-inventory:entityItemUse': (entity: alt.Entity, item: TlrpItem) => void;
         'mg-inventory:entityItemRemove': (entity: alt.Entity, slot: number) => void;
     }
 }
@@ -113,10 +113,11 @@ export function useInventoryService() {
     }
 
     async function use(...args: Parameters<InventoryService['use']>) {
-        if (!service?.use) return false;
+        if (!service?.use) return null;
         const result = await service.use(...args);
-        if (result) alt.emit('mg-inventory:entityItemUse', ...args);
-        return result;
+        if (!result) return false;
+        alt.emit('mg-inventory:entityItemUse', args[0], result);
+        return true;
     }
 
     async function hasSpace(...args: Parameters<InventoryService['hasSpace']>) {

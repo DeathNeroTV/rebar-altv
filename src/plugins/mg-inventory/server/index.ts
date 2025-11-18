@@ -37,7 +37,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         if (freeSlot === -1) return false;
         inventory.slots[freeSlot] = newItem;
 
-        const result = await db.update<Inventory>(inventory, 'Inventories');
+        const result = await persistInventory(inventory);
         return result;
     },
     async sub(entity, uid, quantity) {
@@ -60,7 +60,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
             }
         }
 
-        const result = await db.update<Inventory>(inventory, 'Inventories');
+        const result = await persistInventory(inventory);
         return result;
     },
     async addSlot(entity, uid, slot, quantity, data) {
@@ -81,7 +81,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         if (freeSlot === -1) return false;
         inventory.slots[freeSlot] = newItem;
 
-        const result = await db.update<Inventory>(inventory, 'Inventories');
+        const result = await persistInventory(inventory);
         return result;
     },
     async subSlot(entity, slot, quantity) {
@@ -111,22 +111,22 @@ Rebar.services.useServiceRegister().register('inventoryService', {
             }
         }
 
-        const result = await db.update<Inventory>(inventory, 'Inventories');
+        const result = await persistInventory(inventory);
         return result;
     },
     async use(entity, slot) {
         const inventory = await useInventoryService().getInventoryByEntity(entity);
-        if (!inventory) return false;
+        if (!inventory) return null;
 
         const item = inventory.slots[slot];
-        if (!item) return false;
+        if (!item) return null;
 
         const leftOver = Math.max(0, item.quantity - 1);
         if (leftOver > 0) item.quantity = leftOver;
         else inventory.slots[slot] = null;
 
-        const result = await db.update<Inventory>(inventory, 'Inventories');
-        return result;
+        const result = await persistInventory(inventory);
+        return result ? item : null;
     },
     async itemCreate(data) {
         const found = await db.get<TlrpItem>({ uid: data.uid }, 'Items');
@@ -160,7 +160,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         if (!item) return false;
         inventory.slots.splice(slot, 1);
 
-        const result = await db.update<Inventory>(inventory, 'Inventories');
+        const result = await persistInventory(inventory);
         return result;
     },
     async split(entity, slot, quantity) {
@@ -181,7 +181,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         inventory.slots[freeIndex] = newItem;
         inventory.slots[slot] = original;
 
-        const result = await db.update<Inventory>(inventory, 'Inventories');
+        const result = await persistInventory(inventory);
         return result;
     },
     async has(entity, uid, quantity) {
@@ -304,9 +304,17 @@ async function handleDataFetch(player: alt.Player) {
         };
     });
 
+    const items: TlrpItem[] = (await Promise.all(
+        InventoryConfig.starterPack.map(async (x) => {
+            const item: TlrpItem = await db.get<TlrpItem>({ uid: x.uid }, CollectionNames.Items);
+            if (!item) return null;
+            return { ...item, quantity: x.quantity } as TlrpItem;
+        })
+    )).filter(x => x !== null);
+
     const iData: Inventory = await useInventoryService().getInventoryByOwner(charId) || {
         capacity: InventoryConfig.maxWeight,
-        slots: Array(30).fill(null),
+        slots: [...items],
         owner: charId,
         type: 'player'
     };
@@ -803,16 +811,25 @@ async function init() {
         }
     });
 
-    alt.on('mg-inventory:entityItemAdd', (entity: alt.Entity, uid: string, quantity, data?: any) => {
+    alt.on('mg-inventory:entityItemUse', async(entity: alt.Entity, item: TlrpItem) => {
+        if (!item) return;
+        if (entity.type === alt.BaseObjectType.Player) {
+            const player = entity as alt.Player;
+            const document = Rebar.document.character.useCharacter(player);
+            if (!document.isValid()) return;
 
-    });
+            const food = item.data?.food ?? 0;
+            const water = item.data?.water ?? 0;
+            const health = item.data?.health ?? 0;
+            const armour = item.data?.armour ?? 0;
+            const newFood = Math.min(100, Math.max(0, document.getField('food') + food));
+            const newWater = Math.min(100, Math.max(0, document.getField('water') + water));
+            const newHealth = Math.min(200, Math.max(99, document.getField('health') + health));
+            const newArmour = Math.min(100, Math.max(0, document.getField('armour') + armour));
 
-    alt.on('mg-inventory:entityItemAddOnSlot', (entity: alt.Entity, uid: string, slot: number, quantity, data?: any) => {
-        
-    });
-
-    alt.on('mg-inventory:entityItemSubOnSlot', (entity: alt.Entity, slot: number, quantity, data?: any) => {
-        
+            await document.setBulk({ food: newFood, water: newWater, health: newHealth, armour: newArmour });
+            return;
+        }
     });
 
     // Client Events
