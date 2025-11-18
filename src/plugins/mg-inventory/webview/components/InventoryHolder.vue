@@ -156,7 +156,7 @@
 				<template v-for="(item, index) in displayedItems">
 					<Draggable
 						v-if="item"
-						:key="uid + '-' + index"
+						:key="`${uid}-${index}`"
 						@onDrag="handleDrag"
 						@onLeftClick="handleLeftClick"
 						@onDblClick="handleDoubleClick"
@@ -167,26 +167,27 @@
 					>
 						<div
 							v-if="!searchQuery && selectedCategory === 'all'"
-							:id="uid + '-' + index"
+							:id="`${uid}-${index}`"
 							@mousedown.left.prevent="startDragging(item, $event)"
 							@mouseenter="emits('hoverOver', item)"
 							@mouseleave="emits('hoverOver', null)"
 							draggable="false"
 							class="flex items-center justify-center bg-neutral-800 rounded-lg relative border border-neutral-700 hover:border-[#008736] transition-transform cursor-pointer"
 						>
-							<img :id="uid + '-' + index" :src="'/images/' + item.icon + '.png'" class="w-24 h-24 object-contain" draggable="false" />
+							<img :id="`${uid}-${index}`" :src="'/images/' + item.icon + '.png'" class="w-24 h-24 object-contain" draggable="false" />
 							<span v-if="item.quantity > 1" class="absolute bottom-1 right-1 text-xs text-gray-100 bg-neutral-900 px-2 py-1 rounded">
 								{{ item.quantity }}
 							</span>
 						</div>
 						<div
 							v-else
+							:id="`${uid}-${index}`"
 							@mouseenter="emits('hoverOver', item)"
 							@mouseleave="emits('hoverOver', null)"
 							draggable="false"
 							class="flex items-center justify-center bg-neutral-800 rounded-lg relative border border-neutral-700 hover:border-[#008736] transition-transform cursor-pointer"
 						>
-							<img :src="'/images/' + item.icon + '.png'" class="w-24 h-24 object-contain" draggable="false" />
+							<img :id="`${uid}-${index}`" :src="'/images/' + item.icon + '.png'" class="w-24 h-24 object-contain" draggable="false" />
 							<span v-if="item.quantity > 1" class="absolute bottom-1 right-1 text-xs text-gray-100 bg-neutral-900 px-2 py-1 rounded">
 								{{ item.quantity }}
 							</span>
@@ -194,8 +195,8 @@
 					</Draggable>
 					<div
 						v-else
-						:id="uid + '-' + index"
-						@mousedown.middle.prevent="handleMiddleClick(uid + '-' + index)"
+						:id="`${uid}-${index}`"
+						@mousedown.middle.prevent="handleMiddleClick(`${uid}-${index}`)"
 						class="w-full h-24 bg-neutral-800 rounded-lg border border-neutral-700"
 					></div>
 				</template>

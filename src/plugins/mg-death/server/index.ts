@@ -1,7 +1,8 @@
 import * as alt from 'alt-server';
+
 import { useRebar } from '@Server/index.js';
 import * as Utility from '@Shared/utility/index.js';
-import { Character } from '@Shared/types/index.js';
+import { Character, Vehicle } from '@Shared/types/index.js';
 
 import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
@@ -37,6 +38,8 @@ const Internal = {
     },
 
     async handleCharacterUpdate(player: alt.Player, key: keyof Character, value: any) {
+        if (!player || !player.valid) return;
+        
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid() || key !== 'isDead') return;
         if (!value) return;
@@ -55,6 +58,31 @@ const Internal = {
         if (!document.getField('isDead')) await document.set('isDead', true);
         else useMedicalService().unconscious(player);
     },
+
+    async handleRescue(player: alt.Player) {
+        player.frozen = false;
+        player.spawn(player.pos);
+        player.clearTasks();
+        Rebar.player.useWorld(player).disableControls();
+        
+        const landPoint = Internal.getRescuePoint(player.pos, 1, 3);
+        const endPoint = useMedicalService().hospital(player.pos);
+        const helicopter = new alt.Vehicle('polmav', landPoint.x, landPoint.y, landPoint.z, 0, 0, 0, 500, true);
+        const pilot = new alt.Ped('s_m_m_pilot_02', landPoint, player.rot, 500, true);
+
+        await player.emitRpc(DeathEvents.toClient.startRescue, { pilot, helicopter, landPoint, endPoint });
+        Rebar.player.useWorld(player).enableControls();
+        await useMedicalService().respawn(player);
+    },
+    
+    getRescuePoint(pos: alt.IVector3, offsetZ: number = 100, distance: number = 3) {
+        // Zufällige Richtung um den Spieler
+        const angle = Math.random() * Math.PI * 2;
+        // Offsets für X/Y basierend auf Winkel + Distanz
+        const offsetX = Math.cos(angle) * distance;
+        const offsetY = Math.sin(angle) * distance;
+        return new alt.Vector3(pos.x + offsetX, pos.y + offsetY, pos.z + offsetZ);
+    }
 };
 
 Rebar.services.useServiceRegister().register('medicalService', {
@@ -134,9 +162,54 @@ Rebar.services.useServiceRegister().register('medicalService', {
     },
 
     async revived(player: alt.Player, isReviver: boolean) {
+        if (!player || !player.valid) return;
         alt.setTimeout(() => player.clearTasks(), COOLDOWN_DELAY);
         if (isReviver) return; 
-        await useMedicalService().respawn(player, player.pos);
+
+        const document = Rebar.document.character.useCharacter(player);
+        if (!document.isValid() || !document.getField('isDead')) return;
+
+        const charId = document.getField('_id');
+        if (ActiveLabels.has(charId)) {
+            const label = ActiveLabels.get(charId)!;
+            label.destroy();
+            ActiveLabels.delete(charId);
+        }
+
+        if (TimeOfDeath.has(charId)) 
+            TimeOfDeath.delete(charId);
+
+        if (ActiveTasks.has(charId)) {
+            const t = ActiveTasks.get(charId)!;
+            if (t.timeout) alt.clearTimeout(t.timeout);
+            if (t.interval) alt.clearInterval(t.interval);
+            ActiveTasks.delete(charId);
+        }
+
+        const data = { pos: player.pos, rot: player.rot };
+
+        await document.setBulk({
+            isDead: false,
+            food: 100,
+            water: 100,
+            health: 124,
+            pos: data.pos,
+            rot: data.rot,
+            dimension: player.dimension
+        });
+
+        Rebar.player.useWorld(player).setScreenFade(FADE_DELAY);
+
+        alt.setTimeout(() => {
+            if (!player || !player.valid) return;
+            player.frozen = false;
+            player.spawn(data.pos);
+            player.pos = new alt.Vector3(data.pos);
+            player.clearBloodDamage();
+            player.emit(DeathEvents.toClient.respawned);
+
+            Rebar.player.useWorld(player).clearScreenFade(FADE_DELAY);
+        }, COOLDOWN_DELAY);
     },
 
     async respawn(player: alt.Player, pos: alt.IVector3) {
@@ -213,7 +286,7 @@ async function init() {
     // Client Events
     alt.onClient(DeathEvents.toServer.reviveComplete, useMedicalService().revived);
     alt.onClient(DeathEvents.toServer.toggleRevive, useMedicalService().revive);
-    alt.onClient(DeathEvents.toServer.toggleRespawn, useMedicalService().respawn);
+    alt.onClient(DeathEvents.toServer.toggleRespawn, Internal.handleRescue);
     alt.onClient(DeathEvents.toServer.toggleEms, useMedicalService().called);
 }
 

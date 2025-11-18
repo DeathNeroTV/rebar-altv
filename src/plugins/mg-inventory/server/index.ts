@@ -38,10 +38,9 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         const hasSpace = await useInventoryService().hasSpace(entity, newItem);
         if (!hasSpace) return false;
 
-        const freeSlot = await useInventoryService().getFreeSlot(entity);
-        if (freeSlot === -1) return false;
-
-        inventory.slots[freeSlot] = newItem;
+        const freeIndex = await useInventoryService().getFreeSlot(entity);
+        if (freeIndex !== -1) inventory.slots[freeIndex] = newItem;
+        else inventory.slots.push(newItem);
 
         return await persistInventory(inventory);
     },
@@ -146,7 +145,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
     async itemCreate(data) {
         const found = await db.get<TlrpItem>({ uid: data.uid }, 'Items');
         if (found) {
-            alt.logError('Item bereits mit der gegebenen uid vorhanden');
+            alt.logError(`Es gibt bereits ${data.name || data.uid}`);
             return false;
         }
 
@@ -155,7 +154,7 @@ Rebar.services.useServiceRegister().register('inventoryService', {
 
         const _id = await db.create({ ...data, id }, 'Items');
         if (!_id) {
-            alt.logError('Item konnte nicht erstellt werden', JSON.stringify(data));
+            alt.logError(`${data.name || data.uid} konnte nicht erstellt werden`);
             return false;
         }
         return true;
@@ -189,13 +188,13 @@ Rebar.services.useServiceRegister().register('inventoryService', {
 
         original.quantity -= taken;
 
-        const freeIndex = await useInventoryService().getFreeSlot(entity);
-        if (freeIndex === -1) return null;
-
         const newItem: TlrpItem = { ...original, quantity: taken };
-        inventory.slots[freeIndex] = newItem;
-        inventory.slots[slot] = original;
 
+        const freeIndex = await useInventoryService().getFreeSlot(entity);
+        if (freeIndex !== -1) inventory.slots[freeIndex] = newItem;
+        else inventory.slots.push(newItem);
+
+        inventory.slots[slot] = original;
         const result = await persistInventory(inventory);
         return result;
     },
@@ -222,16 +221,17 @@ Rebar.services.useServiceRegister().register('inventoryService', {
     },
     async getInventoryByEntity(entity) {
         if (entity.type !== alt.BaseObjectType.Player && entity.type !== alt.BaseObjectType.Vehicle) return null;
+
         if (entity.type === alt.BaseObjectType.Player) {
-            const charId = Rebar.document.character.useCharacter(entity as alt.Player)?.getField('_id') ?? null;
-            if (!charId) return null;
-            const inventory = await db.get<Inventory>({ owner: charId }, 'Inventories');
+            const owner = Rebar.document.character.useCharacter(entity as alt.Player)?.getField('_id') ?? null;
+            if (!owner) return null;
+            const inventory = await db.get<Inventory>({ owner }, CollectionNames.Inventories);
             return inventory;
         }
 
         const vehId = Rebar.document.vehicle.useVehicle(entity as alt.Vehicle)?.getField('_id') ?? null;
         if (!vehId) return null;
-        const inventory = await db.get<Inventory>({ owner: vehId }, 'Inventories');
+        const inventory = await db.get<Inventory>({ owner: vehId }, CollectionNames.Inventories);
         return inventory;
     },
     async getInventoryByOwner(owner) {

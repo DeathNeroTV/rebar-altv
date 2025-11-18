@@ -5,7 +5,6 @@ import { useRebarClient } from '@Client/index.js';
 import { useClientApi } from '@Client/api/index.js';
 
 import { DeathEvents } from '../shared/events.js';
-import { DeathConfig } from '../shared/config.js';
 
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
@@ -135,6 +134,76 @@ function registerListeners() {
         state.canRespawn = false;
         state.isReviving = false;
         state.isReviver = false;
+    });
+
+    alt.onRpc(DeathEvents.toClient.startRescue, async(payload: { 
+        pilot: alt.Ped, 
+        helicopter: alt.Vehicle, 
+        landPoint: alt.IVector3, 
+        endPoint: alt.IVector3 
+    }) => {
+        const player = alt.Player.local;
+        const helicopter = payload.helicopter;
+        const pilot = payload.pilot;
+        const landPoint = payload.landPoint;
+        const endPoint = payload.endPoint;
+
+        natives.freezeEntityPosition(helicopter.scriptID, true);
+        natives.freezeEntityPosition(pilot.scriptID, true);
+
+        natives.taskWarpPedIntoVehicle(pilot.scriptID, helicopter.scriptID, 0);
+        natives.setVehicleEngineOn(helicopter.scriptID, true, true, true);
+        natives.setVehicleLivery(helicopter.scriptID, 2);
+        natives.setVehicleDoorsLocked(helicopter.scriptID, 2);
+
+        await alt.Utils.wait(2000);
+
+        natives.freezeEntityPosition(helicopter.scriptID, false);
+        natives.freezeEntityPosition(pilot.scriptID, false);
+
+        // Bodenhöhe
+        const [foundZ, groundZ] = natives.getGroundZFor3dCoord(landPoint.x, landPoint.y, landPoint.z, 0, false, false);
+        const z = foundZ ? groundZ : landPoint.z;
+
+        // 1️⃣ Heli fliegt über Landepunkt
+        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, landPoint.x, landPoint.y, z + 20, 4, 30.0, 10.0, 0.0, 50, 20, 50.0, 0);
+
+        // Warten bis Heli nah am Hover-Punkt ist
+        let attempts = 0;
+        while(helicopter.pos.distanceTo(new alt.Vector3(landPoint.x, landPoint.y, z + 20)) > 5 && attempts < 200) {
+            attempts++;
+            await alt.Utils.wait(20);
+        }
+
+        // 2️⃣ Heli landet
+        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, landPoint.x, landPoint.y, z, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
+        await alt.Utils.wait(3000);
+
+        // 3️⃣ Spieler einsteigen
+        natives.taskWarpPedIntoVehicle(player.scriptID, helicopter.scriptID, 2); // hinterer Sitz
+        await alt.Utils.wait(1000);
+
+        // 4️⃣ Heli startet erneut und fliegt zum Endpunkt
+       const [foundEndZ, groundEndZ] = natives.getGroundZFor3dCoord(endPoint.x, endPoint.y, endPoint.z, 0, false, false);
+       const hoverZ = 100; // Immer 100m Höhe über Ziel
+
+        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, endPoint.x, endPoint.y, hoverZ, 4, 35.0, 10.0, 0.0, 50, 20, 50.0, 0);
+
+        // Warten bis Heli am Ziel angekommen
+        attempts = 0;
+        while(helicopter.pos.distanceTo(new alt.Vector3(endPoint.x, endPoint.y, hoverZ)) > 5 && attempts < 500) {
+            attempts++;
+            await alt.Utils.wait(20);
+        }
+
+        // 5️⃣ Heli landet am Endpunkt
+        const finalZ = foundEndZ ? groundEndZ : endPoint.z;
+        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, endPoint.x, endPoint.y, finalZ, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
+        await alt.Utils.wait(3000);
+
+        natives.deleteEntity(helicopter);
+        natives.deleteEntity(pilot);
+        return;
     });
 }
 
