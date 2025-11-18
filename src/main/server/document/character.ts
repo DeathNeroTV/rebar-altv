@@ -29,9 +29,14 @@ export function useCharacter(player: alt.Player) {
      * Check if the player currently has a character bound to them
      */
     function isValid() {
-        if (!player || !player.valid) return false;
-        if (!player.hasMeta(sessionKey)) return false;
-        if (!player.getMeta(sessionKey)) return false;
+        if (!player.hasMeta(sessionKey)) {
+            return false;
+        }
+
+        if (!player.getMeta(sessionKey)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -41,8 +46,10 @@ export function useCharacter(player: alt.Player) {
      * @return {(Character | undefined)}
      */
     function get(): Character | undefined {
-        if (!player || !player.valid) return undefined;
-        if (!player.hasMeta(sessionKey)) return undefined;
+        if (!player.hasMeta(sessionKey)) {
+            return undefined;
+        }
+
         return <Character>player.getMeta(sessionKey);
     }
 
