@@ -745,8 +745,8 @@ async function refreshSession(player: alt.Player) {
     
     const playerInventory = await db.get<Inventory>({ owner: session.playerInventory?.owner }, CollectionNames.Inventories) || null;
     const otherInventory = await db.get<Inventory>({ owner: session.otherInventory?.owner }, CollectionNames.Inventories) || null;
-    
-    const weapons = document.getField('weapons').map(entry => { 
+    const weaponList = document.getField('weapons') || [];
+    const weapons = weaponList.map(entry => { 
         const weaponInfo = alt.getWeaponModelInfoByHash(entry.hash);
         return { 
             ...entry, 
