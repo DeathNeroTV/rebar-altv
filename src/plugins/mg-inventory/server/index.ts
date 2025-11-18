@@ -45,21 +45,20 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         if (!inventory) return false;
 
         let remaining = quantity;
-        for (let data of inventory.slots) {
+        for (let i = 0; i < inventory.slots.length; i++) {
+            const data = inventory.slots[i];
             if (!data || data.uid !== uid) continue;
 
             if (data.quantity! >= remaining) {
                 data.quantity! -= remaining;
-                if (data.quantity! <= 0) data = null;
+                if (data.quantity! <= 0) inventory.slots[i] = null;
+                await persistInventory(inventory);
                 return true;
             } else {
                 remaining -= data.quantity!;
-                data.quantity = 0;
-                const index = inventory.slots.indexOf(data);
-                if (index !== -1) inventory.slots[index] = null;
+                inventory.slots[i] = null;
             }
         }
-
         const result = await persistInventory(inventory);
         return result;
     },
@@ -247,7 +246,7 @@ declare module '@Shared/types/character.js' {
 }
 
 function findItemWithSlot(inventory: Inventory, uid: string) {
-    const index = inventory.slots.findIndex((x) => x === null);
+    const index = inventory.slots.findIndex((x) => x?.uid === uid);
     if (index === -1) return { item: null, slot: -1 };
     return { slot: index, item: inventory.slots[index] };
 }
@@ -304,13 +303,15 @@ async function handleDataFetch(player: alt.Player) {
         };
     });
 
-    const items: TlrpItem[] = (await Promise.all(
-        InventoryConfig.starterPack.map(async (x) => {
-            const item: TlrpItem = await db.get<TlrpItem>({ uid: x.uid }, CollectionNames.Items);
-            if (!item) return null;
-            return { ...item, quantity: x.quantity } as TlrpItem;
-        })
-    )).filter(x => x !== null);
+    const items: TlrpItem[] = (
+        await Promise.all(
+            InventoryConfig.starterPack.map(async (x) => {
+                const item = await db.get<TlrpItem>({ uid: x.uid }, CollectionNames.Items);
+                if (!item) return null;
+                return { ...item, quantity: x.quantity } as TlrpItem;
+            })
+        )
+    ).filter((x): x is TlrpItem => x !== null);
 
     const iData: Inventory = await useInventoryService().getInventoryByOwner(charId) || {
         capacity: InventoryConfig.maxWeight,
@@ -740,8 +741,14 @@ async function refreshSession(player: alt.Player) {
     const session: ActiveInventorySession = activeInventories.get(charId) ?? undefined;
     if (!session) return;
     
-    const playerInventory = await db.get<Inventory>({ owner: session.playerInventory?.owner }, CollectionNames.Inventories) || null;
-    const otherInventory = await db.get<Inventory>({ owner: session.otherInventory?.owner }, CollectionNames.Inventories) || null;
+    const playerInventory = session.playerInventory?.owner
+        ? (await db.get<Inventory>({ owner: session.playerInventory.owner }, CollectionNames.Inventories) || null)
+        : null;
+
+    const otherInventory = session.otherInventory?.owner
+        ? (await db.get<Inventory>({ owner: session.otherInventory.owner }, CollectionNames.Inventories) || null)
+        : null;
+        
     const weaponList = document.getField('weapons') || [];
     const weapons = weaponList.map(entry => { 
         const weaponInfo = alt.getWeaponModelInfoByHash(entry.hash);
@@ -811,23 +818,34 @@ async function init() {
         }
     });
 
-    alt.on('mg-inventory:entityItemUse', async(entity: alt.Entity, item: TlrpItem) => {
-        if (!item) return;
+    alt.on('mg-inventory:entityItemUse', async (entity: alt.Entity, item: TlrpItem) => {
         if (entity.type === alt.BaseObjectType.Player) {
             const player = entity as alt.Player;
             const document = Rebar.document.character.useCharacter(player);
             if (!document.isValid()) return;
 
-            const food = item.data?.food ?? 0;
-            const water = item.data?.water ?? 0;
-            const health = item.data?.health ?? 0;
-            const armour = item.data?.armour ?? 0;
-            const newFood = Math.min(100, Math.max(0, document.getField('food') + food));
-            const newWater = Math.min(100, Math.max(0, document.getField('water') + water));
-            const newHealth = Math.min(200, Math.max(99, document.getField('health') + health));
-            const newArmour = Math.min(100, Math.max(0, document.getField('armour') + armour));
+            const food   = item?.data?.food   ?? 0;
+            const water  = item?.data?.water  ?? 0;
+            const health = item?.data?.health ?? 0;
+            const armour = item?.data?.armour ?? 0;
 
-            await document.setBulk({ food: newFood, water: newWater, health: newHealth, armour: newArmour });
+            const currentFood   = document.getField('food') ?? 0;
+            const currentWater  = document.getField('water') ?? 0;
+            const currentHealth = document.getField('health') ?? 100;
+            const currentArmour = document.getField('armour') ?? 0;
+
+            const newFood   = Math.min(100, Math.max(0, currentFood + food));
+            const newWater  = Math.min(100, Math.max(0, currentWater + water));
+            const newHealth = Math.min(200, Math.max(99, currentHealth + health));
+            const newArmour = Math.min(100, Math.max(0, currentArmour + armour));
+
+            await document.setBulk({
+                food: newFood,
+                water: newWater,
+                health: newHealth,
+                armour: newArmour
+            });
+
             return;
         }
     });
