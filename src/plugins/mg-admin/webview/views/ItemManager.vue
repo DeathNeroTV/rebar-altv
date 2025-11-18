@@ -65,7 +65,7 @@
 				<input
 					v-model="search"
 					type="text"
-					placeholder="🔍 Spieler suchen..."
+					placeholder="🔍 Gegenstand suchen..."
 					class="bg-neutral-800 text-gray-100 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#008736] focus:outline-none w-72"
 				/>
 

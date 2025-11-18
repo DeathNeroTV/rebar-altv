@@ -236,6 +236,8 @@ alt.onClient(HudEvents.toServer.updateStats, async(player: alt.Player, data: Act
 
     const isDead = health === 99;
     await document.setBulk({ food, water, health, ...(isDead ? { isDead } : {}) });
+
+    alt.nextTick(() => Rebar.player.useWebview(player).emit(HudEvents.toWebview.updatePlayer, { key: 'id', value: document.getField('id') }));
 });
 
 alt.setInterval(() => {

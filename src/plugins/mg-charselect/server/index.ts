@@ -224,13 +224,9 @@ async function handleLogout(player: alt.Player) {
 // --- Disconnect ---
 function handleDisconnect(player: alt.Player, reason: string) {
     if (!player || !player.valid) return;
-
-    if (player.hasMeta(sessionKey)) return;
-    const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid()) return;
-
     Rebar.player.useState(player).save();
-    alt.log('[Disconnect]', `Die Daten von ${document.getField('name').replace('_', ' ')} wurden gespeichert.`);
+    const name = Rebar.document.character.useCharacter(player).getField('name') ?? player.name;
+    alt.log('[Disconnect]', `Die Daten von ${name} wurden gespeichert.`);
 }
 
 // --- Init ---

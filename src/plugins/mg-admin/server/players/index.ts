@@ -116,7 +116,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             await handleGiveAction(target, data.giveType, data.itemId!, data.amount);
             break;
         case ActionType.TAKE:
-            await handleTakeAction(target, data.giveType, data.itemId!, -data.amount);
+            await handleTakeAction(target, data.giveType, data.itemId!, data.amount);
             break;
         case ActionType.FREEZE:
             if (vehicle) vehicle.frozen = !vehicle.frozen;
