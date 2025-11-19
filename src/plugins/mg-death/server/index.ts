@@ -184,53 +184,9 @@ const Internal = {
 
         helicopter.frozen = true;
         helicopter.livery = 2;
-        helicopter.engineOn = true;
 
         // --- EMS Flugprofil ---
         const flyEMS = {
-            async getIn(maxAttempts: number) {
-                for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                    const isEntering = await ped.invokeRpc('isPedInAnyVehicle', true);
-                    if (isEntering) {
-                        helicopter.frozen = false;
-                        return;
-                    }
-                    ped.invoke('taskEnterVehicle', helicopter, 0, -1, 1.0, 1, undefined, 0);
-                    await alt.Utils.wait(100);
-                }
-            },
-            async takeoff(z) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0,
-                    helicopter.pos.x, helicopter.pos.y, z,
-                    4, 12, 20, -1, -1, -1, -1, 32
-                );
-                await reachGoal({ ...helicopter.pos, z }, helicopter, 3, 200, 100);
-            },
-
-            async climb(z) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0,
-                    helicopter.pos.x, helicopter.pos.y, z,
-                    4, 25, 40, -1, -1, -1, -1, 32
-                );
-                await reachGoal({ ...helicopter.pos, z }, helicopter, 4, 250, 100);
-            },
-
-            async cruise(x, y, z) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0,
-                    x, y, z,
-                    4, 38, 40, -1, -1, -1, -1, 32
-                );
-                await reachGoal({ x, y, z }, helicopter, 8, 500, 100);
-            },
-
-            async descend(x, y, z) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0,
-                    x, y, z,
-                    4, 10, 5, -1, -1, -1, -1, 32
-                );
-                await reachGoal({ x, y, z }, helicopter, 3, 300, 100);
-            },
-
             async smoothRotate(entity: alt.Vehicle, targetHeading: number, speed: number = 1.5) {
                 return new Promise(async (resolve) => {
                     const normalize = (h: number) => ((h % 360) + 360) % 360;
@@ -265,11 +221,40 @@ const Internal = {
                 });
             },
 
-            async land(x, y, z) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0,
-                    x, y, z,
-                    20, 8, 0, -1, -1, -1, -1, 32
-                );
+            async getIn(maxAttempts: number) {
+                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                    const isEntering = await ped.invokeRpc('isPedInAnyVehicle', true);
+                    if (isEntering) {
+                        helicopter.frozen = false;
+                        return;
+                    }
+                    ped.invoke('taskEnterVehicle', helicopter, 0, -1, 1.0, 1, undefined, 0);
+                    await alt.Utils.wait(100);
+                }
+            },
+
+            async takeoff(z: number) {
+                ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, helicopter.pos.z + z, 4, 12, 3, -1, 200, 0, 5, 128);
+                await reachGoal({ ...helicopter.pos, z: helicopter.pos.z + z }, helicopter, 3, 200, 100);
+            },
+
+            async climb(z: number) {
+                ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, helicopter.pos.z + z, 4, 25, 3, -1, 200, 0, 5, 0);
+                await reachGoal({ ...helicopter.pos, z: helicopter.pos.z + z }, helicopter, 4, 250, 100);
+            },
+
+            async cruise(x: number, y: number, z: number) {
+                ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 38, 3, -1, 200, 0, 5, 0);
+                await reachGoal({ x, y, z }, helicopter, 8, 500, 100);
+            },
+
+            async descend(x: number, y: number, z: number) {
+                ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 10, 3, -1, 200, 0, 5, 0);
+                await reachGoal({ x, y, z }, helicopter, 3, 300, 100);
+            },
+
+            async land(x: number, y: number, z: number) {
+                ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 20, 3, -1, 200, 0, 5, 32);
                 await reachGoal({ x, y, z }, helicopter, 3, 300, 100);
             },
 
@@ -559,9 +544,9 @@ async function init() {
     alt.on('rebar:playerCharacterUpdated', Internal.handleCharacterUpdate);
 
     // Client Events
-    alt.onClient(DeathEvents.toServer.reviveComplete, useMedicalService().revived);
-    alt.onClient(DeathEvents.toServer.toggleRevive, useMedicalService().revive);
-    alt.onClient(DeathEvents.toServer.toggleRespawn, Internal.handleRescue);
-    alt.onClient(DeathEvents.toServer.toggleEms, useMedicalService().called);
+    alt.onClient(DeathEvents.toServer.reviveComplete, async (player: alt.Player, isReviver: boolean) => await useMedicalService().revived(player, isReviver));
+    alt.onClient(DeathEvents.toServer.toggleRevive, async (player: alt.Player, victim: alt.Player) => await useMedicalService().revive(player, victim));
+    alt.onClient(DeathEvents.toServer.toggleRespawn, async (player: alt.Player) => await Internal.handleRescue(player));
+    alt.onClient(DeathEvents.toServer.toggleEms, async (player: alt.Player) => await useMedicalService().called(player));
 }
 init();
