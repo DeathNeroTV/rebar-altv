@@ -109,12 +109,13 @@ function registerListeners() {
 
     alt.onServer(DeathEvents.toClient.toggleControls, (value: boolean) => {
         if (!value) {
-            if (interval) return;
+            if (interval) alt.clearEveryTick(interval);
             interval = alt.everyTick(handleControls);
-        } else {
-            if (!interval) return;
-            alt.clearEveryTick(interval);
+            return;
         }
+
+        if (!interval) return;
+        alt.clearEveryTick(interval);
     });
 
     alt.onRpc(DeathEvents.toClient.startRescue, async(payload: { 
@@ -192,6 +193,7 @@ function handleControls() {
     //Movement
     natives.disableControlAction(0, 21, true);
     natives.disableControlAction(0, 22, true);
+    natives.disableControlAction(0, 23, true);
     natives.disableControlAction(0, 32, true);
     natives.disableControlAction(0, 33, true);
     natives.disableControlAction(0, 34, true);

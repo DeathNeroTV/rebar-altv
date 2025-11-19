@@ -1,21 +1,17 @@
+import { useDiscord } from "@Plugins/mg-discord/server/api.js";
 import {DiscordAuthConfig} from "./config.js";
-import {useRebar} from "@Server/index.js";
 import {Client, GuildMember} from "discord.js";
 import {DiscordInfo} from "../shared/interfaces.js";
 import * as https from "node:https";
 
 let client: Client = undefined;
 
-const Rebar = useRebar();
-
-export async function requestInit() {
+export function requestInit() {
     if (!DiscordAuthConfig.SERVER_ID || DiscordAuthConfig.SERVER_ID.length <= 3) return;
 
-    const discordAPI = await Rebar.useApi().getAsync('discord-api');
-    if (!discordAPI) throw new Error("no discord api found");
-
-    client = discordAPI.client();
-    if (!client) throw new Error("no discord client found");
+    client = useDiscord().client();
+    if (!client) console.warn('[Discord-Auth]', 'no discord client found');
+    else console.info('[Discord-Auth]', 'discord client found');
 }
 
 export async function getCurrentUser(token: string): Promise<DiscordInfo | undefined> {

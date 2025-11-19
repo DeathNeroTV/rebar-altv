@@ -39,13 +39,15 @@ alt.onRpc(IntroEvents.toServer.request, async (player: alt.Player) => {
     return result;
 });
 
-alt.onClient(IntroEvents.toServer.finished, (player: alt.Player) => {
+alt.onClient(IntroEvents.toServer.finished, async (player: alt.Player) => {
     player.deleteMeta(sessionKey);
-    
+
     Rebar.player.useWebview(player).hide('Intro');
     Rebar.player.useWorld(player).clearScreenFade(0);
     Rebar.player.useWorld(player).enableControls();
     Rebar.player.useWorld(player).disableCameraControls(false);
     Rebar.player.useAudio(player).stopAudio();
-    invokeFinished(player);
+
+    // Wichtig: async callbacks werden sauber awaited
+    await invokeFinished(player);
 });

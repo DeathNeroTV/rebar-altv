@@ -11,6 +11,7 @@ import '../translate/index.js';
 import { getClient } from '@Plugins/mg-discord/server/bot.js';
 import { EmbedBuilder, TextChannel } from 'discord.js';
 import { CollectionNames } from '@Server/document/shared.js';
+import { useIntroApi } from '@Plugins/mg-intro/server/api.js';
 
 const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
@@ -39,7 +40,6 @@ const disable = [
 disable.forEach(section => serverConfig.set(section, true));
 
 async function handleFinished(player: alt.Player) {
-    if (!player || !player.valid) return;
     player.dimension = player.id + 1;
 
     const playerWorld = Rebar.player.useWorld(player);
@@ -51,8 +51,7 @@ async function handleFinished(player: alt.Player) {
     });
     player.setMeta(sessionKey, true);
 
-    const view = Rebar.player.useWebview(player);
-    view.show('DiscordAuth', 'page');
+    Rebar.player.useWebview(player).show('DiscordAuth', 'page');
 
     const token: string = await player.emitRpc(DiscordAuthEvents.toClient.requestToken, DiscordAuthConfig.APPLICATION_ID);
 
@@ -223,33 +222,26 @@ function setSessionFinish(player: alt.Player) {
 
     sessions[sessionIndex].finished = true;
 
-
     if (Date.now() > sessions[sessionIndex].expiration) {
         player.kick(t("discord.auth.expired.session"));
         return;
     }
-
 }
 
 function setAccount(player: alt.Player, account: Account) {
     player.deleteMeta(sessionKey);
     Rebar.document.account.useAccountBinder(player).bind(account);
+
     const playerWorld = Rebar.player.useWorld(player);
-    const view = Rebar.player.useWebview(player);
-
     playerWorld.clearScreenFade(500);
-    view.hide("DiscordAuth");
-
+    
+    Rebar.player.useWebview(player).hide("DiscordAuth");
     invokeLogin(player, account);
 }
 
-async function init() {
-    await requestInit();
-
-    const introApi = await Rebar.useApi().getAsync('mg-intro-api');   
-    if (!introApi) throw new Error("no intro api found");
-    introApi.onFinished(async(player: alt.Player) => await handleFinished(player));
-    
+function init() {
+    requestInit();
+    useIntroApi().onFinished(handleFinished);
     alt.setInterval(cleanupSessions, 5000);
 }
 init();
