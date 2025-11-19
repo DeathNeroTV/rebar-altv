@@ -27,6 +27,7 @@ function tick() {
         // Attacking
         native.disableControlAction(0, 24, true);
         native.disableControlAction(0, 25, true);
+
     }
 }
 

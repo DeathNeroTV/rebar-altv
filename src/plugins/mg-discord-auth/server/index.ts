@@ -38,10 +38,11 @@ const disable = [
 
 disable.forEach(section => serverConfig.set(section, true));
 
-function handleConnect(player: alt.Player) {
-    const playerWorld = Rebar.player.useWorld(player);
-
+async function handleFinished(player: alt.Player) {
+    if (!player || !player.valid) return;
     player.dimension = player.id + 1;
+
+    const playerWorld = Rebar.player.useWorld(player);
     playerWorld.setScreenFade(0);
 
     sessions.push({
@@ -51,13 +52,9 @@ function handleConnect(player: alt.Player) {
     player.setMeta(sessionKey, true);
 
     const view = Rebar.player.useWebview(player);
-    view.show("DiscordAuth", "page");
+    view.show('DiscordAuth', 'page');
 
-    player.emit(DiscordAuthEvents.toClient.requestToken, DiscordAuthConfig.APPLICATION_ID);
-}
-
-async function handleToken(player: alt.Player, token: string) {
-    if (!player || !player.valid) return;
+    const token: string = await player.emitRpc(DiscordAuthEvents.toClient.requestToken, DiscordAuthConfig.APPLICATION_ID);
 
     setSessionFinish(player);
 
@@ -66,6 +63,10 @@ async function handleToken(player: alt.Player, token: string) {
         return;
     }
 
+    await handleCheckToken(player, token);
+}
+
+async function handleCheckToken(player: alt.Player, token: string) {
     const currentUser = await getCurrentUser(token) as DiscordInfo | undefined;
     if (!currentUser) {
         player.kick(t("discord.auth.request.failed"));
@@ -243,16 +244,12 @@ function setAccount(player: alt.Player, account: Account) {
 }
 
 async function init() {
-    requestInit();
+    await requestInit();
 
     const introApi = await Rebar.useApi().getAsync('mg-intro-api');   
     if (!introApi) throw new Error("no intro api found");
+    introApi.onFinished(async(player: alt.Player) => await handleFinished(player));
     
-    introApi.onFinished(handleConnect);
-    
-    alt.onClient(DiscordAuthEvents.toServer.connected, handleConnect);
-    alt.onClient(DiscordAuthEvents.toServer.pushToken, handleToken);
     alt.setInterval(cleanupSessions, 5000);
 }
-
 init();

@@ -50,9 +50,7 @@ export async function getCurrentUser(token: string): Promise<DiscordInfo | undef
 
 export async function getUserGuildMember(userId: string): Promise<GuildMember> {
     if (!client) return undefined;
-
-    const guild = await client.guilds.fetch(DiscordAuthConfig.SERVER_ID);
-    if (!guild) return undefined;
     
-    return guild.members.fetch(userId);
+    const guild = await client.guilds.fetch(DiscordAuthConfig.SERVER_ID);
+    return guild?.members?.fetch(userId) ?? undefined;
 }

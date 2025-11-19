@@ -9,6 +9,8 @@ import { DeathEvents } from '../shared/events.js';
 const Rebar = useRebarClient();
 const view = Rebar.webview.useWebview();
 
+let interval: number | null = null;  
+
 type ClientState = { canRespawn: boolean; calledEMS: boolean; isReviving: boolean; isReviver: boolean };
 
 const state: ClientState = { canRespawn: false, calledEMS: false, isReviving: false, isReviver: false };
@@ -105,6 +107,16 @@ function registerListeners() {
         state.isReviver = false;
     });
 
+    alt.onServer(DeathEvents.toClient.toggleControls, (value: boolean) => {
+        if (!value) {
+            if (interval) return;
+            interval = alt.everyTick(handleControls);
+        } else {
+            if (!interval) return;
+            alt.clearEveryTick(interval);
+        }
+    });
+
     alt.onRpc(DeathEvents.toClient.startRescue, async(payload: { 
         pilot: alt.Ped;
         helicopter: alt.Vehicle;
@@ -164,6 +176,26 @@ function registerListeners() {
         natives.deletePed(pilot.scriptID);
         return {};
     });
+}
+
+function handleControls() {
+    // Scroll Wheel
+    natives.disableControlAction(0, 14, true);
+    natives.disableControlAction(0, 15, true);
+    natives.disableControlAction(0, 16, true);
+    natives.disableControlAction(0, 17, true);
+
+    // Attacking
+    natives.disableControlAction(0, 24, true);
+    natives.disableControlAction(0, 25, true);
+
+    //Movement
+    natives.disableControlAction(0, 21, true);
+    natives.disableControlAction(0, 22, true);
+    natives.disableControlAction(0, 32, true);
+    natives.disableControlAction(0, 33, true);
+    natives.disableControlAction(0, 34, true);
+    natives.disableControlAction(0, 35, true);
 }
 
 async function init() {

@@ -2,6 +2,8 @@ export const DeathConfig = {
     language: 'de',
     respawnTime: 1 * 60000,
     reviveTime: 10000,
+    fadeDelay: 3000,
+    coolDown: 3500,
     hospitals: [
         {
             name: "Central Los Santos Medical Center",
@@ -37,6 +39,18 @@ export const DeathConfig = {
             name: "Portola Trinity Medical Center",
             pos: { x: -676.98, y: 310.68, z: 83.08 },
             rot: { x: 0.0, y: 0.0, z: 45.0 }
+        },
+    ],
+    helipads: [
+        {
+            name: "Central Los Santos Medical Center Helipad 1",
+            pos: { x: 299.374267578125, y: -1453.4263916015625, z: 46.509521484375 },
+            rot: { x: 0, y: 0, z: -0.7662855386734009 }
+        },
+        {
+            name: "Central Los Santos Medical Center Helipad 2",
+            pos: { x: 313.31134033203125, y: -1465.296142578125, z: 46.509521484375 },
+            rot: { x: 0, y: 0, z: -0.7662855386734009 }
         },
     ]
 };
