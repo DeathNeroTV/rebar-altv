@@ -76,11 +76,10 @@ const Internal = {
 
         // Utilities
         const natives = Rebar.player.useNative(player);
-        const pedDoc = null;
 
         // Create Entities
-        const helicopter = new alt.Vehicle('polmav', landPoint, player.rot);
-        const pilot = new alt.Ped('s_m_m_pilot_02', landPoint, player.rot);
+        const helicopter = new alt.Vehicle('polmav', startPoint, player.rot);
+        const pilot = new alt.Ped('s_m_m_pilot_02', startPoint, player.rot);
 
         helicopter.setNetOwner(player);
         pilot.setNetOwner(player);
@@ -178,7 +177,7 @@ const Internal = {
         // -------------------------
         ped.invoke('taskLeaveVehicle', helicopter, 0);
 
-        await waitFor(() => ped.invokeRpc('isPedInAnyHeli') === false, 8000);
+        await waitFor(async() => (await ped.invokeRpc('isPedInAnyHeli')) === false, 8000);
 
         try { helicopter.destroy(); } catch {}
         try { pilot.destroy(); } catch {}
