@@ -65,58 +65,127 @@ const Internal = {
             icon: notifyApi.general.getTypes().INFO,
             title: 'Rettungsdienst',
             subtitle: 'Notruf',
-            message: 'Es wurde eine Rettungshelikopter entsendet'
+            message: 'Es wurde ein Rettungshelikopter entsendet',
+            oggFile: 'notification'
         });
-        const natives = Rebar.player.useNative(player);
-        const startPoint = Internal.getRescuePoint(player.pos, 3, 5);
-        const landPoint = Internal.getRescuePoint(player.pos, 1, 3);
-        const { pos, rot } = useMedicalService().hospital(player.pos);
 
-        const helicopter = new alt.Vehicle('polmav', startPoint, player.rot, 500);
-        const pilot = new alt.Ped('s_m_m_pilot_02', startPoint, player.rot, 500);
+        // Points
+        const startPoint = Internal.getRescuePoint(player.pos, 300, 5);
+        const landPoint = Internal.getRescuePoint(player.pos, 1, 3);
+        const { pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);
+
+        // Utilities
+        const natives = Rebar.player.useNative(player);
+        const pedDoc = null;
+
+        // Create Entities
+        const helicopter = new alt.Vehicle('polmav', landPoint, player.rot);
+        const pilot = new alt.Ped('s_m_m_pilot_02', landPoint, player.rot);
+
         helicopter.setNetOwner(player);
         pilot.setNetOwner(player);
-        const pedDoc = Rebar.controllers.usePed(pilot);
 
-        pedDoc.setOption('makeStupid', true);
-        pedDoc.setOption('invincible', true);
-        pedDoc.invoke('taskEnterVehicle', helicopter, 0, -1, 2.0, 1, 0);
+        helicopter.frozen = true;
+        helicopter.livery = 2;
         helicopter.engineOn = true;
 
-        const [foundZ, groundZ] = await natives.invokeWithResult('getGroundZFor3dCoord', landPoint.x, landPoint.y, landPoint.z, 0, false, false);
-        const z = foundZ ? groundZ : landPoint.z;
+        // Ped Setup
+        const ped = Rebar.controllers.usePed(pilot);
+        ped.setOption('makeStupid', true);
+        ped.setOption('invincible', true);
 
-        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, landPoint.x, landPoint.y, z + 20, 4, 30.0, 10.0, 0.0, 50, 20, 50.0, 0);
+        // --- Utility: Safe wait-for with timeout
+        const waitFor = async (check: () => boolean | Promise<boolean>, timeout = 15000) => {
+            const start = Date.now();
+            while (!(await check())) {
+                if (Date.now() - start > timeout) return false;
+                await alt.Utils.wait(50);
+            }
+            return true;
+        };
 
-        let attempts = 0;
-        while(helicopter.pos.distanceTo(new alt.Vector3(landPoint.x, landPoint.y, z + 20)) > 5 && attempts < 500) {
-            attempts++;
-            await alt.Utils.wait(20);
-        }
+        // --- Utility: Safe Ground Z
+        const getSafeGroundZ = async (x: number, y: number, z: number) => {
+            const [found, ground] = await natives.invokeWithResult(
+                'getGroundZFor3dCoord',
+                x, y, z, 0, false, false
+            );
+            return (found && ground > 0) ? ground : z;
+        };
 
-        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, landPoint.x, landPoint.y, z, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
-        await alt.Utils.wait(3000);
+        const getDynamicTimeout = (from: alt.Vector3, to: alt.Vector3, speedFactor = 1.5) => {
+            const distance = from.distanceTo(to);
+            // Minimaler Timeout von 10 Sekunden, danach skaliert
+            return Math.max(10000, distance * speedFactor);
+        };
 
+        // -------------------------
+        // ENTER HELICOPTER
+        // -------------------------
+        ped.invoke('taskEnterVehicle', helicopter, 0, -1, 2.0, 16, null, 0);
+
+        await waitFor(() => ped.invokeRpc('isPedInAnyHeli'), 10000);
+
+        helicopter.frozen = false;
+
+        // -------------------------
+        // FLY TO PLAYER LANDING POINT
+        // -------------------------
+        const landZ = await getSafeGroundZ(landPoint.x, landPoint.y, landPoint.z);
+
+        ped.invoke('taskHeliMission', helicopter, 0, 0, landPoint.x, landPoint.y, landZ + 20, 4, 30.0, 10.0, 0.0, 50, 20, 50.0, 0);
+
+        const targetHigh = new alt.Vector3(landPoint.x, landPoint.y, landZ + 20);
+        const timeoutHigh = getDynamicTimeout(helicopter.pos, targetHigh, 25);
+        await waitFor(() => helicopter.pos.distanceTo(targetHigh) <= 5, timeoutHigh);
+
+        // Descend
+        ped.invoke('taskHeliMission', helicopter, 0, 0, landPoint.x, landPoint.y, landZ, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
+
+        const targetLow = new alt.Vector3(landPoint.x, landPoint.y, landZ);
+        const timeoutLow = getDynamicTimeout(helicopter.pos, targetLow, 20);
+        await waitFor(() => helicopter.pos.distanceTo(targetLow) <= 5, timeoutLow);
+
+        // -------------------------
+        // PLAYER ENTER
+        // -------------------------
+        player.clearTasks();
+        await alt.Utils.wait(50);
         player.setIntoVehicle(helicopter, 4);
 
-        const [foundEndZ, groundEndZ] = await natives.invokeWithResult('getGroundZFor3dCoord', pos.x, pos.y, pos.z, 0, false, false);
-        const hoverZ = 100; // Immer 100m Höhe über Ziel
-        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, pos.x, pos.y, hoverZ, 4, 35.0, 10.0, 0.0, 50, 20, 50.0, 0);
+        // -------------------------
+        // FLY TO HOSPITAL
+        // -------------------------
+        const hoverZ = 100;
+        const finalZ = await getSafeGroundZ(hospitalPos.x, hospitalPos.y, hospitalPos.z);
 
-        attempts = 0;
-        while(helicopter.pos.distanceTo(new alt.Vector3(pos.x, pos.y, hoverZ)) > 5 && attempts < 500) {
-            attempts++;
-            await alt.Utils.wait(20);
-        }
+        // High approach
+        ped.invoke('taskHeliMission', helicopter, 0, 0, hospitalPos.x, hospitalPos.y, hoverZ, 4, 35.0, 10.0, 0.0, 50, 20, 50.0, 0);
 
-        const finalZ = foundEndZ ? groundEndZ : pos.z;
-        pedDoc.invoke('taskHeliMission', helicopter, 0, 0, pos.x, pos.y, finalZ, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
-        await alt.Utils.wait(3000);
+        const finalHigh = new alt.Vector3(hospitalPos.x, hospitalPos.y, hoverZ);
+        const finalHighTimeout = Math.max(10000, finalHigh.distanceTo(helicopter.pos) * 25);
+        await waitFor(() => helicopter.pos.distanceTo(finalHigh) <= 5, finalHighTimeout);
 
-        pedDoc.invoke('taskLeaveVehicle', helicopter, 0);
-        helicopter.destroy();
-        pilot.destroy();
+        // Landing
+        ped.invoke('taskHeliMission', helicopter, 0, 0, hospitalPos.x, hospitalPos.y, finalZ, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
 
+        const finalLandLow = new alt.Vector3(hospitalPos.x, hospitalPos.y, finalZ);
+        const finalLandLowTimeout = Math.max(10000, finalLandLow.distanceTo(helicopter.pos) * 20);
+        await waitFor(() => helicopter.pos.distanceTo(finalLandLow) <= 5, finalLandLowTimeout);
+
+        // -------------------------
+        // PILOT EXIT & CLEANUP
+        // -------------------------
+        ped.invoke('taskLeaveVehicle', helicopter, 0);
+
+        await waitFor(() => ped.invokeRpc('isPedInAnyHeli') === false, 8000);
+
+        try { helicopter.destroy(); } catch {}
+        try { pilot.destroy(); } catch {}
+
+        // -------------------------
+        // RESPAWN
+        // -------------------------
         await useMedicalService().respawn(player);
     },
     
