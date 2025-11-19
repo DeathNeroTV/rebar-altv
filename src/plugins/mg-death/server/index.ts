@@ -161,7 +161,7 @@ const Internal = {
         // Points
         const { pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);
         const startPoint = await findHospitalHelipad(new alt.Vector3(hospitalPos));
-        const landPoint = Internal.getRescuePoint(player.pos, 1, 3);
+        const landPoint = await findSafeLanding(player.pos, 5, 0.5);
 
         // Utilities
         const natives = Rebar.player.useNative(player);
