@@ -146,6 +146,9 @@ async function handleSelectCharacter(player: alt.Player, id: string) {
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
     player.dimension = 0;
 
+    if (character.pos) player.pos = new alt.Vector3(character.pos);
+    if (character.rot) player.rot = new alt.Vector3(character.rot);
+
     if (character.appearance) {
         player.visible = true;
         Rebar.player.usePlayerAppearance(player).sync();

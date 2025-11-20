@@ -7,7 +7,7 @@ export interface DeathService {
     revived: (player: alt.Player, isReviver: boolean) => Promise<void>;
     respawn: (player: alt.Player, pos?: alt.Vector3) => Promise<void>;
     called: (player: alt.Player) => void;
-    hospital: (pos: alt.IVector3) => { pos: alt.IVector3; rot: alt.IVector3 };
+    hospital: (pos: alt.IVector3) => { name: string; pos: alt.IVector3; rot: alt.IVector3 };
 }
 
 declare global {
