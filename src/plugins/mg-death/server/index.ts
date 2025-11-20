@@ -2,7 +2,6 @@ import * as alt from 'alt-server';
 
 import { useRebar } from '@Server/index.js';
 import * as Utility from '@Shared/utility/index.js';
-import { Character } from '@Shared/types/index.js';
 
 import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
@@ -10,8 +9,6 @@ import { useMedicalService } from './services.js';
 
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
-
-// Stores keyed by character ID (string)
 const TimeOfDeath: Map<string, number> = new Map();
 const ActiveTasks: Map<string, number> = new Map();
 const ActiveLabels: Map<string, any> = new Map();
@@ -127,8 +124,8 @@ const handleRescue = async (player: alt.Player) => {
     const pilotPos = { x: startPoint.x + offset.x, y: startPoint.y + offset.y, z: startPoint.z };
 
     // Create Entities
-    const helicopter = new alt.Vehicle('polmav', { ...startPoint, z: startPoint.z + 0.5 }, startRot, 5000);
-    const pilot = new alt.Ped('s_m_m_pilot_02', pilotPos, startRot, 5000);
+    const helicopter = new alt.Vehicle('polmav', { ...startPoint, z: startPoint.z + 0.5 }, startRot, 10000, true);
+    const pilot = new alt.Ped('s_m_m_pilot_02', pilotPos, startRot, 10000, true);
 
     await ensureValidation(pilot, helicopter, 15, 100);
 
@@ -140,40 +137,6 @@ const handleRescue = async (player: alt.Player) => {
 
     // --- EMS Flugprofil ---
     const flyEMS = {
-        async smoothRotate(entity: alt.Vehicle, targetHeading: number, speed: number = 1.5) {
-            return new Promise(async (resolve) => {
-                const normalize = (h: number) => ((h % 360) + 360) % 360;
-
-                targetHeading = normalize(targetHeading);
-
-                while (true) {
-                    if (!entity || !entity.valid) return resolve(null);
-
-                    const current = normalize(entity.rot.z);
-
-                    let diff = targetHeading - current;
-
-                    // Kürzeste Drehrichtung wählen
-                    if (diff > 180) diff -= 360;
-                    if (diff < -180) diff += 360;
-
-                    // Wenn fast erreicht → fertig
-                    if (Math.abs(diff) < 0.5) {
-                        entity.rot = new alt.Vector3(entity.rot.x, entity.rot.y, targetHeading);
-                        return resolve(true);
-                    }
-
-                    // Smooth Rotation: Schrittweise Annäherung
-                    const step = Math.sign(diff) * speed;
-                    const newHeading = current + step;
-
-                    entity.rot = new alt.Vector3(entity.rot.x, entity.rot.y, newHeading);
-
-                    await alt.Utils.wait(10);
-                }
-            });
-        },
-
         async getIn(maxAttempts: number) {
             for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 const isInVehicle = await ped.invokeRpc('isPedInAnyVehicle', false);
@@ -265,6 +228,13 @@ const handleRescue = async (player: alt.Player) => {
     } catch {}
 
     await useMedicalService().respawn(player);
+};
+
+const handleDeathScreen = (player: alt.Player) => {
+    Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
+    Rebar.player.useClothing(player).sync();
+    Rebar.player.useState(player).sync();
+    Rebar.player.useWeapon(player).sync();
 };
 
 Rebar.services.useServiceRegister().register('medicalService', {
@@ -481,6 +451,15 @@ Rebar.services.useServiceRegister().register('medicalService', {
 });
 
 async function init() {
+    const charEditorApi = await Rebar.useApi().getAsync('character-creator-api');
+    if (!charEditorApi) {
+        alt.logError('[mg-death]', 'character-creator-api not found');
+        return;
+    }
+
+    charEditorApi.onCreate(handleDeathScreen);
+    charEditorApi.onSkipCreate(handleDeathScreen);
+
     alt.on('playerDeath', async (victim: alt.Player, killer: alt.Entity, weapoNHash: number) => await useMedicalService().unconscious(victim));
     // Client Events
     alt.onClient(DeathEvents.toServer.reviveComplete, async (player: alt.Player, isReviver: boolean) => await useMedicalService().revived(player, isReviver));

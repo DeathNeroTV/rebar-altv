@@ -40,11 +40,6 @@ async function showSelection(player: alt.Player, attempts = 0) {
 
     const characters = await accDocument.getCharacters();
 
-    if (CharacterSelectConfig.maxCharacters == 1 && characters.length == 1) {
-        handleSpawnCharacter(player, characters[0]._id);
-        return;
-    }
-
     const webview = Rebar.player.useWebview(player);
     webview.show('CharacterSelect', 'page');
 
@@ -136,7 +131,7 @@ async function getCharacter(player: alt.Player, id: string): Promise<Character |
     return characters.find(char => char._id === id);
 }
 
-async function handleSpawnCharacter(player: alt.Player, id: string) {
+async function handleSelectCharacter(player: alt.Player, id: string) {
     const character = await getCharacter(player, id);
     if (!character) {
         Rebar.player
@@ -147,23 +142,17 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
 
     Rebar.document.character.useCharacterBinder(player).bind(character);
     Rebar.player.useWebview(player).hide('CharacterSelect');
-    Rebar.player.useWorld(player).enableControls();
-    
+    Rebar.player.useWorld(player).enableControls();    
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
-    player.pos = new alt.Vector3(character.pos ?? SpawnPos);
     player.dimension = 0;
-    player.frozen = false;
-    player.deleteMeta(sessionKey);
-    
+
     if (character.appearance) {
         player.visible = true;
         Rebar.player.usePlayerAppearance(player).sync();
     }
-    
-    Rebar.player.useClothing(player).sync();
-    Rebar.player.useWeapon(player).sync();
-    Rebar.player.useState(player).sync();
 
+    player.frozen = false;
+    player.deleteMeta(sessionKey);
     invokeSelect(player, character);
 }
 
@@ -242,7 +231,7 @@ async function init() {
     discordAuthApi.onLogout(handleLogout);
     alt.onClient(CharacterSelectEvents.toServer.submitUsername, handleUsernameSubmit);
     alt.onClient(CharacterSelectEvents.toServer.trashCharacter, handleTrashCharacter);
-    alt.onClient(CharacterSelectEvents.toServer.spawnCharacter, handleSpawnCharacter);
+    alt.onClient(CharacterSelectEvents.toServer.spawnCharacter, handleSelectCharacter);
     alt.onClient(CharacterSelectEvents.toServer.syncCharacter, handleSyncCharacter);
     alt.onClient(CharacterSelectEvents.toServer.logoutCharacter, invokeLogout);
     alt.on('playerDisconnect', handleDisconnect);

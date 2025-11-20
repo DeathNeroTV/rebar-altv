@@ -86,12 +86,6 @@ alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     
 });
 
-alt.on('rebar:playerCharacterBound', (player: alt.Player, character: Character) => {
-    if (!player || !player.valid) return;
-    Rebar.player.useWebview(player).show('Hud', 'overlay');
-    useHudService().updatePlayer(player, 'id', character.id);
-});
-
 alt.on('rebar:playerCharacterUpdated', (player: alt.Player, key: keyof Character, value: any) => {
     if (!player || !player.valid || !config.CharKeys.includes(key)) return;
     useHudService().updatePlayer(player, key, value);
@@ -253,9 +247,21 @@ alt.setInterval(() => {
     timeService.setTime(ingameHours, ingameMinutes, ingameSeconds);
 }, 1000);
 
+const handleHudView = (player: alt.Player) => {
+    if (!player || !player.valid) return;
+    Rebar.player.useWebview(player).show('Hud', 'overlay');
+};
+
 async function init() {
+    const charEditorApi = await Rebar.useApi().getAsync('character-creator-api');
+    if (!charEditorApi) {
+        alt.logError('[mg-hud]', 'character-creator-api not found');
+        return;
+    }
+
+    charEditorApi.onCreate(handleHudView);
+    charEditorApi.onSkipCreate(handleHudView);
     await createCollections();
-    alt.log('[Hud-System]', 'Einstellungen wurden synchronisiert.');
 }
 
 init();
