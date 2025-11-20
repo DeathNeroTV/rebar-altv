@@ -1,137 +1,142 @@
 import * as alt from 'alt-client';
 import * as native from 'natives';
-import { useRebarClient } from '@Client/index.js';
 import { AdminEvents } from '../shared/events.js';
-import { useAudio } from '@Composables/useAudio.js';
+import { useInstructionalButtons } from '@Client/screen/instructionalButtons.js';
+import { useRebarClient } from '@Client/index.js';
+
+const Rebar = useRebarClient();
+const view = Rebar.webview.useWebview();
+const instructionalButtons = useInstructionalButtons();
+const invertX = false;
 
 let noClip = false;
 let speedMultiplier = 1.0;
-
 let alphaPulse = 255;
 let pulseDir = -3;
-
-// UI Overlay Zustand
+let cam: number | null = null;
+let camHeading = 0;
+let camPitch = 0;
 let overlayAlpha = 0;
 let overlayTimer = 0;
 
-const Rebar = useRebarClient();
-
-// Sounds laden
-const sound = useAudio();
+const keyBind: KeyInfo = {
+    identifier: 'toggle-no-clip',
+    description: 'Geistermodus de-/aktivieren',
+    key: alt.KeyCode.F3,
+    keyDown: async () => {
+        if (alt.isConsoleOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+        noClip = await alt.emitRpc(AdminEvents.toServer.ghosting.toggle);
+    },
+    restrictions: { isOnFoot: true }
+};
 
 alt.onServer(AdminEvents.toClient.ghosting.toggle, (state: boolean) => {
     noClip = state;
-
     const player = alt.Player.local;
-    sound.play('/sounds/ghosting.ogg', 0.25);
 
     if (state) {
-        // Aktivierung
-        native.freezeEntityPosition(player.scriptID, true);
-        native.setEntityCollision(player.scriptID, false, false);
+        instructionalButtons.create([
+            { input: '~INPUT_MOVE_UP_ONLY~', text: 'Vorwärts' },
+            { input: '~INPUT_MOVE_DOWN_ONLY~', text: 'Rückwärts' },
+            { input: '~INPUT_MOVE_LEFT_ONLY~', text: 'Links' },
+            { input: '~INPUT_MOVE_RIGHT_ONLY~', text: 'Rechts' },
+            { input: '~INPUT_JUMP~', text: 'Hoch' },
+            { input: '~INPUT_LOOK_BEHIND~', text: 'Runter' },
+            { input: '~INPUT_SPRINT~', text: 'Schnell' },
+            { input: '~INPUT_FRONTEND_RS~', text: 'Langsam' },
+        ]);
+        
+        if (!cam) {
+            cam = native.createCamWithParams('DEFAULT_SCRIPTED_CAMERA', player.pos.x, player.pos.y, player.pos.z + 1.5, 0, 0, 0, 75, true, 2);
+            native.setCamActive(cam, true);
+            native.renderScriptCams(true, false, 0, true, false, 0);
+            camHeading = player.rot.z;
+        }
 
-        // Ghost Optik
-        native.setEntityVisible(player.scriptID, false, false);
         alphaPulse = 180;
-
-        // Overlay anzeigen
         overlayAlpha = 255;
         overlayTimer = Date.now() + 2500;
     } else {
-        // Deaktivierung
-        native.freezeEntityPosition(player.scriptID, false);
-        native.setEntityCollision(player.scriptID, true, true);
-        native.setEntityVisible(player.scriptID, true, true);
+        instructionalButtons.destroy();
         native.resetEntityAlpha(player.scriptID);
 
+        if (cam) {
+            native.renderScriptCams(false, false, 0, true, false, 0);
+            native.destroyCam(cam, true);
+            cam = null;
+        }
         overlayAlpha = 255;
         overlayTimer = Date.now() + 2000;
     }
 });
 
-
-// MAIN LOOP
 alt.everyTick(() => {
-    if (!noClip) return;
-    renderOverlay();
-    renderControlsOverlay();
-
     const player = alt.Player.local;
-    // Alpha-Puls Effekt (leichter Flackereffekt)
+    if (!noClip) return;
+
+    renderOverlay();
+
+    // Alpha-Puls Effekt
     alphaPulse += pulseDir;
     if (alphaPulse <= 80) pulseDir = +3;
     if (alphaPulse >= 180) pulseDir = -3;
-
     native.setEntityAlpha(player.scriptID, alphaPulse, false);
 
-    // Bewegung
-    const camRot = native.getGameplayCamRot(2);
-    const camDir = rotationToDirection(camRot);
+    // Kamera-Rotation via Mausachsen
+    const dx = native.getDisabledControlNormal(0, 1); // LookLeftRight
+    const dy = native.getDisabledControlNormal(0, 2); // LookUpDown
+    camHeading += dx * 5 * (invertX ? -1 : 1);
+    camPitch -= dy * 5;
+    camPitch = Math.max(-89, Math.min(89, camPitch));
 
-    let pos = { ...player.pos };
+    // Bewegungsrichtung
+    const camDir = headingPitchToVector(camHeading, camPitch);
 
     // Speed Control
-    if (alt.isKeyDown(alt.KeyCode.Shift)) speedMultiplier = 3.0;     // SHIFT
-    else if (alt.isKeyDown(alt.KeyCode.Ctrl)) speedMultiplier = 0.5; // STRG
+    if (alt.isKeyDown(alt.KeyCode.Shift)) speedMultiplier = 3.0;
+    else if (alt.isKeyDown(alt.KeyCode.Ctrl)) speedMultiplier = 0.5;
     else speedMultiplier = 1.0;
 
-    // Move
-    if (alt.isKeyDown(alt.KeyCode.W)) { // W
+    // Position berechnen
+    let pos = { ...player.pos };
+
+    if (alt.isKeyDown(alt.KeyCode.W)) {
         pos.x += camDir.x * speedMultiplier;
         pos.y += camDir.y * speedMultiplier;
         pos.z += camDir.z * speedMultiplier;
     }
-    if (alt.isKeyDown(alt.KeyCode.S)) { // S
+    if (alt.isKeyDown(alt.KeyCode.S)) {
         pos.x -= camDir.x * speedMultiplier;
         pos.y -= camDir.y * speedMultiplier;
         pos.z -= camDir.z * speedMultiplier;
     }
-    if (alt.isKeyDown(alt.KeyCode.A)) { // A
-        pos.x += camDir.y * speedMultiplier;
-        pos.y -= camDir.x * speedMultiplier;
-    }
-    if (alt.isKeyDown(alt.KeyCode.D)) { // D
+    if (alt.isKeyDown(alt.KeyCode.A)) {
         pos.x -= camDir.y * speedMultiplier;
         pos.y += camDir.x * speedMultiplier;
     }
+    if (alt.isKeyDown(alt.KeyCode.D)) {
+        pos.x += camDir.y * speedMultiplier;
+        pos.y -= camDir.x * speedMultiplier;
+    }
+    if (alt.isKeyDown(alt.KeyCode.Space)) pos.z += 0.5 * speedMultiplier;
+    if (alt.isKeyDown(alt.KeyCode.C)) pos.z -= 0.5 * speedMultiplier;
 
-    if (alt.isKeyDown(alt.KeyCode.Space)) pos.z += 0.5 * speedMultiplier; // SPACE
-    if (alt.isKeyDown(alt.KeyCode.C)) pos.z -= 0.5 * speedMultiplier; // C
     player.pos = new alt.Vector3(pos);
+
+    // Kamera setzen
+    if (cam) {
+        native.setCamCoord(cam, pos.x, pos.y, pos.z + 1.5);
+        native.pointCamAtCoord(cam, pos.x + camDir.x, pos.y + camDir.y, pos.z + camDir.z + 1.5);
+    }
 
     disableControls();
 });
 
-function renderControlsOverlay() {
-    const startX = 0.75; // rechts
-    const startY = 0.85; // unten
-    const lineHeight = 0.03;
-    const alpha = 220;
-
-    const controls = [
-        { key: 'W', action: 'Vorwärts' },
-        { key: 'S', action: 'Rückwärts' },
-        { key: 'A', action: 'Links' },
-        { key: 'D', action: 'Rechts' },
-        { key: 'SPACE', action: 'Hoch' },
-        { key: 'C', action: 'Runter' },
-        { key: 'SHIFT', action: 'Schnell' },
-        { key: 'CTRL', action: 'Langsam' },
-        { key: 'NO CLIP HOTKEY', action: 'Modus an/aus' },
-    ];
-
-    native.setTextFont(0);
-    native.setTextScale(0.35, 0.35);
-    native.setTextColour(255, 255, 255, alpha);
-    native.setTextOutline();
-    native.setTextCentre(false);
-
-    controls.forEach((ctrl, i) => {
-        const y = startY + i * lineHeight;
-        native.beginTextCommandDisplayText("STRING");
-        native.addTextComponentSubstringPlayerName(`${ctrl.key} → ${ctrl.action}`);
-        native.endTextCommandDisplayText(startX, y, 0);
-    });
+function headingPitchToVector(heading: number, pitch: number) {
+    const h = heading * (Math.PI / 180);
+    const p = pitch * (Math.PI / 180);
+    const cosP = Math.cos(p);
+    return { x: Math.sin(h) * cosP, y: Math.cos(h) * cosP, z: Math.sin(p) };
 }
 
 function renderOverlay() {
@@ -145,10 +150,9 @@ function renderOverlay() {
     native.setTextColour(255, 255, 255, overlayAlpha);
     native.setTextOutline();
     native.setTextCentre(false);
-
     native.beginTextCommandDisplayText("STRING");
-    native.addTextComponentSubstringPlayerName(`~b~Geistermodus ~s~${alt.Player.local.frozen ? "~g~AKTIV" : "~r~INAKTIV"}`);
-    native.endTextCommandDisplayText(0.5, 0.05, 0); // Top-center
+    native.addTextComponentSubstringPlayerName(`~b~Geistermodus ~s~AKTIV`);
+    native.endTextCommandDisplayText(0.5, 0.05, 0);
 }
 
 function disableControls() {
@@ -157,14 +161,9 @@ function disableControls() {
     }
 }
 
-// Kamera-Rotation → Bewegungsrichtung
-function rotationToDirection(rot) {
-    const z = rot.z * (Math.PI / 180.0);
-    const x = rot.x * (Math.PI / 180.0);
-    const num = Math.abs(Math.cos(x));
-    return {
-        x: -Math.sin(z) * num,
-        y: Math.cos(z) * num,
-        z: Math.sin(x)
-    };
+async function init() {
+    const keyBindApi = await Rebar.useClientApi().getAsync('keyBinds-api');
+    if (!keyBindApi) return;
+    keyBindApi.add(keyBind);
 }
+init();

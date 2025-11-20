@@ -1,40 +1,22 @@
 import alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
 import { useMedicalService } from '@Plugins/mg-death/server/services.js';
+import { useInventoryService } from '@Plugins/mg-inventory/server/itemService.js';
 
-import { AdminAction, PlayerStats } from '../../shared/interfaces.js';
+import { AdminAction } from '../../shared/interfaces.js';
 import { ActionType, GiveType, TeleportType } from '../../shared/enums.js';
 import { AdminEvents } from '../../shared/events.js';
 import { AdminConfig } from '../../shared/config.js';
-import { useInventoryService } from '@Plugins/mg-inventory/server/itemService.js';
+
+import './rpcEvents.js';
 
 const Rebar = useRebar();
 const medicalService = useMedicalService();
 const notifyApi = await useRebar().useApi().getAsync('notify-api');
 
-alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
-    const players: PlayerStats[] = [];
-    for (const p of alt.Player.all.filter(x => 
-        !x.hasMeta('can-change-appearance') && 
-        !x.hasMeta('can-select-character') && 
-        !x.hasMeta('can-auth-account')&& 
-        !x.hasMeta('can-see-intro')
-    )) {
-        players.push({
-            health: p.health,
-            id: p.id,
-            name: p.name,
-            ping: p.ping,
-            armour: p.armour,
-            pos: { 
-                x: player.pos.x, 
-                y: player.pos.y, 
-                z: player.pos.z 
-            },
-        });
-    }
-    return players;
-});
+alt.onClient(AdminEvents.toServer.request.user.create.character, (player: alt.Player, account_id: string, name: string) => {});
+
+alt.onClient(AdminEvents.toServer.request.user.create.vehicle, (player: alt.Player, character_id: string, name: string) => {});
 
 alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminAction) => {
     const target = alt.Player.all.find(p => p.id === data.playerId);

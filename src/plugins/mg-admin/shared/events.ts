@@ -38,6 +38,17 @@ export const AdminEvents = {
             player: 'mg-admin:request:player',
             items: 'mg-admin:request:items',
             weapons: 'mg-admin:request:weapons',
+            user: {
+                account: 'mg-admin:request:user:account',
+                unban: 'mg-admin:request:user:unban',
+                vehicles: 'mg-admin:request:user:vehicles',
+                characters: 'mg-admin:request:user:characters',
+                logs: 'mg-admin:request:user:logs',
+                create: {
+                    character: 'mg-admin:user:create:character',
+                    vehicle: 'mg-admin:user:create:vehicle',
+                },
+            },
         },
         item: {
             create: 'mg-admin:item:create',

@@ -27,6 +27,11 @@ export function handleNoClipToggle(player: alt.Player) {
     const newState = !ghosts.get(charId);
     ghosts.set(charId, newState);
 
+    player.frozen = newState;
+    player.collision = !newState;
+    player.visible = !newState;
+
+    Rebar.player.useAudio(player).playSound('/sounds/ghosting.ogg', 0.25);
     player.emit(AdminEvents.toClient.ghosting.toggle, newState);
     return newState;
 }

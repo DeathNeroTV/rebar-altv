@@ -124,6 +124,8 @@ function handleWhitelistRequest(player: alt.Player, request: WhitelistRequest) {
 }
 
 async function init() {
+    await db.createCollection('Logs');
+    
     const discordAuthApi = await Rebar.useApi().getAsync('discord-auth-api');
     discordAuthApi.onWhitelistRequest(handleWhitelistRequest);
 

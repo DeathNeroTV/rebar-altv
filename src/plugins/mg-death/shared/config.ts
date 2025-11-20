@@ -26,13 +26,13 @@ export const DeathConfig = {
             rot: { x: 0.0, y: 0.0, z: 0.0 }  
         },
         {
-            name: "The Bay Care Center",
+            name: "Portola Trinity Medical Center",
             pos: { x: -874.64, y: -307.71, z: 39.58 },
             rot: { x: 0.0, y: 0.0, z: 135.0 }
         },
         {
             name: "Paleto Bay Medical Center",
-            pos: { x: -247.9870147705078, y: 6331.52294921875, z: 32.426185607910156 },
+            pos: { x: -247.9870, y: 6331.5229, z: 32.4261 },
             rot: { x: 0.0, y: 0.0, z: 135.0 }
         },
         {
@@ -47,6 +47,11 @@ export const DeathConfig = {
         },
     ],
     helipads: [
+        {
+            name: "Portola Trinity Medical Center Helipad",
+            pos: { x: -844.5158, y: -336.1398, z: 79.0703 },
+            rot: { x: 0, y: 0, z: -1.0914760828018188 }
+        },
         {
             name: "Central Los Santos Medical Center Helipad",
             pos: { x: 299.374267578125, y: -1453.4263916015625, z: 46.509521484375 },
@@ -66,6 +71,11 @@ export const DeathConfig = {
             name: "Paleto Bay Medical Center Helipad",
             pos: { x: -255.09519958496094, y: 6314.1376953125, z: 37.61727523803711 },
             rot: { x: 0, y: 0, z: -2.372201442718506 }
+        },
+        {
+            name: "Eclipse medical Tower Helipad",
+            pos: { x: -706.3345, y: 324.3116, z: 140.1468 },
+            rot: { x: 0, y: 0, z: 1.4396708011627197 }
         },
     ]
 };

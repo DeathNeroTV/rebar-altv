@@ -246,7 +246,7 @@ const Internal = {
             },
 
             async takeoff(z: number) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 3, headingRad, z, 0, 5, 128);
+                ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 3, -1, z, 0, 5, 128);
                 await reachGoal({ ...helicopter.pos, z }, helicopter, 3, 200, 100);
             },
 

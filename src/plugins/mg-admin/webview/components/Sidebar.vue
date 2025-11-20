@@ -10,7 +10,7 @@
 
 	const events = useEvents();
 
-	const isInGhost = ref<boolean>(false);
+	const isInGhost = ref<boolean>(true);
 	const isInUse = ref<boolean>(false);
 	const { active, sections, language } = defineProps({ active: String, sections: Array<DashboardStat>, language: String });
 
@@ -41,15 +41,11 @@
 	    }
 	};
 
-	const toggleNoClip = async () => {
-		isInGhost.value = await events.emitServerRpc(AdminEvents.toServer.ghosting.toggle) || !isInGhost.value;
-	};
+	const navigate = (page: string) => emits('navigate', page);
 
 	onMounted(async () => {
-		isInGhost.value = await events.emitServerRpc(AdminEvents.toServer.ghosting.request) || !isInGhost.value;
+		isInGhost.value = await events.emitServerRpc(AdminEvents.toServer.ghosting.request) ?? true;
 	});
-
-	const navigate = (page: string) => emits('navigate', page);
 </script>
 
 <template>
@@ -64,9 +60,8 @@
 		<div class="mb-5 h-fit max-h-fit flex flex-col gap-3 items-center justify-center text-center">
 			<div class="relative group w-full min-h-fit max-h-fit items-center text-center">
 				<button
-					@click="toggleNoClip"
-					class="p-3 text-center hover:font-semibold hover:bg-neutral-900/95 bg-transparent transition text-gray-100 rounded-full items-center"
-					:class="isInGhost === true ? 'ring-2 ring-[#008736] bg-neutral-900/95 font-semibold' : 'bg-transparent'"
+					v-if="isInGhost"
+					class="p-3 text-center ring-2 ring-[#008736] bg-neutral-900/95 font-semibold transition text-gray-100 rounded-full items-center justify-center"
 				>
 					<font-awesome-icon :icon="['fas', 'ghost']" class="text-2xl" />
 				</button>
