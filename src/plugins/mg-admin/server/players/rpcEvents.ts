@@ -42,6 +42,22 @@ alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
     return players;
 });
 
+alt.onRpc(AdminEvents.toServer.request.user.account, async (player: alt.Player, _id: string) => {
+    return await db.get<Account>({ _id }, CollectionNames.Accounts);
+});
+
+alt.onRpc(AdminEvents.toServer.request.user.characters, async (player: alt.Player, _id: string) => {
+    return await db.getMany<Character>({ account_id: _id }, CollectionNames.Characters);
+});
+
+alt.onRpc(AdminEvents.toServer.request.user.vehicles, async (player: alt.Player, _id: string) => {
+    return await db.getMany<Vehicle>({ owner: _id }, CollectionNames.Vehicles);
+});
+
+alt.onRpc(AdminEvents.toServer.request.user.logs, async (player: alt.Player, _id: string) => {
+    return await db.getMany<PlayerLog>({ character_id: _id }, CollectionNames.Logs);
+});
+
 alt.onRpc(AdminEvents.toServer.request.user.unban, async (player: alt.Player, _id: string) => {
     const account = await db.get<Account>({ _id }, CollectionNames.Accounts);
     if (!account) return null;
@@ -59,16 +75,4 @@ alt.onRpc(AdminEvents.toServer.request.user.unban, async (player: alt.Player, _i
         oggFile
     });
     return account;
-});
-
-alt.onRpc(AdminEvents.toServer.request.user.characters, async (player: alt.Player, _id: string) => {
-    return await db.getMany<Character>({ account_id: _id }, CollectionNames.Characters);
-});
-
-alt.onRpc(AdminEvents.toServer.request.user.vehicles, async (player: alt.Player, _id: string) => {
-    return await db.getMany<Vehicle>({ owner: _id }, CollectionNames.Vehicles);
-});
-
-alt.onRpc(AdminEvents.toServer.request.user.logs, async (player: alt.Player, _id: string) => {
-    return await db.getMany<PlayerLog>({ character_id: _id }, CollectionNames.Logs);
 });

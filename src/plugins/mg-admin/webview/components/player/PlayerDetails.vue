@@ -56,7 +56,7 @@
 		document.body.removeChild(el);
 	};
 
-	const openAccount = async () => {
+	const openAccount = () => {
 		showAccount.value = true;
 		showCharacters.value = false;
 		showVehicles.value = false;
@@ -100,7 +100,7 @@
 	);
 
 	watch(
-		() => show.value,
+		() => props.player,
 		async (val) => {
 			if (val) await loadAccountData();
 			else {
@@ -169,6 +169,9 @@
 					<div class="flex flex-row gap-5 ml-4">
 						<p class="text-md text-neutral-500">
 							ID: <span class="text-gray-100">{{ props.player?.id }}</span>
+						</p>
+						<p class="text-md text-neutral-500">
+							Account ID: <span class="text-gray-100">{{ props.player?.account_id ?? '—' }}</span>
 						</p>
 						<p class="text-md text-neutral-500">
 							PING: <span class="text-gray-100">{{ props.player?.ping ?? '—' }}</span>
