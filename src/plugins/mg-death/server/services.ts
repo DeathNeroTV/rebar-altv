@@ -2,7 +2,7 @@ import * as alt from 'alt-server';
 import { useServiceRegister } from '@Server/services/index.js';
 
 export interface DeathService {
-    unconscious: (player: alt.Player) => void;
+    unconscious: (player: alt.Player) => Promise<void>;
     revive: (player: alt.Player, victim: alt.Player) => Promise<void>;
     revived: (player: alt.Player, isReviver: boolean) => Promise<void>;
     respawn: (player: alt.Player, pos?: alt.Vector3) => Promise<void>;
@@ -29,31 +29,31 @@ declare module 'alt-server' {
 
 export function useMedicalService() {
     return {
-        unconscious(...args: Parameters<DeathService['unconscious']>) {
+        async unconscious(...args: Parameters<DeathService['unconscious']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.unconscious) 
-                service.unconscious(...args);
+                await service.unconscious(...args);
 
             alt.emit('mg-death:playerUnconscious', ...args);
         },
         async revive(...args: Parameters<DeathService['revive']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.revive) 
-                service.revive(...args);
+                await service.revive(...args);
 
             alt.emit('mg-death:playerRevive', ...args);
         },
         async revived(...args: Parameters<DeathService['revived']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.revived) 
-                service.revived(...args);
+                await service.revived(...args);
 
             alt.emit('mg-death:playerRevived', ...args);
         },
         async respawn(...args: Parameters<DeathService['respawn']>) {
             const service = useServiceRegister().get('medicalService');
             if (service && service.respawn) 
-                service.respawn(...args);
+                await service.respawn(...args);
 
             alt.emit('mg-death:playerRespawned', ...args);
         },

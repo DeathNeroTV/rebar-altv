@@ -9,7 +9,7 @@
 	import PlayerCharacterPanel from './panels/PlayerCharacterPanel.vue';
 	import PlayerVehiclePanel from './panels/PlayerVehiclePanel.vue';
 	import { AdminEvents } from '@Plugins/mg-admin/shared/events';
-	import { Account, Character, Vehicle } from '@Shared/types';
+	import { Account, Character, Vehicle } from '@Shared/types/index';
 
 	const props = defineProps<{
 		player: PlayerStats | null;
@@ -34,6 +34,14 @@
 	const vehicles = ref<Vehicle[]>([]);
 	const logs = ref<PlayerLog[]>([]);
 
+	// loading / error flags
+	const loadingAccount = ref(false);
+	const loadingCharacters = ref(false);
+	const loadingVehicles = ref(false);
+	const loadingLogs = ref(false);
+	const lastAccountIdLoaded = ref<string | null>(null);
+
+	// Clipboard helpers left unchanged (you already use textarea fallback)
 	const copyPosition = () => {
 		if (!props.player?.pos) return;
 		const text = `{ x: ${props.player.pos.x.toFixed(4)}, y: ${props.player.pos.y.toFixed(4)}, z: ${props.player.pos.z.toFixed(4)} }`;
@@ -47,7 +55,7 @@
 
 	const copyRotation = () => {
 		if (!props.player?.rot) return;
-		const text = `{ x: ${props.player.rot.x.toFixed(4)}, y: ${props.player.rot.y.toFixed(4)}, y: ${props.player.rot.z.toFixed(4)} }`;
+		const text = `{ x: ${props.player.rot.x.toFixed(4)}, y: ${props.player.rot.y.toFixed(4)}, z: ${props.player.rot.z.toFixed(4)} }`;
 		const el = document.createElement('textarea');
 		el.value = text;
 		document.body.appendChild(el);
@@ -56,90 +64,200 @@
 		document.body.removeChild(el);
 	};
 
-	const openAccount = () => {
+	// zentrale Refresh-Funktion (Account + Characters)
+	const refreshAll = async () => {
+		if (!props.player || !show.value) return;
+		const accId = props.player.account_id;
+		if (!accId) {
+			console.warn('[AdminMenu] Kein account_id vorhanden auf props.player');
+			account.value = null;
+			characters.value = [];
+			return;
+		}
+
+		// optional: vermeiden mehrfacher identischer Requests
+		if (lastAccountIdLoaded.value === accId && account.value) return;
+
+		try {
+			loadingAccount.value = true;
+			account.value = await events.emitServerRpc(AdminEvents.toServer.request.user.account, accId);
+			lastAccountIdLoaded.value = accId ?? null;
+		} catch (err) {
+			console.error('[AdminMenu] Fehler beim Laden des Accounts:', err);
+			account.value = null;
+		} finally {
+			loadingAccount.value = false;
+		}
+
+		// Characters nur laden wenn Account existiert
+		if (account.value?._id) {
+			try {
+				loadingCharacters.value = true;
+				characters.value = await events.emitServerRpc(AdminEvents.toServer.request.user.characters, account.value._id);
+			} catch (err) {
+				console.error('[AdminMenu] Fehler beim Laden der Characters:', err);
+				characters.value = [];
+			} finally {
+				loadingCharacters.value = false;
+			}
+		} else {
+			characters.value = [];
+		}
+	};
+
+	// --- Panel-öffner: laden bei Bedarf ---
+	const openAccount = async () => {
 		showAccount.value = true;
 		showCharacters.value = false;
 		showVehicles.value = false;
 		showLogs.value = false;
+
+		// Lade Account sofort (auch wenn refreshAll bereits lief, double-check)
+		if (!account.value && props.player?.account_id) {
+			await refreshAll();
+		} else if (props.player?.account_id && props.player?.account_id !== lastAccountIdLoaded.value) {
+			await refreshAll();
+		}
 	};
 
-	const openCharacters = () => {
+	const openCharacters = async () => {
 		showCharacters.value = true;
 		showAccount.value = false;
 		showVehicles.value = false;
 		showLogs.value = false;
+
+		// Wenn characters noch nicht geladen oder falsche account id -> (re)load
+		if ((!characters.value || characters.value.length === 0) && props.player?.account_id) {
+			await refreshAll();
+		}
 	};
 
-	const openVehicles = () => {
+	const openVehicles = async () => {
 		showVehicles.value = true;
 		showAccount.value = false;
 		showCharacters.value = false;
 		showLogs.value = false;
+
+		// Wenn ein character selektiert ist, lade dessen Fahrzeuge
+		if (character.value?._id) {
+			try {
+				loadingVehicles.value = true;
+				vehicles.value = await events.emitServerRpc(AdminEvents.toServer.request.user.vehicles, character.value._id);
+			} catch (err) {
+				console.error('[AdminMenu] Fahrzeuge laden fehlgeschlagen:', err);
+				vehicles.value = [];
+			} finally {
+				loadingVehicles.value = false;
+			}
+		}
 	};
 
-	const openLogs = () => {
+	const openLogs = async () => {
 		showLogs.value = true;
 		showAccount.value = false;
 		showCharacters.value = false;
 		showVehicles.value = false;
+
+		// Wenn ein character selektiert ist, lade dessen Logs
+		if (character.value?._id) {
+			try {
+				loadingLogs.value = true;
+				logs.value = await events.emitServerRpc(AdminEvents.toServer.request.user.logs, character.value._id);
+			} catch (err) {
+				console.error('[AdminMenu] Logs laden fehlgeschlagen:', err);
+				logs.value = [];
+			} finally {
+				loadingLogs.value = false;
+			}
+		}
 	};
 
 	const closePanels = () => {
 		showAccount.value = showCharacters.value = showVehicles.value = showLogs.value = false;
 	};
 
-	const loadAccountData = async () => {
-		if (!props.player) return;
-		account.value = await events.emitServerRpc(AdminEvents.toServer.request.user.account, props.player.account_id);
-		characters.value = await events.emitServerRpc(AdminEvents.toServer.request.user.characters, props.player.account_id);
-	};
-
+	// Watcher: show und player.id → refresh bei beiden Fällen
 	watch(
 		() => props.visible,
-		(val) => (show.value = val)
+		(val) => {
+			show.value = val;
+		}
 	);
 
 	watch(
-		() => props.player,
+		() => props.player?.account_id,
 		async (val) => {
-			if (val) await loadAccountData();
-			else {
+			// wird getriggert, wenn in der Tabelle ein anderer Spieler ausgewählt wird
+			if (!val) {
+				account.value = null;
+				characters.value = [];
+				lastAccountIdLoaded.value = null;
+				return;
+			}
+			// nur aktualisieren wenn Panel offen ist (oder du willst immer laden)
+			if (show.value) {
+				await refreshAll();
+			}
+		}
+	);
+
+	// Wenn das Haupt-Panel geöffnet wird, lade Account/Characters (falls vorhanden)
+	watch(
+		() => show.value,
+		async (val) => {
+			if (val) {
+				await refreshAll();
+			} else {
 				account.value = null;
 				character.value = null;
 				characters.value = [];
 				vehicles.value = [];
 				logs.value = [];
+				lastAccountIdLoaded.value = null;
 			}
 		}
 	);
 
+	// Character watcher: wenn character wechselt, lade vehicles + logs
 	watch(
-		() => character.value,
+		() => character.value?._id,
 		async (val) => {
-			if (!val?._id) {
+			if (val) {
+				try {
+					loadingVehicles.value = true;
+					vehicles.value = await events.emitServerRpc(AdminEvents.toServer.request.user.vehicles, val);
+				} catch (err) {
+					console.error('[AdminMenu] Fahrzeuge laden fehlgeschlagen (watch):', err);
+					vehicles.value = [];
+				} finally {
+					loadingVehicles.value = false;
+				}
+
+				try {
+					loadingLogs.value = true;
+					logs.value = await events.emitServerRpc(AdminEvents.toServer.request.user.logs, val);
+				} catch (err) {
+					console.error('[AdminMenu] Logs laden fehlgeschlagen (watch):', err);
+					logs.value = [];
+				} finally {
+					loadingLogs.value = false;
+				}
+			} else {
 				vehicles.value = [];
 				logs.value = [];
-				return;
 			}
-			vehicles.value = await events.emitServerRpc(AdminEvents.toServer.request.user.vehicles, val._id);
-			logs.value = await events.emitServerRpc(AdminEvents.toServer.request.user.logs, val._id);
 		}
 	);
 
+	// restliche helper functions (select/create/unban) unverändert
 	const selectCharacter = async (_id: string) => {
 		const selected = characters.value.find((x) => x._id === _id) || null;
 		character.value = selected;
-		if (selected?._id) {
-			vehicles.value = await events.emitServerRpc(AdminEvents.toServer.request.user.vehicles, selected._id);
-			logs.value = await events.emitServerRpc(AdminEvents.toServer.request.user.logs, selected._id);
-		} else {
-			vehicles.value = [];
-			logs.value = [];
-		}
+		// die watch auf character.value?._id lädt vehicles/logs automatisch
 	};
 
 	const selectVehicle = (_id: string) => {
-		vehicle.value = vehicles.value.find((x) => x._id === _id);
+		vehicle.value = vehicles.value.find((x) => x._id === _id) || null;
 	};
 
 	const createCharacter = (name: string) => {

@@ -8,4 +8,9 @@ client-files = [
     "**/shared/*",
     "**/translate/*"
 ]
-required-permissions = ['Screen Capture']
+
+required-permissions = [
+    'Screen Capture',
+    'Clipboard Access',
+    'Extended Voice API'
+]

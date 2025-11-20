@@ -16,327 +16,258 @@ const TimeOfDeath: Map<string, number> = new Map();
 const ActiveTasks: Map<string, { timeout?: number; interval?: number }> = new Map();
 const ActiveLabels: Map<string, any> = new Map();
 
-const Internal = {
-    async handleSkipCreate(player: alt.Player) {
-        if (!player || !player.valid) return;
+const handleRescue = async (player: alt.Player) => {
+    player.emit(DeathEvents.toClient.toggleControls, false);
 
-        const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid()) return;
+    // Utilities
+    const natives = Rebar.player.useNative(player);
 
-        const storedPos = document.getField('pos');
-        if (storedPos) {
-            player.spawn(storedPos);
-            player.pos = new alt.Vector3(storedPos);
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().INFO,
+        title: 'Rettungsdienst',
+        subtitle: 'Notruf',
+        message: 'Es wurde ein Rettungshelikopter entsendet',
+        oggFile: 'notification',
+    });
+
+    // --- Utility: Check if Area is blocked
+    const isLandingSafe = async (pos: alt.IVector3, rot: alt.IVector3) => {
+        const tempHeli = new alt.Vehicle('polmav', pos, rot, 5000);
+        tempHeli.setNetOwner(player);
+        tempHeli.frozen = true;
+        const blocked = await natives.invokeWithResult('isHeliLandingAreaBlocked', tempHeli);
+        tempHeli.destroy();
+        return !blocked;
+    };
+
+    // --- Utility: Search position in radius for landing
+    const findSafeLanding = async (center: alt.IVector3, rot: alt.IVector3, radius = 30, step = 3) => {
+        // Prüfe zuerst Zentrum
+        if (await isLandingSafe(center, rot)) return { pos: center, rot };
+
+        // Spiral- oder Raster-Suche
+        for (let dx = -radius; dx <= radius; dx += step) {
+            for (let dy = -radius; dy <= radius; dy += step) {
+                const testPos = new alt.Vector3(center.x + dx, center.y + dy, center.z);
+                const isSafe = await isLandingSafe(testPos, rot);
+                if (isSafe) return { pos: testPos, rot };
+            }
         }
 
-        Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
+        // Fallback: Originalposition, selbst wenn blockiert
+        return { pos: center, rot };
+    };
 
-        if (document.getField('isDead')) 
-            useMedicalService().unconscious(player);
-    },
+    const findHospitalHelipad = async (center: alt.Vector3) => {
+        // Filter Helipads, die in der Nähe des gewünschten Krankenhauses liegen (Radius 50m)
+        const nearbyPads = DeathConfig.helipads.filter((pad) => center.distanceTo(pad.pos) <= 50);
 
-    async handleCharacterUpdate(player: alt.Player, key: keyof Character, value: any) {
-        if (!player || !player.valid) return;
-        
-        const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid() || key !== 'isDead') return;
-        if (!value) return;
-
-        await document.set('pos', player.pos);
-        useMedicalService().unconscious(player);
-    },
-
-    async handleDeath(player: alt.Player) {
-        if (!player || !player.valid) return;
-
-        const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid()) return;
-
-        // Markiere character als tot (persist)
-        if (!document.getField('isDead')) await document.set('isDead', true);
-        else useMedicalService().unconscious(player);
-    },
-
-    async handleRescue(player: alt.Player) {
-        player.emit(DeathEvents.toClient.toggleControls, false);
-
-        // Utilities
-        const natives = Rebar.player.useNative(player);
-
-        notifyApi.general.send(player, {
-            icon: notifyApi.general.getTypes().INFO,
-            title: 'Rettungsdienst',
-            subtitle: 'Notruf',
-            message: 'Es wurde ein Rettungshelikopter entsendet',
-            oggFile: 'notification'
-        });
-
-        // --- Utility: Check if Area is blocked
-        const isLandingSafe = async(pos: alt.IVector3, rot: alt.IVector3) => {
-            const tempHeli = new alt.Vehicle('polmav', pos, rot, 2500);
+        for (const pad of nearbyPads) {
+            // Prüfen, ob Landefläche frei ist
+            const tempHeli = new alt.Vehicle('polmav', pad.pos, pad.rot, 2500);
             tempHeli.frozen = true;
             const blocked = await natives.invokeWithResult('isHeliLandingAreaBlocked', tempHeli);
             tempHeli.destroy();
-            return !blocked;
-        };
 
-        // --- Utility: Search position in radius for landing
-        const findSafeLanding = async (center: alt.IVector3, rot: alt.IVector3, radius = 30, step = 3) => {
-            // Prüfe zuerst Zentrum
-            if (await isLandingSafe(center, rot)) return { pos: center, rot };
-
-            // Spiral- oder Raster-Suche
-            for (let dx = -radius; dx <= radius; dx += step) {
-                for (let dy = -radius; dy <= radius; dy += step) {
-                    const testPos = new alt.Vector3(center.x + dx, center.y + dy, center.z);
-                    const isSafe = await isLandingSafe(testPos, rot);
-                    if (isSafe) return { pos: testPos, rot };
-                }
-            }
-
-            // Fallback: Originalposition, selbst wenn blockiert
-            return { pos: center, rot };
-        };
-
-        const findHospitalHelipad = async (center: alt.Vector3) => {
-            // Filter Helipads, die in der Nähe des gewünschten Krankenhauses liegen (Radius 50m)
-            const nearbyPads = DeathConfig.helipads.filter(pad => center.distanceTo(pad.pos) <= 50);
-
-            for (const pad of nearbyPads) {
-                // Prüfen, ob Landefläche frei ist
-                const tempHeli = new alt.Vehicle('polmav', pad.pos, pad.rot, 2500);
-                tempHeli.frozen = true;
-                const blocked = await natives.invokeWithResult('isHeliLandingAreaBlocked', tempHeli);
-                tempHeli.destroy();
-
-                if (!blocked) return { pos: pad.pos, rot: pad.rot }; // freies Helipad gefunden
-            }
-
-            // Fallback: findSafeLanding, wenn kein Helipad frei
-            return await findSafeLanding(hospitalPos, hospitalRot, 1, 0.5);
-        };
-
-        // Funktion, die sicherstellt, dass pilot und heli valid sind
-        const ensureValidation = async(ped: alt.Ped, vehicle: alt.Vehicle, maxAttempts: number = 10, delay: number = 500) => {
-            for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                if (ped && ped.valid && vehicle && vehicle.valid) return;
-                await alt.Utils.wait(delay);
-            }
-        };
-
-        const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: number = 5, maxAttempts = 10, delay = 500) => {
-            for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                if (vehicle.pos.distanceTo(pos) <= distance) return;
-                await alt.Utils.wait(delay);
-            }
+            if (!blocked) return { pos: pad.pos, rot: pad.rot }; // freies Helipad gefunden
         }
 
-        // --- Utility: Safe Ground Z
-        const getSafeGroundZ = async (x: number, y: number, z: number) => {
-            const [found, ground] = await natives.invokeWithResult(
-                'getGroundZFor3dCoord',
-                x, y, z, 0, false, false
-            );
-            return (found && ground > 0) ? ground : z;
-        };
+        // Fallback: findSafeLanding, wenn kein Helipad frei
+        return await findSafeLanding(hospitalPos, hospitalRot, 1, 0.5);
+    };
 
-        const findLandingSpotAroundPlayer = async (minDistance = 3, maxDistance = 6, stepDegrees = 15) => {
-            for (let dist = minDistance; dist <= maxDistance; dist += 1) {
-                for (let angle = 0; angle < 360; angle += stepDegrees) {
-
-                    const rad = angle * (Math.PI / 180);
-
-                    const pos = {
-                        x: player.pos.x + Math.cos(rad) * dist,
-                        y: player.pos.y + Math.sin(rad) * dist,
-                        z: player.pos.z
-                    };
-
-                    // Sichere Z-Koordinate berechnen
-                    const z = await getSafeGroundZ(pos.x, pos.y, pos.z);
-                    if (z === undefined || z === null) continue;
-
-                    // Kollision mit Fahrzeugen checken
-                    const vehicles = [...alt.Vehicle.all].filter(v => v.pos.distanceTo(pos) < 3);
-                    if (vehicles.length > 0) continue;
-
-                    // Kollision mit Peds checken
-                    const peds = [...alt.Ped.all].filter(p => p.pos.distanceTo(pos) < 2);
-                    if (peds.length > 0) continue;
-
-                    // Optional: Boden prüfen (schräg, Wasser etc.)
-                    if (z - player.pos.z > 4 || z - player.pos.z < -4) continue;
-
-                    // Validen Punkt zurückgeben
-                    return new alt.Vector3(pos.x, pos.y, z);
-                }
-            }
-            const distance = 3;
-            const headingRad = player.rot.z * (Math.PI / 180);
-            const offset = { x: Math.cos(headingRad - Math.PI / 2) * distance, y: Math.sin(headingRad - Math.PI / 2) * distance };
-            const point = new alt.Vector3({ x: player.pos.x + offset.x, y: player.pos.y + offset.y, z: player.pos.z });
-            const z = await getSafeGroundZ(point.x, point.y, point.z);
-            return new alt.Vector3({ ...point, z });
+    // Funktion, die sicherstellt, dass pilot und heli valid sind
+    const ensureValidation = async (ped: alt.Ped, vehicle: alt.Vehicle, maxAttempts: number = 10, delay: number = 500) => {
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            if (ped && ped.valid && vehicle && vehicle.valid) return;
+            await alt.Utils.wait(delay);
         }
+    };
 
-        // Points
-        const { pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);
-        const { pos: startPoint, rot: startRot } = await findHospitalHelipad(new alt.Vector3(hospitalPos));
+    const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: number = 5, maxAttempts = 10, delay = 500) => {
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            if (vehicle.pos.distanceTo(pos) <= distance) return;
+            await alt.Utils.wait(delay);
+        }
+    };
 
-        const distance = 1;
-        const heliHeading = startRot.z * (Math.PI / 180);
-        const offset = { x: Math.cos(heliHeading + Math.PI / 2) * distance, y: Math.sin(heliHeading + Math.PI / 2) * distance, z: 0 };
-        const pilotPos = { x: startPoint.x + offset.x, y: startPoint.y + offset.y, z: startPoint.z };
+    // --- Utility: Safe Ground Z
+    const getSafeGroundZ = async (x: number, y: number, z: number) => {
+        const [found, ground] = await natives.invokeWithResult('getGroundZFor3dCoord', x, y, z, 0, false, false);
+        return found && ground > 0 ? ground : z;
+    };
 
-        // Create Entities
-        const helicopter = new alt.Vehicle('polmav', { ...startPoint, z: startPoint.z + 0.5 }, startRot, 5000);
-        const pilot = new alt.Ped('s_m_m_pilot_02', pilotPos, startRot, 5000);
+    const findLandingSpotAroundPlayer = async (minDistance = 3, maxDistance = 6, stepDegrees = 15) => {
+        for (let dist = minDistance; dist <= maxDistance; dist += 1) {
+            for (let angle = 0; angle < 360; angle += stepDegrees) {
+                const rad = angle * (Math.PI / 180);
+                const pos = { x: player.pos.x + Math.cos(rad) * dist, y: player.pos.y + Math.sin(rad) * dist, z: player.pos.z };
+                const z = await getSafeGroundZ(pos.x, pos.y, pos.z);
+                const isSafe = await isLandingSafe({ ...pos, z }, player.rot);
+                if (!isSafe) continue;
 
-        await ensureValidation(pilot, helicopter, 15, 100);
+                return new alt.Vector3(pos.x, pos.y, z);
+            }
+        }
+        const distance = 3;
+        const headingRad = player.rot.z * (Math.PI / 180);
+        const offset = { x: Math.cos(headingRad - Math.PI / 2) * distance, y: Math.sin(headingRad - Math.PI / 2) * distance };
+        const point = new alt.Vector3({ x: player.pos.x + offset.x, y: player.pos.y + offset.y, z: player.pos.z });
+        const z = await getSafeGroundZ(point.x, point.y, point.z);
+        return new alt.Vector3({ ...point, z });
+    };
 
-        helicopter.livery = 2;
-        helicopter.setNetOwner(player);
-        pilot.setNetOwner(player);
+    // Points
+    const { pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);
+    const { pos: startPoint, rot: startRot } = await findHospitalHelipad(new alt.Vector3(hospitalPos));
 
-        const ped = Rebar.controllers.usePed(pilot);
+    const distance = 1;
+    const heliHeading = startRot.z * (Math.PI / 180);
+    const offset = { x: Math.cos(heliHeading + Math.PI / 2) * distance, y: Math.sin(heliHeading + Math.PI / 2) * distance, z: 0 };
+    const pilotPos = { x: startPoint.x + offset.x, y: startPoint.y + offset.y, z: startPoint.z };
 
-        // --- EMS Flugprofil ---
-        const flyEMS = {
-            async smoothRotate(entity: alt.Vehicle, targetHeading: number, speed: number = 1.5) {
-                return new Promise(async (resolve) => {
-                    const normalize = (h: number) => ((h % 360) + 360) % 360;
+    // Create Entities
+    const helicopter = new alt.Vehicle('polmav', { ...startPoint, z: startPoint.z + 0.5 }, startRot, 5000);
+    const pilot = new alt.Ped('s_m_m_pilot_02', pilotPos, startRot, 5000);
 
-                    targetHeading = normalize(targetHeading);
+    await ensureValidation(pilot, helicopter, 15, 100);
 
-                    while (true) {
-                        if (!entity || !entity.valid) return resolve(null);
+    helicopter.livery = 2;
+    helicopter.setNetOwner(player);
+    pilot.setNetOwner(player);
 
-                        const current = normalize(entity.rot.z);
+    const ped = Rebar.controllers.usePed(pilot);
 
-                        let diff = targetHeading - current;
+    // --- EMS Flugprofil ---
+    const flyEMS = {
+        async smoothRotate(entity: alt.Vehicle, targetHeading: number, speed: number = 1.5) {
+            return new Promise(async (resolve) => {
+                const normalize = (h: number) => ((h % 360) + 360) % 360;
 
-                        // Kürzeste Drehrichtung wählen
-                        if (diff > 180) diff -= 360;
-                        if (diff < -180) diff += 360;
+                targetHeading = normalize(targetHeading);
 
-                        // Wenn fast erreicht → fertig
-                        if (Math.abs(diff) < 0.5) {
-                            entity.rot = new alt.Vector3(entity.rot.x, entity.rot.y, targetHeading);
-                            return resolve(true);
-                        }
+                while (true) {
+                    if (!entity || !entity.valid) return resolve(null);
 
-                        // Smooth Rotation: Schrittweise Annäherung
-                        const step = Math.sign(diff) * speed;
-                        const newHeading = current + step;
+                    const current = normalize(entity.rot.z);
 
-                        entity.rot = new alt.Vector3(entity.rot.x, entity.rot.y, newHeading);
+                    let diff = targetHeading - current;
 
-                        await alt.Utils.wait(10);
+                    // Kürzeste Drehrichtung wählen
+                    if (diff > 180) diff -= 360;
+                    if (diff < -180) diff += 360;
+
+                    // Wenn fast erreicht → fertig
+                    if (Math.abs(diff) < 0.5) {
+                        entity.rot = new alt.Vector3(entity.rot.x, entity.rot.y, targetHeading);
+                        return resolve(true);
                     }
-                });
-            },
 
-            async getIn(maxAttempts: number) {
-                for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                    const isInVehicle = await ped.invokeRpc('isPedInAnyVehicle', false);
-                    if (isInVehicle) return;
-                    ped.invoke('taskEnterVehicle', helicopter, 0, -1, 1.0, 1, undefined, 0);
-                    await alt.Utils.wait(150);
+                    // Smooth Rotation: Schrittweise Annäherung
+                    const step = Math.sign(diff) * speed;
+                    const newHeading = current + step;
+
+                    entity.rot = new alt.Vector3(entity.rot.x, entity.rot.y, newHeading);
+
+                    await alt.Utils.wait(10);
                 }
-            },
+            });
+        },
 
-            async takeoff(z: number) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 3, -1, z, 0, 5, 128);
-                await reachGoal({ ...helicopter.pos, z }, helicopter, 3, 200, 100);
-            },
-
-            async climb(z: number) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 20, 3, -1, z, 0, 5, 0);
-                await reachGoal({ ...helicopter.pos, z }, helicopter, 3, 250, 100);
-            },
-
-            async cruise(x: number, y: number, z: number) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 33.333, 3, -1, 200, z, 5, 0);
-                await reachGoal({ x, y, z }, helicopter, 3, 500, 100);
-            },
-
-            async descend(x: number, y: number, z: number) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 20, 3, -1, 200, z, 5, 0);
-                await reachGoal({ x, y, z }, helicopter, 3, 300, 100);
-            },
-
-            async land(x: number, y: number, z: number) {
-                ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 20, 10, 3, -1, 10, z, 5, 32);
-                await reachGoal({ x, y, z }, helicopter, 3, 300, 100);
-            },
-
-            async getOut(maxAttempts: number) {
-                for (let attempt = 0; attempt < maxAttempts; attempt++) {
-                    const isPlayerInVehicle = await natives.invokeWithResult('isPedInAnyVehicle', player, false);
-                    const isPedInVehicle = await ped.invokeRpc('isPedInAnyVehicle', false);
-                    if (!isPedInVehicle && !isPlayerInVehicle) return;
-                    if (isPedInVehicle) ped.invoke('taskLeaveVehicle', helicopter, 1);
-                    if (isPlayerInVehicle) natives.invoke('taskLeaveVehicle', helicopter, 1);
-                    await alt.Utils.wait(150);
-                }
+        async getIn(maxAttempts: number) {
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const isInVehicle = await ped.invokeRpc('isPedInAnyVehicle', false);
+                if (isInVehicle) return;
+                ped.invoke('taskEnterVehicle', helicopter, 0, -1, 1.0, 1, undefined, 0);
+                await alt.Utils.wait(150);
             }
-        };
+        },
 
-        // --- EMS Flug zum Spieler ---
-        await flyEMS.getIn(15);
-        await flyEMS.takeoff(startPoint.z + 20);
-        await flyEMS.climb(startPoint.z + 45);
+        async takeoff(z: number) {
+            ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 3, -1, 200, 0, 10, 128);
+            await reachGoal({ ...helicopter.pos, z }, helicopter, 3, 200, 100);
+        },
 
-        const landPoint = await findLandingSpotAroundPlayer(3, 5);
+        async climb(z: number) {
+            ped.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 20, 3, -1, 200, 0, 10, 0);
+            await reachGoal({ ...helicopter.pos, z }, helicopter, 3, 250, 100);
+        },
 
-        await flyEMS.cruise(landPoint.x, landPoint.y, landPoint.z + 45);
-        await flyEMS.descend(landPoint.x, landPoint.y, landPoint.z + 15);
-        await flyEMS.descend(landPoint.x, landPoint.y, landPoint.z + 5);
-        await flyEMS.land(landPoint.x, landPoint.y, landPoint.z);
+        async cruise(x: number, y: number, z: number) {
+            ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 33.333, 3, -1, 200, 0, 10, 0);
+            await reachGoal({ x, y, z }, helicopter, 3, 500, 100);
+        },
 
-        // --- Spieler einsteigen lassen ---
-        player.frozen = false;
-        player.clearTasks();
-        player.setIntoVehicle(helicopter, 4);
-        await alt.Utils.wait(5000);
+        async descend(x: number, y: number, z: number) {
+            ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 20, 3, -1, 200, 0, 10, 0);
+            await reachGoal({ x, y, z }, helicopter, 3, 300, 100);
+        },
 
-        // --- Flug zum Krankenhaus ---
-        const { pos: finalPos, rot: finalRot } = await findHospitalHelipad(new alt.Vector3(hospitalPos));
-        const finalZ = await getSafeGroundZ(finalPos.x, finalPos.y, finalPos.z);
+        async land(x: number, y: number, z: number) {
+            ped.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 20, 10, 3, -1, 200, 0, 10, 32);
+            await reachGoal({ x, y, z }, helicopter, 3, 300, 100);
+        },
 
-        await flyEMS.takeoff(landPoint.z + 20);
-        await flyEMS.climb(landPoint.z + 45);
-        await flyEMS.cruise(finalPos.x, finalPos.y, finalZ + 45);
-        await flyEMS.descend(finalPos.x, finalPos.y, finalZ + 15);
-        await flyEMS.descend(finalPos.x, finalPos.y, finalZ + 5);
-        await flyEMS.land(finalPos.x, finalPos.y, finalZ);
-        await flyEMS.getOut(15);
+        async getOut(maxAttempts: number) {
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const isPlayerInVehicle = await natives.invokeWithResult('isPedInAnyVehicle', player, false);
+                const isPedInVehicle = await ped.invokeRpc('isPedInAnyVehicle', false);
+                if (!isPedInVehicle && !isPlayerInVehicle) return;
+                if (isPedInVehicle) ped.invoke('taskLeaveVehicle', helicopter, 1);
+                if (isPlayerInVehicle) natives.invoke('taskLeaveVehicle', player, helicopter, 1);
+                await alt.Utils.wait(150);
+            }
+        },
+    };
 
-        // --- Respawn ---
-        await alt.Utils.wait(2000);
-        player.pos = new alt.Vector3(hospitalPos);
-        player.rot = new alt.Vector3(hospitalRot);
-        player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
+    // --- EMS Flug zum Spieler ---
+    await flyEMS.getIn(15);
+    await flyEMS.takeoff(startPoint.z + 20);
+    await flyEMS.climb(startPoint.z + 45);
 
-        // --- Cleanup ---
-        try { helicopter.destroy(); } catch {}
-        try { pilot.destroy(); } catch {}
+    const landPoint = await findLandingSpotAroundPlayer(3, 5);
 
-        await useMedicalService().respawn(player);
-    },
-    
-    getRescuePoint(pos: alt.IVector3, offsetZ: number = 100, distance: number = 3) {
-        // Zufällige Richtung um den Spieler
-        const angle = Math.random() * Math.PI * 2;
-        // Offsets für X/Y basierend auf Winkel + Distanz
-        const offsetX = Math.cos(angle) * distance;
-        const offsetY = Math.sin(angle) * distance;
-        return new alt.Vector3(pos.x + offsetX, pos.y + offsetY, pos.z + offsetZ);
-    }
+    await flyEMS.cruise(landPoint.x, landPoint.y, landPoint.z + 45);
+    await flyEMS.descend(landPoint.x, landPoint.y, landPoint.z + 15);
+    await flyEMS.descend(landPoint.x, landPoint.y, landPoint.z + 5);
+    await flyEMS.land(landPoint.x, landPoint.y, landPoint.z);
+
+    // --- Spieler einsteigen lassen ---
+    player.frozen = false;
+    player.clearTasks();
+    player.setIntoVehicle(helicopter, 4);
+    await alt.Utils.wait(5000);
+
+    // --- Flug zum Krankenhaus ---
+    const { pos: finalPos, rot: finalRot } = await findHospitalHelipad(new alt.Vector3(hospitalPos));
+    const finalZ = await getSafeGroundZ(finalPos.x, finalPos.y, finalPos.z);
+
+    await flyEMS.takeoff(landPoint.z + 20);
+    await flyEMS.climb(landPoint.z + 45);
+    await flyEMS.cruise(finalPos.x, finalPos.y, finalZ + 45);
+    await flyEMS.descend(finalPos.x, finalPos.y, finalZ + 15);
+    await flyEMS.descend(finalPos.x, finalPos.y, finalZ + 5);
+    await flyEMS.land(finalPos.x, finalPos.y, finalZ);
+    await flyEMS.getOut(15);
+
+    // --- Respawn ---
+    await alt.Utils.wait(2000);
+    player.pos = new alt.Vector3(hospitalPos);
+    player.rot = new alt.Vector3(hospitalRot);
+    player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
+
+    // --- Cleanup ---
+    try {
+        helicopter.destroy();
+    } catch {}
+    try {
+        pilot.destroy();
+    } catch {}
+
+    await useMedicalService().respawn(player);
 };
 
 Rebar.services.useServiceRegister().register('medicalService', {
-
     hospital(pos: alt.IVector3) {
         const sorted = DeathConfig.hospitals.slice().sort((a, b) => {
             const distA = Utility.vector.distance(pos, a.pos);
@@ -346,11 +277,13 @@ Rebar.services.useServiceRegister().register('medicalService', {
         return { pos: sorted[0].pos, rot: sorted[0].rot };
     },
 
-    unconscious(player: alt.Player) {
+    async unconscious(player: alt.Player) {
         if (!player || !player.valid) return;
 
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid()) return;
+
+        await document.setBulk({ isDead: true, health: 99, food: 100, water: 100, armour: 0 });
 
         const charId = document.getField('_id');
         if (TimeOfDeath.has(charId)) return;
@@ -361,14 +294,17 @@ Rebar.services.useServiceRegister().register('medicalService', {
         player.pos = new alt.Vector3(savedPos);
         player.health = 124;
         player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
-        alt.setTimeout(() => player.frozen = true, 2000);
+        alt.setTimeout(() => (player.frozen = true), 2000);
 
-        const label = Rebar.controllers.useTextLabelGlobal({
-            pos: savedPos,
-            text: '[H] - Person stabilisieren',
-            dimension: player.dimension,
-            uid: `reanimate-${charId}`,
-        }, 3.0);
+        const label = Rebar.controllers.useTextLabelGlobal(
+            {
+                pos: savedPos,
+                text: '[H] - Person stabilisieren',
+                dimension: player.dimension,
+                uid: `reanimate-${charId}`,
+            },
+            3.0,
+        );
         ActiveLabels.set(charId, label);
 
         // TTL setzen
@@ -377,8 +313,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
         player.emit(DeathEvents.toClient.startTimer, respawnAt - Date.now());
 
         const timeout = alt.setTimeout(() => {
-            if (player && player.valid) 
-                player.emit(DeathEvents.toClient.stopTimer);
+            if (player && player.valid) player.emit(DeathEvents.toClient.stopTimer);
 
             alt.clearTimeout(timeout);
             ActiveTasks.delete(charId);
@@ -443,7 +378,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
     async revived(player: alt.Player, isReviver: boolean) {
         if (!player || !player.valid) return;
         alt.setTimeout(() => player.clearTasks(), DeathConfig.coolDown);
-        if (isReviver) return; 
+        if (isReviver) return;
 
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid() || !document.getField('isDead')) return;
@@ -455,8 +390,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
             ActiveLabels.delete(charId);
         }
 
-        if (TimeOfDeath.has(charId)) 
-            TimeOfDeath.delete(charId);
+        if (TimeOfDeath.has(charId)) TimeOfDeath.delete(charId);
 
         if (ActiveTasks.has(charId)) {
             const t = ActiveTasks.get(charId)!;
@@ -474,7 +408,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
             health: 124,
             pos: data.pos,
             rot: data.rot,
-            dimension: player.dimension
+            dimension: player.dimension,
         });
 
         Rebar.player.useWorld(player).setScreenFade(DeathConfig.fadeDelay);
@@ -502,8 +436,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
             ActiveLabels.delete(charId);
         }
 
-        if (TimeOfDeath.has(charId)) 
-            TimeOfDeath.delete(charId);
+        if (TimeOfDeath.has(charId)) TimeOfDeath.delete(charId);
 
         if (ActiveTasks.has(charId)) {
             const t = ActiveTasks.get(charId)!;
@@ -522,7 +455,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
             health: 124,
             pos: data.pos,
             rot: data.rot,
-            dimension: player.dimension
+            dimension: player.dimension,
         });
 
         // Visual respawn
@@ -548,19 +481,11 @@ Rebar.services.useServiceRegister().register('medicalService', {
 });
 
 async function init() {
-    const charEditorApi = await Rebar.useApi().getAsync('character-creator-api');
-    charEditorApi.onSkipCreate(Internal.handleSkipCreate);
-
-    Rebar.services.useServiceRegister().remove('deathService');
-    
-    // Server Events
-    alt.on('playerDeath', Internal.handleDeath);
-    alt.on('rebar:playerCharacterUpdated', Internal.handleCharacterUpdate);
-
+    alt.on('playerDeath', async (victim: alt.Player, killer: alt.Entity, weapoNHash: number) => await useMedicalService().unconscious(victim));
     // Client Events
     alt.onClient(DeathEvents.toServer.reviveComplete, async (player: alt.Player, isReviver: boolean) => await useMedicalService().revived(player, isReviver));
     alt.onClient(DeathEvents.toServer.toggleRevive, async (player: alt.Player, victim: alt.Player) => await useMedicalService().revive(player, victim));
-    alt.onClient(DeathEvents.toServer.toggleRespawn, async (player: alt.Player) => await Internal.handleRescue(player));
+    alt.onClient(DeathEvents.toServer.toggleRespawn, async (player: alt.Player) => await handleRescue(player));
     alt.onClient(DeathEvents.toServer.toggleEms, async (player: alt.Player) => await useMedicalService().called(player));
 }
 init();

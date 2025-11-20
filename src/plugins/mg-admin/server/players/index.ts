@@ -30,8 +30,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
 
     switch (data.type) {
         case ActionType.KILL:
-            if (documentChar.getField('isDead')) return;
-            target.health = 99;
+            await useMedicalService().unconscious(target);
             notifyApi.general.send(admin, {
                 title: 'Admin-System',
                 icon: notifyApi.general.getTypes().INFO,

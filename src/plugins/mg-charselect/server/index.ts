@@ -208,7 +208,6 @@ async function handleLogin(player: alt.Player) {
 
 async function handleLogout(player: alt.Player) {
     if (!player || !player.valid) return;
-
     if (player.hasMeta(sessionKey)) return;
     
     const document = Rebar.document.character.useCharacter(player);
@@ -226,7 +225,7 @@ function handleDisconnect(player: alt.Player, reason: string) {
     if (!player || !player.valid) return;
     Rebar.player.useState(player).save();
     const name = Rebar.document.character.useCharacter(player).getField('name') ?? player.name;
-    alt.log('[Disconnect]', `Die Daten von ${name} wurden gespeichert.`);
+    alt.log('[Disconnect]', `${name} hat den Server verlassen`, `[${reason}]`);
 }
 
 // --- Init ---
