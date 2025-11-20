@@ -22,6 +22,7 @@ const sessions: Array<DiscordSession> = [];
 const serverConfig = Rebar.useServerConfig();
 
 const disable = [
+    'disableVehicleEngineAutoStart',
     'disableVehicleEngineAutoStop',
     'disableVehicleSeatSwap',
     'disableAmbientNoise',
