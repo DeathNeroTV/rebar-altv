@@ -14,6 +14,7 @@
 
 	const emits = defineEmits<{
 		(e: 'close'): void;
+		(e: 'logout'): void;
 	}>();
 
 	const actions = [

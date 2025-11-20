@@ -145,7 +145,7 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
         return;
     }
 
-    Rebar.document.character.useCharacterBinder(player, true).bind(character);
+    Rebar.document.character.useCharacterBinder(player).bind(character);
     Rebar.player.useWebview(player).hide('CharacterSelect');
     Rebar.player.useWorld(player).enableControls();
     
@@ -153,8 +153,16 @@ async function handleSpawnCharacter(player: alt.Player, id: string) {
     player.pos = new alt.Vector3(character.pos ?? SpawnPos);
     player.dimension = 0;
     player.frozen = false;
-    player.invincible = false;
     player.deleteMeta(sessionKey);
+    
+    if (character.appearance) {
+        player.visible = true;
+        Rebar.player.usePlayerAppearance(player).sync();
+    }
+    
+    Rebar.player.useClothing(player).sync();
+    Rebar.player.useWeapon(player).sync();
+    Rebar.player.useState(player).sync();
 
     invokeSelect(player, character);
 }
@@ -197,7 +205,6 @@ async function handleLogin(player: alt.Player) {
     player.pos = SpawnPos;
     player.health = 200;
     player.frozen = true;
-    player.invincible = true;
     player.visible = false;
     await alt.Utils.wait(500);
 

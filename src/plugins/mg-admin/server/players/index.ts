@@ -30,6 +30,11 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
 
     switch (data.type) {
         case ActionType.KILL:
+            if (target.id === admin.id) {
+                Rebar.player.useWebview(admin).hide('Admin');
+                Rebar.player.useWorld(admin).enableControls();
+                Rebar.player.useWorld(admin).disableCameraControls(false);
+            }
             await useMedicalService().unconscious(target);
             notifyApi.general.send(admin, {
                 title: 'Admin-System',

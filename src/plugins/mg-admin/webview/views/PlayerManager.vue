@@ -10,7 +10,7 @@
 
 	const events = useEvents();
 	const players = ref<PlayerStats[]>([
-		{ id: 1, name: 'Roman Jackson', health: 200, armour: 0, ping: 13, pos: { x: 0, y: 0, z: 0 }, rot: { x: 0, y: 0, z: 0 }, job: ['police', 'ambulance'] },
+		{ id: 1, account_id: '', name: 'Roman Jackson', health: 200, armour: 0, ping: 13, pos: { x: 0, y: 0, z: 0 }, rot: { x: 0, y: 0, z: 0 }, job: ['police', 'ambulance'] },
 	]);
 	const search = ref<string>('');
 	const selectedPlayer = ref<PlayerStats | null>(null);

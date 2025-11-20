@@ -13,7 +13,7 @@ const notifyApi = await Rebar.useApi().getAsync('notify-api');
 
 // Stores keyed by character ID (string)
 const TimeOfDeath: Map<string, number> = new Map();
-const ActiveTasks: Map<string, { timeout?: number; interval?: number }> = new Map();
+const ActiveTasks: Map<string, number> = new Map();
 const ActiveLabels: Map<string, any> = new Map();
 
 const handleRescue = async (player: alt.Player) => {
@@ -280,15 +280,14 @@ Rebar.services.useServiceRegister().register('medicalService', {
     async unconscious(player: alt.Player) {
         if (!player || !player.valid) return;
 
+        await alt.Utils.wait(500);
+
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid()) return;
 
         await document.setBulk({ isDead: true, health: 99, food: 100, water: 100, armour: 0 });
 
         const charId = document.getField('_id');
-        if (TimeOfDeath.has(charId)) return;
-
-        // spawn am zuletzt gespeicherten char pos, nicht an CharSelect default
         const savedPos = document.getField('pos') ?? player.pos;
         player.spawn(savedPos);
         player.pos = new alt.Vector3(savedPos);
@@ -312,13 +311,16 @@ Rebar.services.useServiceRegister().register('medicalService', {
         TimeOfDeath.set(charId, respawnAt);
         player.emit(DeathEvents.toClient.startTimer, respawnAt - Date.now());
 
+        if (ActiveTasks.has(charId)) 
+            alt.clearTimeout(ActiveTasks.get(charId)!);
+
         const timeout = alt.setTimeout(() => {
             if (player && player.valid) player.emit(DeathEvents.toClient.stopTimer);
 
             alt.clearTimeout(timeout);
             ActiveTasks.delete(charId);
         }, DeathConfig.respawnTime);
-        ActiveTasks.set(charId, { timeout });
+        ActiveTasks.set(charId, timeout);
     },
 
     async revive(reviver: alt.Player, victim: alt.Player) {
@@ -393,9 +395,8 @@ Rebar.services.useServiceRegister().register('medicalService', {
         if (TimeOfDeath.has(charId)) TimeOfDeath.delete(charId);
 
         if (ActiveTasks.has(charId)) {
-            const t = ActiveTasks.get(charId)!;
-            if (t.timeout) alt.clearTimeout(t.timeout);
-            if (t.interval) alt.clearInterval(t.interval);
+            const timeout = ActiveTasks.get(charId)!;
+            if (timeout) alt.clearTimeout(timeout);
             ActiveTasks.delete(charId);
         }
 
@@ -439,9 +440,8 @@ Rebar.services.useServiceRegister().register('medicalService', {
         if (TimeOfDeath.has(charId)) TimeOfDeath.delete(charId);
 
         if (ActiveTasks.has(charId)) {
-            const t = ActiveTasks.get(charId)!;
-            if (t.timeout) alt.clearTimeout(t.timeout);
-            if (t.interval) alt.clearInterval(t.interval);
+            const timeout = ActiveTasks.get(charId)!;
+            if (timeout) alt.clearTimeout(timeout);
             ActiveTasks.delete(charId);
         }
 
