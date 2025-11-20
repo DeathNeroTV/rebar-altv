@@ -24,25 +24,25 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
 
         async climb(z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 5, -1, z, 0, 20, 0); 
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 5, -1, 1000, z, 20, 0); 
             await reachGoal({ ...helicopter.pos, z }, helicopter, 5); 
         },
 
         async cruise(x: number, y: number, z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 20, 5, -1, 400, z, 20, 0); 
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 50, 20, -1, 1000, z, 20, 0); 
             await reachGoal({ x, y, z }, helicopter, 8); 
         }, 
 
         async descend(x: number, y: number, z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 19, 8, 5, -1, 400, z, 20, 0); 
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 19, 8, 5, -1, z, 0, 20, 0); 
             await reachGoal({ x, y, z }, helicopter, 5); 
         }, 
 
         async land(x: number, y: number, z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 20, 5, 5, -1, 400, z, 20, 32); 
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 20, 5, 5, -1, z, 0, 20, 32); 
             await reachGoal({ x, y, z }, helicopter, 5); 
         }, 
 

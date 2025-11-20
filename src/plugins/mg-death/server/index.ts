@@ -18,7 +18,12 @@ const ActiveRescue: Map<string, { pilot: alt.Ped, helicopter: alt.Vehicle }> = n
 const ActiveLabels: Map<string, ReturnType<typeof Rebar.controllers.useTextLabelGlobal>> = new Map();
 
 const handleRescue = async (player: alt.Player) => {
-   
+    if (!player || !player.valid) return;
+
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return;
+
+    const charId = document.getField('_id');
     player.emit(DeathEvents.toClient.toggleControls, false); 
 
     const { name: hospitalName, pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);     
@@ -45,6 +50,7 @@ const handleRescue = async (player: alt.Player) => {
     const helicopter = new alt.Vehicle('polmav', startPos, player.rot); 
     const pilot = new alt.Ped('s_m_m_pilot_02', pilotPos, player.rot); 
     await ensureValidation(pilot, helicopter, 15, 100); 
+    ActiveRescue.set(charId, { helicopter, pilot });
     
     helicopter.livery = 2; 
     helicopter.setNetOwner(player); 
@@ -83,9 +89,7 @@ const handleRescue = async (player: alt.Player) => {
     if (player && player.valid) { 
         player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
         await useMedicalService().respawn(player); 
-    } 
-    try { helicopter.destroy(); } catch {} 
-    try { pilot.destroy(); } catch {} 
+    }
 };
 
 const handleDeathScreen = (player: alt.Player) => {
