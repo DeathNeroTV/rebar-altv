@@ -7,7 +7,7 @@ import { NotificationTypes } from '@Plugins/mg-notify/shared/interface.js';
 import { AdminEvents } from '../shared/events.js';
 import { AdminConfig } from '../shared/config.js';
 import { DashboardStat, WhitelistRequest } from '../shared/interfaces.js';
-import { isMemberOfAllowedGroups } from './functions.js';
+import { handleNoClipRequest, handleNoClipToggle, isMemberOfAllowedGroups } from './functions.js';
 
 import '../translate/index.js';
 import './whitelist/index.js';
@@ -126,6 +126,8 @@ function handleWhitelistRequest(player: alt.Player, request: WhitelistRequest) {
 async function init() {
     const discordAuthApi = await Rebar.useApi().getAsync('discord-auth-api');
     discordAuthApi.onWhitelistRequest(handleWhitelistRequest);
-}
 
+    alt.onRpc(AdminEvents.toServer.ghosting.toggle, handleNoClipToggle);
+    alt.onRpc(AdminEvents.toServer.ghosting.request, handleNoClipRequest);
+}
 init();

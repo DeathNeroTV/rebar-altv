@@ -37,6 +37,7 @@ export interface AdminAction {
     type: ActionType;
     playerId: number;
     reason?: string;
+    coords?: { x: number; y: number; z: number };
     amount?: number;
     itemId?: string;
     teleportType?: TeleportType;

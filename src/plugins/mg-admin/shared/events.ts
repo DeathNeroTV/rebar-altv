@@ -4,7 +4,11 @@ export const AdminEvents = {
             add: 'mg-admin:whitelist:add',
             update: 'mg-admin:whitelist:update',
             remove: 'mg-admin:whitelist:remove'
-        }
+        },
+        waypoint: 'mg-admin:waypoint:get',
+        ghosting: {
+            toggle: 'mg-admin:ghost:toggle',
+        },
     },
     toWebview: {
         whitelist: {
@@ -22,6 +26,10 @@ export const AdminEvents = {
         whitelist: {
             approve: 'mg-admin:whitelist:approve',
             reject: 'mg-admin:whitelist:reject'
+        },
+        ghosting: {
+            toggle: 'mg-admin:ghost:toggle',
+            request: 'mg-admin:ghost:request',
         },
         request: {
             usage: 'mg-admin:request:usage',

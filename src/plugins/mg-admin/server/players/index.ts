@@ -47,6 +47,16 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
     const reason = AdminConfig.kickAndBanReasons.find(x => x.value === data.reason)?.label ?? data.reason;
 
     switch (data.type) {
+        case ActionType.KILL:
+            if (documentChar.getField('isDead')) return;
+            target.health = 99;
+            notifyApi.general.send(admin, {
+                title: 'Admin-System',
+                icon: notifyApi.general.getTypes().INFO,
+                message: `${name} wurde getötet`,
+                oggFile: 'notification'
+            });
+            break;
         case ActionType.KICK:
             target.kick(`Sie wurden von einem Teammitglied gekickt. Grund:  ${reason}`);
             notifyApi.general.send(admin, {
@@ -84,30 +94,61 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             });
             break;
         case ActionType.TELEPORT:
-            const radius = 5.0;
-            const angle = Math.random() * Math.PI * 2; // zufällige Richtung
-            const offsetX = Math.cos(angle) * radius;
-            const offsetY = Math.sin(angle) * radius;
-            if (data.teleportType === TeleportType.GO_TO) {
-                admin.pos = new alt.Vector3(target.pos.x + offsetX, target.pos.y + offsetY, target.pos.z);
-                admin.dimension = target.dimension;
-                notifyApi.general.send(admin, {
-                    icon: notifyApi.general.getTypes().SUCCESS,
-                    title: 'Admin-System',
-                    subtitle: 'Teleportierung',
-                    message: `📍 Du wurdest zu ${target.name} teleportiert.`,
-                    oggFile: 'notification'
-                });
-            } else if (data.teleportType === TeleportType.GET_HERE) {
-                target.pos = new alt.Vector3(admin.pos.x + offsetX, admin.pos.y + offsetY, admin.pos.z);
-                target.dimension = admin.dimension;
-                notifyApi.general.send(admin, {
-                    icon: notifyApi.general.getTypes().SUCCESS,
-                    title: 'Admin-System',
-                    subtitle: 'Teleportierung',
-                    message: `📍 ${target.name} wurde zu dir teleportiert.`,
-                    oggFile: 'notification'
-                });
+            switch(data.teleportType) {
+                case TeleportType.GET_HERE:
+                case TeleportType.GO_TO:
+                    const radius = 3.0;
+                    const angle = Math.random() * Math.PI * 2; // zufällige Richtung
+                    const offsetX = Math.cos(angle) * radius;
+                    const offsetY = Math.sin(angle) * radius;
+                    if (data.teleportType === TeleportType.GO_TO) {
+                        admin.pos = new alt.Vector3(target.pos.x + offsetX, target.pos.y + offsetY, target.pos.z);
+                        admin.dimension = target.dimension;
+                        notifyApi.general.send(admin, {
+                            icon: notifyApi.general.getTypes().SUCCESS,
+                            title: 'Admin-System',
+                            subtitle: 'Teleportierung',
+                            message: `📍 Du wurdest zu ${target.name} teleportiert.`,
+                            oggFile: 'notification'
+                        });
+                    } else if (data.teleportType === TeleportType.GET_HERE) {
+                        target.pos = new alt.Vector3(admin.pos.x + offsetX, admin.pos.y + offsetY, admin.pos.z);
+                        target.dimension = admin.dimension;
+                        notifyApi.general.send(admin, {
+                            icon: notifyApi.general.getTypes().SUCCESS,
+                            title: 'Admin-System',
+                            subtitle: 'Teleportierung',
+                            message: `📍 ${target.name} wurde zu dir teleportiert.`,
+                            oggFile: 'notification'
+                        });
+                    }
+                    break;
+                case TeleportType.COORDS:
+                    if (!data.coords) return;
+                    const coords = new alt.Vector3(data.coords);
+                    admin.pos = coords; 
+                    notifyApi.general.send(admin, {
+                        icon: notifyApi.general.getTypes().SUCCESS,
+                        title: 'Admin-System',
+                        subtitle: 'Teleportierung',
+                        message: `📍 Du wurdest zu den Koordinaten teleportiert.`,
+                        oggFile: 'notification'
+                    });
+                    break;
+                case TeleportType.WAYPOINT:
+                    const waypoint: alt.Vector3 = await admin.emitRpc(AdminEvents.toClient.waypoint);
+                    if (!waypoint) return;
+                    const [foundZ, groundZ] = await Rebar.player.useNative(admin).invokeWithResult('getGroundZFor3dCoord', waypoint.x, waypoint.y, waypoint.z, 0, false, false);
+                    const z = foundZ ? groundZ + 1 : waypoint.z;
+                    admin.pos = new alt.Vector3({ ...waypoint, z }); 
+                    notifyApi.general.send(admin, {
+                        icon: notifyApi.general.getTypes().SUCCESS,
+                        title: 'Admin-System',
+                        subtitle: 'Teleportierung',
+                        message: `📍 Du wurdest zum Wegpunkt teleportiert.`,
+                        oggFile: 'notification'
+                    });
+                    break;
             }
             break;
         case ActionType.SPECTATE:

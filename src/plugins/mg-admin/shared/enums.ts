@@ -7,11 +7,14 @@ export enum ActionType {
     GIVE = 'give',
     TAKE = 'take',
     FREEZE = 'freeze',
+    KILL = 'kill',
 };
 
 export enum TeleportType {
     GO_TO = 'goto',
     GET_HERE = 'gethere',
+    WAYPOINT = 'waypoint',
+    COORDS = 'coords',
 };
 
 export enum GiveType {

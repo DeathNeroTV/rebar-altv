@@ -25,11 +25,14 @@
 		{ type: ActionType.GIVE, label: 'Geben' },
 		{ type: ActionType.TAKE, label: 'Nehmen' },
 		{ type: ActionType.FREEZE, label: 'Einfrieren/Auftauen' },
+		{ type: ActionType.KILL, label: 'Tötung' },
 	];
 
 	const teleports = [
 		{ type: TeleportType.GO_TO, label: 'Hingehen' },
 		{ type: TeleportType.GET_HERE, label: 'Herholen' },
+		{ type: TeleportType.COORDS, label: 'Koordinaten' },
+		{ type: TeleportType.WAYPOINT, label: 'Wegpunkt' },
 	];
 
 	const gives = [
@@ -44,6 +47,7 @@
 	const selectedGive = ref<GiveType | null>(null);
 	const selectedTeleport = ref<TeleportType | null>(null);
 	const reason = ref<string | null>(null);
+	const coords = ref<string>('');
 	const amount = ref<number | null>(null);
 	const itemId = ref<string | null>(null);
 	const items = ref<{ label: string; value: string }[]>([]);
@@ -65,6 +69,9 @@
 				}
 				return !!amount.value;
 			case ActionType.TELEPORT:
+				if (selectedTeleport.value === TeleportType.COORDS) {
+					return !!parseCoords();
+				}
 				return !!selectedTeleport.value;
 			default:
 				return true;
@@ -80,6 +87,7 @@
 			type: selectedAction.value!,
 			playerId: props.player.id,
 			reason: reason.value || undefined,
+			coords: parseCoords() || undefined,
 			amount: amount.value || undefined,
 			itemId: itemId.value || undefined,
 			giveType: selectedGive.value || undefined,
@@ -93,8 +101,36 @@
 		selectedGive.value = null;
 		selectedTeleport.value = null;
 		reason.value = null;
+		coords.value = '';
 		amount.value = null;
 		itemId.value = null;
+	}
+
+	function parseCoords(): { x: number; y: number; z: number } | null {
+		const text = coords.value.trim();
+
+		// Variante: echtes JS-Objekt
+		if (text.startsWith('{')) {
+			try {
+				const obj = Function(`"use strict"; return (${text});`)();
+				if (obj && typeof obj.x === 'number' && typeof obj.y === 'number' && typeof obj.z === 'number') {
+					return obj;
+				}
+			} catch {
+				return null;
+			}
+		}
+
+		// Variante: "1, 2, 3" oder "1 2 3"
+		const parts = text.replace(/[,]/g, ' ').split(' ').filter(Boolean);
+		if (parts.length === 3) {
+			const [x, y, z] = parts.map(Number);
+			if (![x, y, z].some(isNaN)) {
+				return { x, y, z };
+			}
+		}
+
+		return null;
 	}
 
 	watch(selectedGive, (val) => {
@@ -177,10 +213,18 @@
 		<!-- Teleportaktionen -->
 		<div v-if="selectedAction === ActionType.TELEPORT" class="mb-2">
 			<Dropdown
+				class="mb-2"
 				:options="teleports.map((tp) => ({ label: tp.label, value: tp.type }))"
 				placeholder="Teleportart auswählen"
 				v-model="selectedTeleport"
 				@selected="val => selectedTeleport = val as TeleportType"
+			/>
+			<input
+				v-if="selectedTeleport === TeleportType.COORDS"
+				v-model="coords"
+				type="text"
+				placeholder="{ x: 0, y: 0, z: 0 }"
+				class="w-full p-2 rounded-lg bg-neutral-800 text-gray-100 mb-2"
 			/>
 		</div>
 
