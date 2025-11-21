@@ -22,6 +22,8 @@ const handleRescue = async (player: alt.Player) => {
 
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
+    
+    player.emit(DeathEvents.toClient.respawned);
 
     const charId = document.getField('_id');
     player.emit(DeathEvents.toClient.toggleControls, false); 
@@ -310,7 +312,6 @@ Rebar.services.useServiceRegister().register('medicalService', {
         player.spawn(data.pos);
         player.pos = new alt.Vector3(data.pos);
         player.clearBloodDamage();
-        player.emit(DeathEvents.toClient.respawned);
         player.emit(DeathEvents.toClient.toggleControls, true);
         Rebar.player.useWorld(player).clearScreenFade(DeathConfig.fadeDelay);
     },
