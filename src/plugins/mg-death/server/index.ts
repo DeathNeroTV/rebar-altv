@@ -87,6 +87,7 @@ const handleRescue = async (player: alt.Player) => {
     
     await alt.Utils.wait(2000); 
     if (player && player.valid) { 
+        player.rot = new alt.Vector3(finalRot);
         player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
         await useMedicalService().respawn(player); 
     }
