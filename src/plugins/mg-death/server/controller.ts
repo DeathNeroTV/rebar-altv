@@ -8,6 +8,7 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
     return {
         async getIn(maxAttempts: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
+            alt.log('taskHeliMission -> get in');
             for (let attempt = 0; attempt < maxAttempts; attempt++) { 
                 const isInVehicle = await pedCtrl.invokeRpc('isPedInAnyVehicle', false); 
                 if (isInVehicle) return; 
@@ -18,36 +19,42 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
 
         async takeoff(z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
+            alt.log('taskHeliMission -> takeoff');
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 15, 3, -1, z, 0, 20, 128); 
             await reachGoal({ ...helicopter.pos, z }, helicopter, 8); 
         }, 
 
         async climb(z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
+            alt.log('taskHeliMission -> climb');
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 5, -1, 400, z, 20, 0); 
             await reachGoal({ ...helicopter.pos, z }, helicopter, 5); 
         },
 
         async cruise(x: number, y: number, z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
+            alt.log('taskHeliMission -> cruise');
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 50, 20, -1, 400, z, 20, 0); 
             await reachGoal({ x, y, z }, helicopter, 20); 
         }, 
 
         async descend(x: number, y: number, z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 19, 8, 5, -1, z, 0, 20, 0); 
-            await reachGoal({ x, y, z }, helicopter, 5); 
+            alt.log('taskHeliMission -> descend');
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 19, 8, 8, -1, z, 0, 20, 0); 
+            await reachGoal({ x, y, z }, helicopter, 8); 
         }, 
 
         async land(x: number, y: number, z: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
+            alt.log('taskHeliMission -> land');
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 20, 5, 5, -1, z, 0, 20, 32); 
             await reachGoal({ x, y, z }, helicopter, 5); 
         }, 
 
         async getOut(maxAttempts: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return; 
+            alt.log('taskHeliMission -> get out');
             for (let attempt = 0; attempt < maxAttempts; attempt++) { 
                 const isPlayerInVehicle = await natives.invokeWithResult('isPedInAnyVehicle', player, false); 
                 const isPedInVehicle = await pedCtrl.invokeRpc('isPedInAnyVehicle', false); 

@@ -6,6 +6,7 @@
 	import '@Plugins/mg-intro/translate/index';
 
 	import RangeInput from './components/RangeInput.vue';
+	import { IntroConfig } from '../shared/config';
 
 	const events = useEvents();
 	const { t } = useTranslate('de');
@@ -19,11 +20,7 @@
 	const currentPluginIndex = ref<number>(0);
 	const volume = ref<number>(25);
 
-	const team = ref<{ name: string; role: string | string[] }[]>([
-		{ name: 'DeathNeroTV', role: [t('intro.team.manager'), t('intro.team.dev')] },
-		{ name: 'Gremmler86', role: t('intro.team.admin') },
-		{ name: 'Sindy1302', role: t('intro.team.tester') },
-	]);
+	const team = ref<{ name: string; role: string | string[] }[]>(IntroConfig.team);
 
 	let smoothInterval: NodeJS.Timeout | null = null;
 	let randomInterval: NodeJS.Timeout | null = null;

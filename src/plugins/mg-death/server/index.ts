@@ -22,10 +22,23 @@ const handleRescue = async (player: alt.Player) => {
 
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
-    
-    player.emit(DeathEvents.toClient.respawned);
 
     const charId = document.getField('_id');
+    if (ActiveLabels.has(charId)) {
+        const label = ActiveLabels.get(charId)!;
+        label.destroy();
+        ActiveLabels.delete(charId);
+    }
+
+    if (TimeOfDeath.has(charId)) TimeOfDeath.delete(charId);
+
+    if (ActiveTasks.has(charId)) {
+        const timeout = ActiveTasks.get(charId)!;
+        if (timeout) alt.clearTimeout(timeout);
+        ActiveTasks.delete(charId);
+    }
+
+    player.emit(DeathEvents.toClient.respawned);
     player.emit(DeathEvents.toClient.toggleControls, false); 
 
     const { name: hospitalName, pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);     
