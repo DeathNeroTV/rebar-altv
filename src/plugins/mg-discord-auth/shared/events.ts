@@ -4,6 +4,7 @@ export const DiscordAuthEvents = {
         pushToken: 'discord:event:pushToken'
     },
     toClient: {
+        openUrl: 'discord:event:open:url',
         requestToken: 'discord:event:requestToken'
     },
     toWebview: {

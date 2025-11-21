@@ -5,6 +5,7 @@
 
 	import { DiscordAuthEvents } from '../shared/events.js';
 	import '../translate/index.js';
+	import { inviteCode } from '../shared/config.js';
 
 	const { t } = useTranslate('de');
 	const events = useEvents();
@@ -12,6 +13,20 @@
 	const message = ref<string | null>(t('discord.auth.information'));
 
 	const handleMessage = (text: string) => (message.value = text);
+	const inviteLink = `https://discord.gg/${inviteCode}`; // Dein Discord Invite
+	const copied = ref(false);
+
+	const copyInvite = () => {
+		const el = document.createElement('textarea');
+		el.value = inviteLink;
+		document.body.appendChild(el);
+		el.select();
+		document.execCommand('copy');
+		document.body.removeChild(el);
+
+		copied.value = true;
+		setTimeout(() => (copied.value = false), 2000);
+	};
 
 	onMounted(() => events.on(DiscordAuthEvents.toWebview.send, handleMessage));
 </script>
@@ -60,6 +75,18 @@
 					{{ message }}
 				</span>
 			</div>
+
+			<!-- Discord Join Button -->
+			<div
+				class="mt-10 flex items-center gap-4 justify-center cursor-pointer select-none px-6 py-3 rounded-2xl bg-black/30 backdrop-blur-md border border-green-500/20 text-[#00ff88] text-xl font-semibold uppercase tracking-wide shadow-[0_0_12px_rgba(0,255,136,0.25)] hover:shadow-[0_0_16px_rgba(0,255,180,0.45)] hover:text-[#aaffdd] transition-all duration-300"
+				@click="copyInvite"
+			>
+				<font-awesome-icon :icon="['fab', 'discord']" class="text-3xl drop-shadow-[0_0_6px_rgba(0,255,136,0.4)]" />
+				<span>{{ t('discord.join') }}</span>
+			</div>
+
+			<!-- Feedback: kopiert -->
+			<p v-if="copied" class="mt-2 text-green-400 text-sm font-semibold animate-pulse">Invite-Link in Zwischenablage kopiert!</p>
 		</div>
 
 		<!-- Scanline-Effekt -->

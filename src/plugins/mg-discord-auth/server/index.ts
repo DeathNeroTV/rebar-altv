@@ -59,7 +59,7 @@ async function handleFinished(player: alt.Player) {
     setSessionFinish(player);
 
     if (!token) {
-        player.kick(t("discord.auth.token.failed"));
+        Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t("discord.auth.token.failed"));
         return;
     }
 
@@ -67,9 +67,10 @@ async function handleFinished(player: alt.Player) {
 }
 
 async function handleCheckToken(player: alt.Player, token: string) {
+    const webview = Rebar.player.useWebview(player);
     const currentUser = await getCurrentUser(token) as DiscordInfo | undefined;
     if (!currentUser) {
-        player.kick(t("discord.auth.request.failed"));
+        webview.emit(DiscordAuthEvents.toWebview.send, t("discord.auth.request.failed"));
         return;
     }
 
@@ -90,7 +91,7 @@ async function handleCheckToken(player: alt.Player, token: string) {
     }
 
     if (!account) {
-        player.kick(t("discord.auth.account.failed"));
+        webview.emit(DiscordAuthEvents.toWebview.send, t("discord.auth.account.failed"));
         return;
     }
 
@@ -100,14 +101,18 @@ async function handleCheckToken(player: alt.Player, token: string) {
     }
 
     if (account.banned) {
-        player.kick(account.reason || t("discord.auth.banned.no.reason"));
+        webview.emit(DiscordAuthEvents.toWebview.send, 
+            account.reason 
+            ? t("discord.auth.banned.with.reason", {reason: account.reason }) 
+            : t("discord.auth.banned.no.reason")
+        );
         return;
     }
 
     if (DiscordAuthConfig.SERVER_ID && DiscordAuthConfig.SERVER_ID.length !== 0) {
         const guildMember = await getUserGuildMember(currentUser.id);
         if (!guildMember) {
-            player.kick(t("discord.auth.guild.no.member"));
+            webview.emit(DiscordAuthEvents.toWebview.send, t("discord.auth.guild.no.member"));
             return;
         }
 
@@ -135,19 +140,19 @@ async function handleCheckToken(player: alt.Player, token: string) {
                 .setColor("#008736");
                 await channel.send({ embeds: [embed] });
 
-                invokeWhitelistRequest(player, request);
-                Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.request.whitelist', { code: data.code }));
+                invokeWhitelistRequest(player, data);
+                webview.emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.request.whitelist', { code: data.code }));
                 return;
             }
 
             if (!role) { 
                 if (request.state === 'pending') {
-                    Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.pending.whitelist', { code: request.code }));
+                    webview.emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.pending.whitelist', { code: request.code }));
                     return;
                 }
 
                 if (request.state === 'rejected') {
-                    Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.rejected.whitelist'));
+                    webview.emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.rejected.whitelist'));
                     return;
                 }
 
@@ -157,13 +162,18 @@ async function handleCheckToken(player: alt.Player, token: string) {
                     return;
                 }
 
-                player.kick(t('discord.auth.guild.no.whitelist'));
+                webview.emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.no.whitelist'));
+                return;
+            }
+
+            if (request.state === 'pending') {
+                webview.emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.pending.whitelist', { code: request.code }));
                 return;
             }
 
             if (request.state === 'rejected') {
                 await guildMember.roles.remove(DiscordAuthConfig.WHITELIST_ROLE_ID);
-                Rebar.player.useWebview(player).emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.rejected.whitelist'));
+                webview.emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.rejected.whitelist'));
                 return;
             }
         }

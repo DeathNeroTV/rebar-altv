@@ -47,11 +47,12 @@ export async function getCurrentUser(token: string): Promise<DiscordInfo | undef
 export async function getUserGuildMember(userId: string): Promise<GuildMember> {
     if (!client) return undefined;
     
-    const guild = await client.guilds.fetch(DiscordAuthConfig.SERVER_ID);
+    const guild = client.guilds.cache.get(DiscordAuthConfig.SERVER_ID) ?? await client.guilds.fetch(DiscordAuthConfig.SERVER_ID);
+    const cached = guild.members.cache.get(userId);
+    if (cached) return cached;
+
     try {
         const member = await guild.members.fetch(userId);
         return member;
-    } catch (err) {
-        return undefined;
-    }
+    } catch (err) { return undefined; }
 }

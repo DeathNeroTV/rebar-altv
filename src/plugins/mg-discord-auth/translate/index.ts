@@ -3,6 +3,7 @@ const { setBulk } = useTranslate();
 
 setBulk({
     en: {
+        'discord.join': 'Join Discord Server',
         'discord.auth.to.long': 'No session request found. Please restart the alt:V-client.',
         'discord.auth.no.session': 'No session request found. Please restart the alt:V-client.',
         'discord.auth.already.complete': 'Session request already completed. Please restart the alt:V-client.',
@@ -16,12 +17,14 @@ setBulk({
         'discord.auth.guild.rejected.whitelist': 'Your whitelist request has been rejected.',
         'discord.auth.guild.request.whitelist': 'You have sent a whitelist request to the team. Code: {{code}}',
         'discord.auth.success': 'has been verified.',
-        'discord.auth.banned.no.reason': 'without any reason',
+        'discord.auth.banned.with.reason': 'You have been banned by the team. Reason: {{reason}}',
+        'discord.auth.banned.no.reason': 'You have been banned by the team. Reason: Unknown',
         'discord.auth.title': 'Discord Verification.',
         'discord.auth.subtile': 'Please wait while we identify who you are.',
         'discord.auth.information': 'You may need to authorize our app in Discord.'
     },
     de: {
+        'discord.join': 'Discord Server beitreten',
         'discord.auth.to.long': 'Keine Sitzungsanforderung gefunden. Starten Sie den alt:V-Client neu',
         'discord.auth.no.session': 'Keine Sitzungsanforderung gefunden. Starten Sie den alt:V-Client neu',
         'discord.auth.already.complete': 'Sitzungsanforderung bereits abgeschlossen. Starten Sie den alt:V-Client neu',
@@ -35,7 +38,8 @@ setBulk({
         'discord.auth.guild.rejected.whitelist': 'Ihre Anfrage zur Whitelist wurde abgelehnt',
         'discord.auth.guild.request.whitelist': 'Sie haben eine Whitelistanfrage an das Team gesendet. Code: {{code}}',
         'discord.auth.success': 'wurde verifiziert.',
-        'discord.auth.banned.no.reason': 'ohne jeglichen Grund',
+        'discord.auth.banned.with.reason': 'Sie wurden vom Team gesperrt. Grund: {{reason}}',
+        'discord.auth.banned.no.reason': 'Sie wurden vom Team gesperrt. Grund: Unbekannt',
         'discord.auth.title': 'Discord-Verifizierung.',
         'discord.auth.subtile': 'Warte, bis wir wissen, wer du bist.',
         'discord.auth.information': 'Möglicherweise müssen Sie unsere App in Discord autorisieren.'
