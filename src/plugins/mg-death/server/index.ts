@@ -7,7 +7,7 @@ import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
 import { useHelicopter } from './controller.js';
-import { ensureValidation, findHospitalHelipad, getSafeGroundZ } from './functions.js';
+import { ensureValidation, findHospitalHelipad, findSafeLanding, getSafeGroundZ } from './functions.js';
 
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
@@ -20,6 +20,49 @@ const ActiveLabels: Map<string, ReturnType<typeof Rebar.controllers.useTextLabel
 const handleRescue = async (player: alt.Player) => {
     if (!player || !player.valid) return;
 
+    const world = Rebar.player.useWorld(player);
+    const natives = Rebar.player.useNative(player); 
+
+    const { name: hospitalName, pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);    
+    const { pos: finalPos } = await findHospitalHelipad(new alt.Vector3(hospitalPos), natives); 
+    const finalZ = await getSafeGroundZ(finalPos.x, finalPos.y, finalPos.z, natives);  
+
+    notifyApi.general.send(player, { 
+        icon: notifyApi.general.getTypes().INFO, 
+        title: hospitalName, 
+        subtitle: 'Notfallzentrum', 
+        message: 'Es wurde ein Rettungshelikopter entsendet', 
+        oggFile: 'notification', 
+    }); 
+
+    const startZ = await getSafeGroundZ(player.pos.x, player.pos.y, player.pos.z, natives);
+    const { pos: heliPos } = await findSafeLanding(player.pos, player.rot, 5, 1, natives);
+    const headingToPlayer = Math.atan2(player.pos.y - heliPos.y, player.pos.x - heliPos.x) * (180 / Math.PI);
+    const heading = headingToPlayer - 90;
+    const rad = (heading + 90) * (Math.PI / 180);
+    const leftX = Math.cos(rad);
+    const leftY = Math.sin(rad);
+    const startRot = new alt.Vector3(player.rot.x, player.rot.y, heading);
+    const pilotPos = { x: heliPos.x + leftX * 2, y: heliPos.y + leftY * 2, z: startZ + 1 }; 
+    
+    world.setScreenFade(1000); 
+    await alt.Utils.wait(1000);
+    
+    const helicopter = new alt.Vehicle('polmav', new alt.Vector3(heliPos.x, heliPos.y, heliPos.z), startRot);
+    const pilot = new alt.Ped('s_m_m_pilot_02', new alt.Vector3(pilotPos.x, pilotPos.y, pilotPos.z), startRot);
+
+    const isValid = await ensureValidation(pilot, helicopter, 15, 100); 
+    if (!isValid) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {}  
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
+    
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
 
@@ -30,6 +73,12 @@ const handleRescue = async (player: alt.Player) => {
         ActiveLabels.delete(charId);
     }
 
+    if (ActiveRescue.has(charId)) {
+        const data = ActiveRescue.get(charId)!;
+        try { data.helicopter.destroy(); } catch {} 
+        try {data. pilot.destroy(); } catch {} 
+    }
+
     if (TimeOfDeath.has(charId)) TimeOfDeath.delete(charId);
 
     if (ActiveTasks.has(charId)) {
@@ -38,34 +87,12 @@ const handleRescue = async (player: alt.Player) => {
         ActiveTasks.delete(charId);
     }
 
+    ActiveRescue.set(charId, { helicopter, pilot });
+
     player.emit(DeathEvents.toClient.respawned);
     player.emit(DeathEvents.toClient.toggleControls, false); 
 
-    const { name: hospitalName, pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);     
-    const world = Rebar.player.useWorld(player);
-    const natives = Rebar.player.useNative(player); 
-
-    notifyApi.general.send(player, { 
-        icon: notifyApi.general.getTypes().INFO, 
-        title: hospitalName, 
-        subtitle: 'Notfallzentrum', 
-        message: 'Es wurde ein Rettungshelikopter entsendet', 
-        oggFile: 'notification', 
-    }); 
-        
-    const heliHeading = player.rot.z * (Math.PI / 180); 
-    const offsetHeli = { x: Math.cos(heliHeading + Math.PI / 2) * 1, y: Math.sin(heliHeading + Math.PI / 2) * 1, z: 0 }; 
-    const offsetPilot = { x: Math.cos(heliHeading + Math.PI / 2) * 2, y: Math.sin(heliHeading + Math.PI / 2) * 2, z: 0 }; 
-    const startPos = { x: player.pos.x + offsetHeli.x, y: player.pos.y + offsetHeli.y, z: player.pos.z + 1.5 }; 
-    const pilotPos = { x: player.pos.x + offsetPilot.x, y: player.pos.y + offsetPilot.y, z: player.pos.z + 1 }; 
-    
-    world.setScreenFade(1000); 
-    await alt.Utils.wait(1000);
-    
-    const helicopter = new alt.Vehicle('polmav', startPos, player.rot); 
-    const pilot = new alt.Ped('s_m_m_pilot_02', pilotPos, player.rot); 
-    await ensureValidation(pilot, helicopter, 15, 100); 
-    ActiveRescue.set(charId, { helicopter, pilot });
+    await document.setBulk({ pos: player.pos, rot: player.rot });
     
     helicopter.livery = 2; 
     helicopter.setNetOwner(player); 
@@ -76,18 +103,10 @@ const handleRescue = async (player: alt.Player) => {
 
     const flyCtrl = useHelicopter(player, pilot, helicopter, ped, natives); 
     
-    player.frozen = false; 
-    player.clearTasks(); 
-    player.setIntoVehicle(helicopter, 4); 
-    await alt.Utils.wait(2000); 
-    Rebar.player.useWorld(player).clearScreenFade(1000); 
     await alt.Utils.wait(1000);
     await flyCtrl.getIn(15); 
-    
-    const { pos: finalPos, rot: finalRot } = await findHospitalHelipad(new alt.Vector3(hospitalPos), natives); 
-    const finalZ = await getSafeGroundZ(finalPos.x, finalPos.y, finalPos.z, natives); 
-    await flyCtrl.takeoff(startPos.z + 20); 
-    await flyCtrl.climb(startPos.z + 45); 
+    await flyCtrl.takeoff(heliPos.z + 20); 
+    await flyCtrl.climb(heliPos.z + 45); 
     await flyCtrl.cruise(finalPos.x, finalPos.y, finalZ + 45); 
     await flyCtrl.descend(finalPos.x, finalPos.y, finalZ + 15); 
     await flyCtrl.descend(finalPos.x, finalPos.y, finalZ + 5); 
@@ -97,12 +116,17 @@ const handleRescue = async (player: alt.Player) => {
     if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) { 
         try { helicopter.destroy(); } catch {} 
         try { pilot.destroy(); } catch {} 
-        return; 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
     } 
     
     await alt.Utils.wait(2000); 
     if (player && player.valid) { 
-        player.rot = new alt.Vector3(finalRot);
+        player.rot = new alt.Vector3(hospitalRot);
         player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
         await useMedicalService().respawn(player); 
     }
@@ -130,6 +154,11 @@ Rebar.services.useServiceRegister().register('medicalService', {
 
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid()) return;
+
+        const charPos = document.getField('pos') ?? player.pos;
+        const charRot = document.getField('rot') ?? player.rot;
+        player.pos = new alt.Vector3(charPos);
+        player.rot = new alt.Vector3(charRot);
 
         await document.setBulk({ isDead: true, health: 99, food: 100, water: 100, armour: 0, pos: player.pos, rot: player.rot });
 

@@ -20,6 +20,6 @@ setBulk({
         'intro.team.mod': 'Moderator*in',
         'intro.team.sup': 'Supporter*in',
         'intro.team.dev': 'Entwickler*in',
-        'intro.team.tester': 'Tester*in',
+        'intro.team.test': 'Tester*in',
     }
 });

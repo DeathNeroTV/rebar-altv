@@ -11,7 +11,6 @@ const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: numb
 
 const isLandingSafe = async (pos: alt.IVector3, rot: alt.IVector3, natives: ReturnType<typeof Rebar.player.useNative>) => { 
     const tempHeli = new alt.Vehicle('polmav', pos, rot); 
-    tempHeli.setNetOwner(player); 
     tempHeli.frozen = true; 
     const blocked = await natives.invokeWithResult('isHeliLandingAreaBlocked', tempHeli); 
     tempHeli.destroy(); 
@@ -45,9 +44,10 @@ const findHospitalHelipad = async (center: alt.Vector3, natives: ReturnType<type
 
 const ensureValidation = async (ped: alt.Ped, vehicle: alt.Vehicle, maxAttempts: number = 10, delay: number = 500) => { 
     for (let attempt = 0; attempt < maxAttempts; attempt++) { 
-        if (ped && ped.valid && vehicle && vehicle.valid) return; 
+        if (ped && ped.valid && vehicle && vehicle.valid) return true; 
         await alt.Utils.wait(delay); 
     } 
+    return false;
 }; 
 
 const getSafeGroundZ = async (x: number, y: number, z: number, natives: ReturnType<typeof Rebar.player.useNative>) => { 
