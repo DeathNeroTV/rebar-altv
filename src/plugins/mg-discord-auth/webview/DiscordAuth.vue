@@ -34,7 +34,7 @@
 <template>
 	<div class="relative flex items-center justify-center h-screen w-screen overflow-hidden bg-[#0b0b0b] text-gray-100 font-sans">
 		<!-- Hintergrund: taktische Linien & Glow -->
-		<div class="absolute inset-0 bg-gradient-to-br from-[#0d0d0d] via-[#1a2d1a] to-[#003d1f]"></div>
+		<div class="absolute inset-0 bg-gradient-to-br from-[#2d2d2d] via-[#1a2d1a] to-[#003d1f]"></div>
 		<div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,rgba(0,255,128,0.25),transparent_70%)] animate-pulse-slow"></div>
 
 		<!-- Grid Overlay -->
@@ -44,7 +44,7 @@
 
 		<!-- Hauptcontainer -->
 		<div
-			class="relative z-10 flex flex-col items-center text-center backdrop-blur-md bg-black/30 border border-green-500/30 rounded-2xl shadow-[0_0_20px_rgba(0,255,128,0.15)] p-10 max-w-lg mx-4 animate-fadein"
+			class="relative w-full z-10 flex flex-col items-center text-center bg-neutral-950/25 border border-green-500/30 rounded-2xl shadow-[0_0_20px_rgba(0,255,128,0.15)] p-10 max-w-2xl animate-fadein"
 		>
 			<!-- Titel -->
 			<h1 class="select-none text-2xl font-bold tracking-[0.25em] uppercase text-[#00ff88] drop-shadow-[0_0_12px_rgba(0,255,136,0.7)]">
@@ -78,7 +78,8 @@
 
 			<!-- Discord Join Button -->
 			<div
-				class="mt-10 flex items-center gap-4 justify-center cursor-pointer select-none px-6 py-3 rounded-2xl bg-black/30 backdrop-blur-md border border-green-500/20 text-[#00ff88] text-xl font-semibold uppercase tracking-wide shadow-[0_0_12px_rgba(0,255,136,0.25)] hover:shadow-[0_0_16px_rgba(0,255,180,0.45)] hover:text-[#aaffdd] transition-all duration-300"
+				v-if="message === t('discord.auth.guild.no.member')"
+				class="mt-10 flex items-center gap-4 justify-center cursor-pointer select-none px-6 py-3 rounded-2xl bg-neutral-950/25 border border-green-500/20 text-[#00ff88] text-xl font-semibold uppercase tracking-wide shadow-[0_0_12px_rgba(0,255,136,0.25)] hover:shadow-[0_0_16px_rgba(0,255,180,0.45)] hover:text-[#aaffdd] transition-all duration-300"
 				@click="copyInvite"
 			>
 				<font-awesome-icon :icon="['fab', 'discord']" class="text-3xl drop-shadow-[0_0_6px_rgba(0,255,136,0.4)]" />
