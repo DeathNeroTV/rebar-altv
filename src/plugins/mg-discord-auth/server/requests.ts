@@ -48,5 +48,10 @@ export async function getUserGuildMember(userId: string): Promise<GuildMember> {
     if (!client) return undefined;
     
     const guild = await client.guilds.fetch(DiscordAuthConfig.SERVER_ID);
-    return guild?.members?.fetch(userId) ?? undefined;
+    try {
+        const member = await guild.members.fetch(userId);
+        return member;
+    } catch (err) {
+        return undefined;
+    }
 }
