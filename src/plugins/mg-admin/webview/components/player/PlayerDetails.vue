@@ -349,8 +349,8 @@
 				</div>
 
 				<!-- 🔸 Rechte Seite: Aktionen -->
-				<div v-if="typeof player.name !== `number`" class="w-96 bg-neutral-900 ring-1 ring-[#008736]/60 rounded-xl">
-					<PlayerActions :player="player" @close="emits('close')" />
+				<div class="w-96 bg-neutral-900 ring-1 ring-[#008736]/60 rounded-xl">
+					<PlayerActions :visible="isNaN(Number(player?.name))" :player="player" @close="emits('close')" />
 				</div>
 			</div>
 			<!-- Panels: außerhalb der Box, rechts einfahrende Slider -->

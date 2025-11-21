@@ -10,7 +10,7 @@
 	import { TlrpItem } from '@Plugins/mg-inventory/shared/interfaces';
 
 	const events = useEvents();
-	const props = defineProps<{ player: PlayerStats | null }>();
+	const props = defineProps<{ player: PlayerStats | null; visible: boolean }>();
 
 	const emits = defineEmits<{
 		(e: 'close'): void;
@@ -140,18 +140,16 @@
 	});
 
 	onMounted(async () => {
-		const itemList: Partial<TlrpItem>[] = (await events.emitServerRpc(AdminEvents.toServer.request.items, true)) ?? [{ uid: 'hamburger', name: 'Hamburger' }];
-		items.value = itemList.map((x) => ({ label: x.name ?? 'Unbekannt', value: x.uid ?? '' }));
+		const itemList: Partial<TlrpItem>[] = (await events.emitServerRpc(AdminEvents.toServer.request.items, true)) ?? [];
+		items.value = itemList.map((x) => ({ label: x.name ?? x.uid ?? 'Unbekannt', value: x.uid ?? '' }));
 
-		const weaponList: { name: string; model: string }[] = (await events.emitServerRpc(AdminEvents.toServer.request.weapons)) ?? [
-			{ name: 'Deine Mamma', model: 'weapon_unarmed' },
-		];
+		const weaponList: { name: string; model: string }[] = (await events.emitServerRpc(AdminEvents.toServer.request.weapons)) ?? [];
 		weapons.value = weaponList.map((x) => ({ label: x.name, value: x.model }));
 	});
 </script>
 
 <template>
-	<div class="px-4 py-2 text-gray-100 w-full h-fit">
+	<div v-if="visible" class="px-4 py-2 text-gray-100 w-full h-fit">
 		<h3 class="text-gray-400 text-lg">Spieler-Interaktion</h3>
 
 		<div class="w-full h-[1px] bg-[#008736] my-2"></div>
