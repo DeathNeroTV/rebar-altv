@@ -349,7 +349,7 @@
 				</div>
 
 				<!-- 🔸 Rechte Seite: Aktionen -->
-				<div class="w-96 bg-neutral-900 ring-1 ring-[#008736]/60 rounded-xl">
+				<div v-if="typeof player.name !== `number`" class="w-96 bg-neutral-900 ring-1 ring-[#008736]/60 rounded-xl">
 					<PlayerActions :player="player" @close="emits('close')" />
 				</div>
 			</div>

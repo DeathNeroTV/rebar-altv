@@ -35,9 +35,9 @@ export interface PlayerStats {
     id: number; 
     account_id: string;
     name: string;
-    ping: number;
-    health: number;
-    armour: number;
+    ping?: number;
+    health?: number;
+    armour?: number;
     pos?: { x: number; y: number; z: number };
     rot?: { x: number; y: number; z: number };
     job?: string | string[]; 

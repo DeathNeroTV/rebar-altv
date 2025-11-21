@@ -11,33 +11,24 @@ const notifyApi = await useRebar().useApi().getAsync('notify-api');
 
 const CollectionNames = { ...Rebar.database.CollectionNames, ...{ Logs: 'Logs' } };
 
-alt.onRpc(AdminEvents.toServer.request.player, (player: alt.Player) => {
+alt.onRpc(AdminEvents.toServer.request.player, async (player: alt.Player) => {
     const players: PlayerStats[] = [];
-    for (const p of alt.Player.all.filter(x => 
-        !x.hasMeta('can-change-appearance') && 
-        !x.hasMeta('can-select-character') && 
-        !x.hasMeta('can-auth-account')&& 
-        !x.hasMeta('can-see-intro')
-    )) {
-        const account_id = Rebar.document.account.useAccount(player)?.getField('_id') ?? undefined;
-        players.push({
-            health: p.health,
-            account_id,
-            id: p.id,
-            name: p.name,
-            ping: p.ping,
-            armour: p.armour,
-            pos: { 
-                x: player.pos.x, 
-                y: player.pos.y, 
-                z: player.pos.z 
-            },
-            rot: { 
-                x: player.rot.x, 
-                y: player.rot.y, 
-                z: player.rot.z 
-            },
+    const accounts = await db.getAll<Account>(CollectionNames.Accounts);
+    const filteredPlayers = alt.Player.all.filter(x => !x.hasMeta('can-change-appearance') && !x.hasMeta('can-select-character') && !x.hasMeta('can-auth-account')&& !x.hasMeta('can-see-intro'));
+    for (const acc of accounts) {
+        const target = filteredPlayers.find(x => Rebar.document.account.useAccount(x).isValid() && Rebar.document.account.useAccount(x).getField('_id') === acc._id);
+        if (target) players.push({ 
+            id: target.id, 
+            account_id: 
+            acc._id, 
+            name: target.name, 
+            ping: target.ping, 
+            health: target.health, 
+            armour: target.armour, 
+            pos: { x: target.pos.x, y: target.pos.y, z: target.pos.z }, 
+            rot: { x: target.rot.x, y: target.rot.y, z: target.rot.z } 
         });
+        else players.push({ account_id: acc._id, id: acc.id, name: acc.discord });
     }
     return players;
 });

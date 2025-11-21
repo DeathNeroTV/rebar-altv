@@ -7,25 +7,24 @@
 
 	import PlayerTable from '../components/player/PlayerTable.vue';
 	import PlayerDetails from '../components/player/PlayerDetails.vue';
+	import { Account } from '@Shared/types';
 
 	const events = useEvents();
-	const players = ref<PlayerStats[]>([
-		{ id: 1, account_id: '', name: 'Roman Jackson', health: 200, armour: 0, ping: 13, pos: { x: 0, y: 0, z: 0 }, rot: { x: 0, y: 0, z: 0 }, job: ['police', 'ambulance'] },
-	]);
+	const players = ref<PlayerStats[]>([]);
 	const search = ref<string>('');
 	const selectedPlayer = ref<PlayerStats | null>(null);
 
 	async function refreshPlayers() {
-		const result: PlayerStats[] = await events.emitServerRpc(AdminEvents.toServer.request.player);
-		if (Array.isArray(result)) players.value = result;
+		const pList: PlayerStats[] = await events.emitServerRpc(AdminEvents.toServer.request.player);
+		if (Array.isArray(pList)) players.value = pList;
 	}
 
 	const filteredPlayers = computed(() => {
 		const s = search.value.toLowerCase();
-		return players.value.filter((p) => p.name?.toLowerCase().includes(s) || String(p.id).includes(s));
+		return players.value.filter((x) => x.name?.toLowerCase().includes(s) || String(x.id).includes(s));
 	});
 
-	function openPlayerDetails(player: any) {
+	function openPlayerDetails(player: PlayerStats) {
 		selectedPlayer.value = player;
 	}
 

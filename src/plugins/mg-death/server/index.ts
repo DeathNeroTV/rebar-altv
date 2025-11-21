@@ -36,7 +36,7 @@ const handleRescue = async (player: alt.Player) => {
     }); 
 
     const startZ = await getSafeGroundZ(player.pos.x, player.pos.y, player.pos.z, natives);
-    const { pos: heliPos } = await findSafeLanding(player.pos, player.rot, 5, 1, natives);
+    const { pos: heliPos } = await findSafeLanding(player.pos, player.rot, 6, 2, natives);
     const headingToPlayer = Math.atan2(player.pos.y - heliPos.y, player.pos.x - heliPos.x) * (180 / Math.PI);
     const heading = headingToPlayer - 90;
     const rad = (heading + 90) * (Math.PI / 180);
@@ -45,6 +45,7 @@ const handleRescue = async (player: alt.Player) => {
     const startRot = new alt.Vector3(player.rot.x, player.rot.y, heading);
     const pilotPos = { x: heliPos.x + leftX * 2, y: heliPos.y + leftY * 2, z: startZ + 1 }; 
     
+    player.emit(DeathEvents.toClient.disableControls, true);
     world.setScreenFade(1000); 
     await alt.Utils.wait(1000);
     
@@ -104,16 +105,8 @@ const handleRescue = async (player: alt.Player) => {
     const flyCtrl = useHelicopter(player, pilot, helicopter, ped, natives); 
     
     await alt.Utils.wait(1000);
-    await flyCtrl.getIn(15); 
-    await flyCtrl.takeoff(heliPos.z + 20); 
-    await flyCtrl.climb(heliPos.z + 45); 
-    await flyCtrl.cruise(finalPos.x, finalPos.y, finalZ + 45); 
-    await flyCtrl.descend(finalPos.x, finalPos.y, finalZ + 15); 
-    await flyCtrl.descend(finalPos.x, finalPos.y, finalZ + 5); 
-    await flyCtrl.land(finalPos.x, finalPos.y, finalZ); 
-    await flyCtrl.getOut(15);
-    
-    if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) { 
+    const okIn = await flyCtrl.getIn(15); 
+    if (!okIn) {
         try { helicopter.destroy(); } catch {} 
         try { pilot.destroy(); } catch {} 
         if (player && player.valid) {
@@ -122,14 +115,95 @@ const handleRescue = async (player: alt.Player) => {
             await useMedicalService().respawn(player); 
         }
         return;
-    } 
+    }
+    const okTakeOff = await flyCtrl.takeoff(heliPos.z + 20); 
+    if (!okTakeOff) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
+    const okClimb = await flyCtrl.climb(heliPos.z + 45); 
+    if (!okClimb) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
+    const okCruise = await flyCtrl.cruise(finalPos.x, finalPos.y, finalZ + 45); 
+    if (!okCruise) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
+    const okDesc1 = await flyCtrl.descend(finalPos.x, finalPos.y, finalZ + 15, 8); 
+    if (!okDesc1) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
+    const okDesc2 = await flyCtrl.descend(finalPos.x, finalPos.y, finalZ + 5, 3);
+    if (!okDesc2) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
+    const okLand = await flyCtrl.land(finalPos.x, finalPos.y, finalZ); 
+    if (!okLand) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
+    const okOut = await flyCtrl.getOut(15);
+    if (!okOut) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        if (player && player.valid) {
+            player.rot = new alt.Vector3(hospitalRot);
+            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
+            await useMedicalService().respawn(player); 
+        }
+        return;
+    }
     
     await alt.Utils.wait(2000); 
-    if (player && player.valid) { 
+    ActiveRescue.delete(charId);
+
+    try { helicopter.destroy(); } catch {} 
+    try { pilot.destroy(); } catch {} 
+    try {
         player.rot = new alt.Vector3(hospitalRot);
         player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
         await useMedicalService().respawn(player); 
-    }
+    } catch {}
 };
 
 const handleDeathScreen = (player: alt.Player) => {
@@ -335,7 +409,8 @@ Rebar.services.useServiceRegister().register('medicalService', {
         }
 
         // Unfreeze und setze neue Werte
-        const data = pos ? { pos, rot: player.rot } : useMedicalService().hospital(player.pos);
+        const { pos: hospitalPos, rot: hospitalRot, name: hospitalName } = useMedicalService().hospital(player.pos)
+        const data = pos ? { pos, rot: player.rot } : { pos: hospitalPos, rot: hospitalRot };
 
         await document.setBulk({
             isDead: false,
@@ -351,11 +426,21 @@ Rebar.services.useServiceRegister().register('medicalService', {
         await alt.Utils.wait(DeathConfig.coolDown);
 
         player.frozen = false;
-        player.spawn(data.pos);
         player.pos = new alt.Vector3(data.pos);
+        player.rot = new alt.Vector3(data.rot);
+        player.clearTasks();
         player.clearBloodDamage();
-        player.emit(DeathEvents.toClient.toggleControls, true);
         Rebar.player.useWorld(player).clearScreenFade(DeathConfig.fadeDelay);
+        await alt.Utils.wait(DeathConfig.fadeDelay);
+        
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().SUCCESS,
+            title: hospitalName,
+            subtitle: 'Notfallzentrum',
+            message: 'Bitte lassen Sie sich nochmal durch die Ärzte im Krankenhaus nachbehandeln.',
+            oggFile: 'notification'
+        });
+        player.emit(DeathEvents.toClient.disableControls, false);
     },
 
     called(player: alt.Player) {

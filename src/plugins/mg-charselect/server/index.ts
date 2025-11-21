@@ -220,11 +220,18 @@ async function handleLogout(player: alt.Player) {
 }
 
 // --- Disconnect ---
-function handleDisconnect(player: alt.Player, reason: string) {
+async function handleDisconnect(player: alt.Player, reason: string) {
     if (!player || !player.valid) return;
-    Rebar.player.useState(player).save();
-    const name = Rebar.document.character.useCharacter(player).getField('name') ?? player.name;
-    alt.log('[Disconnect]', `${name} hat den Server verlassen`, `[${reason}]`);
+    const document = Rebar.document.character.useCharacter(player);
+    if (document.get()) {
+        await document.setBulk({ 
+            pos: player.pos,
+            rot: player.rot,
+            health: player.health,
+            isDead: player.isDead
+        });
+        alt.log('[Disconnect]', `${document.getField('name')} hat den Server verlassen`, `[${reason}]`);
+    } else alt.log('[Disconnect]', `${player.name} hat den Server verlassen`, `[${reason}]`);
 }
 
 // --- Init ---

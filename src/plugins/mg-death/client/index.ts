@@ -107,8 +107,8 @@ function registerListeners() {
         state.isReviver = false;
     });
 
-    alt.onServer(DeathEvents.toClient.toggleControls, (value: boolean) => {
-        if (!value) {
+    alt.onServer(DeathEvents.toClient.disableControls, (value: boolean) => {
+        if (value) {
             if (interval) alt.clearEveryTick(interval);
             interval = alt.everyTick(handleControls);
             return;
@@ -198,6 +198,10 @@ function handleControls() {
     natives.disableControlAction(0, 33, true);
     natives.disableControlAction(0, 34, true);
     natives.disableControlAction(0, 35, true);
+    natives.disableControlAction(0, 49, true);
+    natives.disableControlAction(0, 75, true);
+    natives.disableControlAction(0, 144, true);
+    natives.disableControlAction(0, 145, true);
 }
 
 async function init() {

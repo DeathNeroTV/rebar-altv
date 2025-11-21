@@ -10,7 +10,8 @@ const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: numb
 };
 
 const isLandingSafe = async (pos: alt.IVector3, rot: alt.IVector3, natives: ReturnType<typeof Rebar.player.useNative>) => { 
-    const tempHeli = new alt.Vehicle('polmav', pos, rot); 
+    const posZ = await getSafeGroundZ(pos.x, pos.y, pos.z, natives);
+    const tempHeli = new alt.Vehicle('polmav', { ...pos, z: posZ + 1.5 }, rot); 
     tempHeli.frozen = true; 
     const blocked = await natives.invokeWithResult('isHeliLandingAreaBlocked', tempHeli); 
     tempHeli.destroy(); 

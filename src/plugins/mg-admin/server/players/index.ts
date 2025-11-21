@@ -138,6 +138,14 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
             }
             break;
         case ActionType.SPECTATE:
+            const world = Rebar.player.useWorld(admin);
+            admin.collision = !admin.collision;
+            admin.visible = !admin.visible;
+            admin.invincible = !admin.invincible;
+            world.disableAttackControls(admin.collision);
+            
+            if (admin.visible) admin.detach();
+            else admin.attachTo(target, 0, 0, new alt.Vector3(0), new alt.Vector3(0), false, true);
             break;
         case ActionType.GIVE:
             await handleGiveAction(target, data.giveType, data.itemId!, data.amount);

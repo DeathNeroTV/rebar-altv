@@ -26,6 +26,6 @@ export const DeathEvents = {
         stopRevive: 'mg-death:revive:stop',
         confirmEms: 'mg-death:ems:confirmed',
         respawned: 'mg-death:player:respawn',
-        toggleControls: 'mg-death:toggle:controls',
+        disableControls: 'mg-death:disable:controls',
     }
 }
