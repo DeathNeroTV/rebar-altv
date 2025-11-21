@@ -1,11 +1,11 @@
 declare global {
     export interface KeyBindRestrictions {
-        isOnFoot?: boolean;
-        isVehicle?: boolean;
-        isVehiclePassenger?: boolean;
-        isVehicleDriver?: boolean;
-        isAiming?: boolean;
-        isSwimming?: boolean;
+        isOnFoot?: true;
+        isVehicle?: true;
+        isVehiclePassenger?: true;
+        isVehicleDriver?: true;
+        isAiming?: true;
+        isSwimming?: true;
         vehicleModels?: Array<number>;
         weaponModels?: Array<number>;
     }

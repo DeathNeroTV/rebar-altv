@@ -23,11 +23,10 @@ const keyBind: KeyInfo = {
     identifier: 'toggle-no-clip',
     description: 'Geistermodus de-/aktivieren',
     key: alt.KeyCode.F3,
+    restrictions: { isOnFoot: true },
     keyDown: async () => {
-        if (alt.isConsoleOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
         noClip = await alt.emitRpc(AdminEvents.toServer.ghosting.toggle);
-    },
-    restrictions: { isOnFoot: true }
+    }
 };
 
 alt.onServer(AdminEvents.toClient.ghosting.toggle, (state: boolean) => {

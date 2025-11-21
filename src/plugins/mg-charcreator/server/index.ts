@@ -59,6 +59,10 @@ function handleCharacterSelect(player: alt.Player, document: Character) {
 
 async function init() {
     const charSelectApi = await Rebar.useApi().getAsync('character-select-api');
+    if (!charSelectApi) {
+        alt.logError('[mg-charcreator]', 'character-select-api not found');
+        return;
+    }
     charSelectApi.onSelect(handleCharacterSelect);
     alt.onClient(CharacterCreatorEvents.toServer.saveAppearance, saveAppearance);
 }

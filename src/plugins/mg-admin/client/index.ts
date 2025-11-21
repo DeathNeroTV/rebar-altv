@@ -17,12 +17,9 @@ const view = Rebar.webview.useWebview();
 const keyBind: KeyInfo = {
     identifier: 'admin-toggle',
     description: t('admin.keyBind.desc'),
-    key: alt.KeyCode.P,
     allowIfDead: true,
-    keyDown: () => {
-        if (alt.isConsoleOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
-        alt.emitServer(AdminEvents.toServer.login);
-    },
+    key: alt.KeyCode.P,
+    keyDown: () => alt.emitServer(AdminEvents.toServer.login),
 };
 
 alt.everyTick(() => {

@@ -3,9 +3,12 @@ import * as native from 'natives';
 import { useClientApi } from '@Client/api/index.js';
 import { useWebview } from '@Client/webview/index.js';
 import { PageNames } from '@Shared/webview/index.js';
+import { useRebarClient } from '@Client/index.js';
 
 export type KeyInfoDefault = KeyInfo & { default: number };
 
+const Rebar = useRebarClient();
+const streamGetter = Rebar.systems.useStreamSyncedGetter();
 const keyMappings: KeyInfoDefault[] = [];
 const keyDownTime: { [identifier: string]: number } = {};
 const keyCooldown: { [identifier: string]: number } = {};
@@ -41,6 +44,7 @@ class KeyBinds {
      */
     static isValidRestrictions(data: KeyBindRestrictions): boolean {
         if (typeof data === 'undefined') return true;
+
         if (data.isAiming && !alt.Player.local.isAiming) return false;
         if (data.isOnFoot && alt.Player.local.vehicle) return false;
         if (data.isVehicle || data.isVehicleDriver || data.vehicleModels || data.isVehiclePassenger) {
@@ -111,8 +115,10 @@ class KeyBinds {
     static keyDown(key: number): void {
         const keys = KeyBinds.getKeys(key);
         for (let keyInfo of keys) {
+            const isDead = streamGetter.player(alt.Player.local).has('isDead') ? streamGetter.player(alt.Player.local).get('isDead') : false;
             if (!keyInfo) continue;
             if (keyInfo.disabled) continue;
+            if (!keyInfo.allowIfDead && isDead) continue;
             if (typeof keyInfo.spamPreventionInMs === 'number' && keyInfo.spamPreventionInMs > 1) {
                 if (keyCooldown[keyInfo.identifier] && Date.now() < keyCooldown[keyInfo.identifier]) {
                     continue;

@@ -12,7 +12,6 @@ const keyBind: KeyInfo = {
     identifier: 'inventory-toggle',
     key: alt.KeyCode.Tab,
     keyDown: () => {
-        if (alt.isConsoleOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
         alt.emitServer(InventoryEvents.toServer.fetchData);
     }
 };

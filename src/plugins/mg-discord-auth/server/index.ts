@@ -3,7 +3,7 @@ import { DiscordAuthConfig } from './config.js';
 import { DiscordAuthEvents } from '../shared/events.js';
 import { useRebar } from '@Server/index.js';
 import { Account, ServerConfig } from '@Shared/types/index.js';
-import { getCurrentUser, getUserGuildMember, requestInit } from "./requests.js";
+import { getCurrentUser, getGuildMember, requestInit } from "./requests.js";
 import { DiscordInfo, DiscordSession, WhitelistRequest } from "../shared/interfaces.js";
 import { useTranslate } from "@Shared/translate.js";
 import { invokeLogin, invokeWhitelistRequest } from './api.js';
@@ -110,7 +110,7 @@ async function handleCheckToken(player: alt.Player, token: string) {
     }
 
     if (DiscordAuthConfig.SERVER_ID && DiscordAuthConfig.SERVER_ID.length !== 0) {
-        const guildMember = await getUserGuildMember(currentUser.id);
+        const guildMember = await getGuildMember(currentUser.id);
         if (!guildMember) {
             webview.emit(DiscordAuthEvents.toWebview.send, t("discord.auth.guild.no.member"));
             return;

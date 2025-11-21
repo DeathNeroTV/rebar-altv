@@ -1,6 +1,7 @@
 import * as alt from 'alt-server';
 import { useRebar } from "@Server/index.js";
 import { reachGoal } from './functions.js';
+import { HeliMission } from '../shared/interfaces.js';
 
 const Rebar =  useRebar();
 
@@ -29,39 +30,40 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
             return true; 
         }, 
 
-        async takeoff(z: number) { 
+        async takeoff(z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false; 
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 15, 3, -1, -1, -1, 20, 128); 
-            await reachGoal({ ...helicopter.pos, z }, helicopter, 8);  
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
+            await reachGoal({ ...helicopter.pos, z }, helicopter, mission.radius);  
             return true; 
         }, 
 
-        async climb(z: number) { 
+        async climb(z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, 4, 12, 5, -1, -1, -1, 20, 0); 
-            await reachGoal({ ...helicopter.pos, z }, helicopter, 5); 
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, helicopter.pos.x, helicopter.pos.y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
+            await reachGoal({ ...helicopter.pos, z }, helicopter, mission.radius); 
             return true; 
         },
 
-        async cruise(x: number, y: number, z: number) { 
+        async cruise(x: number, y: number, z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 4, 50, 20, -1, -1, -1, 50, 0); 
-            await reachGoal({ x, y, z }, helicopter, 50); 
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags);
+            await reachGoal({ x, y, z }, helicopter, mission.radius); 
             return true; 
         }, 
 
-        async descend(x: number, y: number, z: number, radius: number) { 
+        async descend(x: number, y: number, z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
             alt.log('taskHeliMission -> descend');
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 19, 8, radius, -1, -1, -1, 20, 0); 
-            await reachGoal({ x, y, z }, helicopter, radius); 
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
+            await reachGoal({ x, y, z }, helicopter, mission.radius); 
             return true;
         }, 
 
-        async land(x: number, y: number, z: number) { 
+        async land(x: number, y: number, z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, 20, 5, 0, -1, -1, -1, 20, 32); 
-            await reachGoal({ x, y, z }, helicopter, 1.5); 
+            alt.log('taskHeliMission -> land');
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
+            await reachGoal({ x, y, z }, helicopter, mission.radius); 
             return true; 
         }, 
 

@@ -168,7 +168,7 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
 });
 
 async function handleGiveAction(player: alt.Player, type: GiveType, id: string, amount: number) {
-    if (type === GiveType.ITEM) {
+    if (type === GiveType.ITEM || type === GiveType.WEAPON) {
         const success = await useInventoryService().add(player, id, amount);
         if (!success) return;
 
@@ -177,18 +177,6 @@ async function handleGiveAction(player: alt.Player, type: GiveType, id: string, 
             subtitle: 'Gegeben',
             icon: notifyApi.general.getTypes().INFO,
             message: `${Math.abs(amount)} x ${id} erhalten`,
-            oggFile: 'notification',
-        });
-        return;
-    }
-
-    if (type === GiveType.WEAPON) {
-        await Rebar.player.useWeapon(player).add(id, amount);
-        notifyApi.general.send(player, {
-            title: 'Admin-System',
-            subtitle: 'Gegeben',
-            icon: notifyApi.general.getTypes().INFO,
-            message: `${id} mit ${amount} Schuss erhalten`,
             oggFile: 'notification',
         });
         return;
@@ -207,7 +195,7 @@ async function handleGiveAction(player: alt.Player, type: GiveType, id: string, 
 }
 
 async function handleTakeAction(player: alt.Player, type: GiveType, id: string, amount: number) {
-    if (type === GiveType.ITEM) {
+    if (type === GiveType.ITEM || type === GiveType.WEAPON) {
         const success = await useInventoryService().sub(player, id, amount);
         if (!success) return;
 
@@ -216,18 +204,6 @@ async function handleTakeAction(player: alt.Player, type: GiveType, id: string, 
             subtitle: 'Abgenommen',
             icon: notifyApi.general.getTypes().INFO,
             message: `${Math.abs(amount)} x ${id} abgenommen`,
-            oggFile: 'notification',
-        });
-        return;
-    }
-
-    if (type === GiveType.WEAPON) {
-        await Rebar.player.useWeapon(player).clearWeapon(id);
-        notifyApi.general.send(player, {
-            title: 'Admin-System',
-            subtitle: 'Abgenommen',
-            icon: notifyApi.general.getTypes().INFO,
-            message: `${id} wurde von Ihnen eingezogen`,
             oggFile: 'notification',
         });
         return;

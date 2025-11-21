@@ -7,8 +7,10 @@ import { useClientApi } from '@Client/api/index.js';
 import { HudEvents } from '../shared/events.js';
 import { Config } from '../shared/config.js';
 import { ActionModifiers } from '../shared/interfaces.js';
+import { Character } from '@Shared/types/character.js';
 
 const Rebar = useRebarClient();
+const streamGetter = Rebar.systems.useStreamSyncedGetter();
 const api = useClientApi();
 const view = Rebar.webview.useWebview();
 const keyBindApi = await api.getAsync('keyBinds-api');

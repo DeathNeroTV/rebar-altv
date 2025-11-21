@@ -1,3 +1,4 @@
+import * as alt from 'alt-server';
 import { useDiscord } from "@Plugins/mg-discord/server/api.js";
 import {DiscordAuthConfig} from "./config.js";
 import {Client, GuildMember} from "discord.js";
@@ -10,8 +11,8 @@ export function requestInit() {
     if (!DiscordAuthConfig.SERVER_ID || DiscordAuthConfig.SERVER_ID.length <= 3) return;
 
     client = useDiscord().client();
-    if (!client) console.warn('[Discord-Auth]', 'no discord client found');
-    else console.info('[Discord-Auth]', 'discord client found');
+    if (!client) alt.logError('[Discord-Auth]', 'no discord client found');
+    else alt.log('[Discord-Auth]', 'discord client found');
 }
 
 export async function getCurrentUser(token: string): Promise<DiscordInfo | undefined> {
@@ -44,7 +45,7 @@ export async function getCurrentUser(token: string): Promise<DiscordInfo | undef
     });
 }
 
-export async function getUserGuildMember(userId: string): Promise<GuildMember> {
+export async function getGuildMember(userId: string): Promise<GuildMember> {
     if (!client) return undefined;
     
     const guild = client.guilds.cache.get(DiscordAuthConfig.SERVER_ID) ?? await client.guilds.fetch(DiscordAuthConfig.SERVER_ID);

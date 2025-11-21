@@ -127,6 +127,10 @@ async function init() {
     await db.createCollection('Logs');
     
     const discordAuthApi = await Rebar.useApi().getAsync('discord-auth-api');
+    if (!discordAuthApi) {
+        alt.logError('[mg-admin]', 'discord-auth-api not found');
+        return;
+    }
     discordAuthApi.onWhitelistRequest(handleWhitelistRequest);
 
     alt.onRpc(AdminEvents.toServer.ghosting.toggle, handleNoClipToggle);

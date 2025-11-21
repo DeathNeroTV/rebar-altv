@@ -27,14 +27,47 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         if (!cloned) return false;
 
         const { item } = findItemWithSlot(inventory, uid);
-        if (item) return false;
 
         const baseData = cloned.data ?? {};
         const extraData = data ?? {};
-        const newData = { ...baseData, ...extraData };
+        const mergedData = { ...baseData, ...extraData };
 
-        const newItem: TlrpItem = { ...cloned, quantity, data: newData };
+        let remaining = quantity;
+        if (item) {
+            const max = cloned.maxStack ?? item.maxStack ?? 1;
+            const freeSpace = max - item.quantity;
 
+            if (freeSpace > 0) {
+                const toAdd = Math.min(freeSpace, remaining);
+                item.quantity += toAdd;
+                remaining -= toAdd;
+            }
+
+            if (remaining > 0) {
+                const newStack: TlrpItem = { ...cloned, quantity: 0, data: mergedData };
+
+                const hasSpace = await useInventoryService().hasSpace(entity, newStack);
+                if (!hasSpace) return false;
+
+                const freeIndex = await useInventoryService().getFreeSlot(entity);
+                const newQuantity = Math.min(remaining, max);
+
+                const extraItem: TlrpItem = {
+                    ...cloned,
+                    quantity: newQuantity,
+                    data: mergedData
+                };
+
+                if (freeIndex !== -1) inventory.slots[freeIndex] = extraItem;
+                else inventory.slots.push(extraItem);
+
+                remaining -= newQuantity;
+            }
+
+            return await persistInventory(inventory);
+        }
+
+        const newItem: TlrpItem = { ...cloned, quantity: remaining, data: mergedData };
         const hasSpace = await useInventoryService().hasSpace(entity, newItem);
         if (!hasSpace) return false;
 

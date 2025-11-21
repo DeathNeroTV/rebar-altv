@@ -261,6 +261,10 @@ async function init() {
 
     charEditorApi.onCreate(handleHudView);
     charEditorApi.onSkipCreate(handleHudView);
+
+    Config.CharKeys.forEach(Rebar.systems.useStreamSyncedBinder().syncCharacterKey);
+    Config.VehKeys.forEach(Rebar.systems.useStreamSyncedBinder().syncVehicleKey);
+    
     await createCollections();
 }
 

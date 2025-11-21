@@ -5,7 +5,7 @@ import { DeathConfig } from '../shared/config.js';
 const Rebar = useRebar();
 
 const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: number = 5) => { 
-    while (vehicle.pos.distanceTo(pos) > distance) 
+    while (vehicle && vehicle.valid && vehicle.pos.distanceTo(pos) > distance)
         await alt.Utils.wait(100); 
 };
 

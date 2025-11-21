@@ -32,6 +32,10 @@ alt.onClient(AdminEvents.toServer.whitelist.approve, async (player: alt.Player, 
     await db.update<WhitelistRequest>(entry, 'WhitelistRequests');
 
     const discordApi = await Rebar.useApi().getAsync('discord-api');
+    if (!discordApi) {
+        alt.logError('[mg-admin]', 'discord-api not found');
+        return;
+    }
     const member = await discordApi.getDiscordMember(entry.discordId);
 
     if (!member) {
@@ -86,6 +90,10 @@ alt.onClient(AdminEvents.toServer.whitelist.reject, async (player: alt.Player, _
     await db.update<WhitelistRequest>(entry, 'WhitelistRequests');
 
     const discordApi = await Rebar.useApi().getAsync('discord-api');
+    if (!discordApi) {
+        alt.logError('[mg-admin]', 'discord-api not found');
+        return;
+    }
     const member = await discordApi.getDiscordMember(entry.discordId);
 
     if (!member) {
