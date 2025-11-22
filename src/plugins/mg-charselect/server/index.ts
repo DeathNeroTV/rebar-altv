@@ -139,8 +139,6 @@ async function handleSelectCharacter(player: alt.Player, id: string) {
         return;
     }
 
-    alt.log('[mg-charselect]', 'character wurde ausgewählt', character._id);
-
     Rebar.document.character.useCharacterBinder(player).bind(character);
     Rebar.player.useWebview(player).hide('CharacterSelect');
     Rebar.player.useWorld(player).enableControls();    

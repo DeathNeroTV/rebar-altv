@@ -18,6 +18,7 @@ resources/fonts/**/*.otf
 resources/fonts/**/*.ttf
 resources/rmlui/plugins
 resources/gabz_*
+resources/lsiar
 webview/public/sounds/**/*.ogg
 webview/public/images/**/*.png
 webview/public/images/**/*.jpg
