@@ -6,16 +6,23 @@ export const DeathConfig = {
     coolDown: 3500,
     hospitals: [
         {
-            name: "Pillbox Hill Medical Center",
-            pos: { x: 321.8901, y: -590.3209, z: 43.2821 },
-            rot: { x: 0.0000, y: 0.0000, z: 2.7705 }
+            name: "Los Santos Generals Krankenhaus",
+            pos: { x: 294.7648, y: -1448.3737, z: 29.9539 },
+            rot: { x: 0.0000, y: 0.0000, z: -1.2863 }
         },
     ],
     helipads: [
         {
-            name: "Pillbox Hill Medical Center Helipad",
-            pos: { x: 352.7209, y: -588.2901, z: 74.1509 },
-            rot: { x: 0.0000, y: 0.0000, z: 1.1874 }
+            name: "Los Santos Generals Krankenhaus Landeplatz 1",
+            pos: { x: 299.4462, y: -1453.4374, z: 46.5004 },
+            rot: { x: 0.0000, y: 0.0000, z: -0.6926 },
+            inUse: false,
+        },
+        {
+            name: "Los Santos Generals Krankenhaus Landeplatz 2",
+            pos: { x: 313.2923, y: -1465.2660, z: 46.5004 },
+            rot: { x: 0.0000, y: 0.0000, z: -0.5937 },
+            inUse: false,
         },
     ]
 };

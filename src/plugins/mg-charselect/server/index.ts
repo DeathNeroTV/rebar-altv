@@ -10,7 +10,6 @@ import { CharacterSelectEvents } from '../shared/characterSelectEvents.js';
 
 import '../translate/index.js';
 
-import { getClient } from '@Plugins/mg-discord/server/bot.js';
 import { invokeLogout } from '@Plugins/mg-discord-auth/server/api.js';
 
 const SpawnPos = new alt.Vector3({ x: -864.1437377929688, y: -172.6201934814453, z: 37.799232482910156 });
@@ -219,21 +218,6 @@ async function handleLogout(player: alt.Player) {
     await handleLogin(player);
 }
 
-// --- Disconnect ---
-async function handleDisconnect(player: alt.Player, reason: string) {
-    if (!player || !player.valid) return;
-    const document = Rebar.document.character.useCharacter(player);
-    if (document.get()) {
-        await document.setBulk({ 
-            pos: player.pos,
-            rot: player.rot,
-            health: player.health,
-            isDead: player.isDead
-        });
-        alt.log('[Disconnect]', `${document.getField('name')} hat den Server verlassen`, `[${reason}]`);
-    } else alt.log('[Disconnect]', `${player.name} hat den Server verlassen`, `[${reason}]`);
-}
-
 // --- Init ---
 async function init() {
     const discordAuthApi = await api.getAsync('discord-auth-api');
@@ -244,8 +228,6 @@ async function init() {
     alt.onClient(CharacterSelectEvents.toServer.spawnCharacter, handleSelectCharacter);
     alt.onClient(CharacterSelectEvents.toServer.syncCharacter, handleSyncCharacter);
     alt.onClient(CharacterSelectEvents.toServer.logoutCharacter, invokeLogout);
-    alt.on('playerDisconnect', handleDisconnect);
-    alt.on('resourceStop', async () => await getClient().destroy());
 }
 
 init();

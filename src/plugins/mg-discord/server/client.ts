@@ -28,3 +28,8 @@ export function registerCommand(command: Command) {
     commands.push(command);
     alt.log('[DISCORD] register command:', command.name);
 }
+
+alt.on('resourceStop', () => {
+    if (!client) return;
+    client.destroy();
+});

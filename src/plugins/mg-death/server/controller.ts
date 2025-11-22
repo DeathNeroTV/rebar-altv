@@ -44,6 +44,12 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
             return true; 
         },
 
+        circle(pos: alt.IVector3, mission: HeliMission) {
+            if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, pos.x, pos.y, pos.z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
+            return true;
+        },
+
         async cruise(x: number, y: number, z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags);
@@ -53,7 +59,6 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
 
         async descend(x: number, y: number, z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
-            alt.log('taskHeliMission -> descend');
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
             await reachGoal({ x, y, z }, helicopter, mission.radius); 
             return true;
@@ -61,7 +66,6 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
 
         async land(x: number, y: number, z: number, mission: HeliMission) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
-            alt.log('taskHeliMission -> land');
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
             await reachGoal({ x, y, z }, helicopter, mission.radius); 
             return true; 
@@ -69,7 +73,6 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
 
         async getOut(maxAttempts: number) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false;
-            alt.log('taskHeliMission -> get out');
             for (let attempt = 0; attempt < maxAttempts; attempt++) { 
                 if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false;
                 const isPlayerInVehicle = await natives.invokeWithResult('isPedInAnyVehicle', player, false); 

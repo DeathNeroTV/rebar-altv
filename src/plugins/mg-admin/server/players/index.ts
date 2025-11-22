@@ -124,9 +124,23 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
                 case TeleportType.WAYPOINT:
                     const waypoint: alt.Vector3 = await admin.emitRpc(AdminEvents.toClient.waypoint);
                     if (!waypoint) return;
-                    const [foundZ, groundZ] = await Rebar.player.useNative(admin).invokeWithResult('getGroundZFor3dCoord', waypoint.x, waypoint.y, waypoint.z, 0, false, false);
-                    const z = foundZ ? groundZ + 1 : waypoint.z;
-                    admin.pos = new alt.Vector3({ ...waypoint, z }); 
+                    const natives = Rebar.player.useNative(admin);
+                    let foundZ = false;
+                    let groundZ = waypoint.z;
+                    let checkZ = waypoint.z + 1000;
+                    const step = 5; // Schrittweite runter
+                    const maxAttempts = 200; // maximale Versuche, um Endlosschleife zu vermeiden
+                    let attempts = 0;
+                    while (!foundZ && attempts < maxAttempts) {
+                        const [found, ground] = await natives.invokeWithResult('getGroundZFor3dCoord', waypoint.x, waypoint.y, checkZ, checkZ, false, false);
+                        foundZ = found;
+                        if (foundZ) groundZ = ground + 1;
+                        else checkZ -= step;
+                        attempts++;
+                    }
+                    if (!foundZ) groundZ = waypoint.z;
+
+                    admin.pos = new alt.Vector3({ x: waypoint.x, y: waypoint.y, z: groundZ });
                     notifyApi.general.send(admin, {
                         icon: notifyApi.general.getTypes().SUCCESS,
                         title: 'Admin-System',
