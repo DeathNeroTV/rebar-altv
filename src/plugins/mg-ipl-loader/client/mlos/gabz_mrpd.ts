@@ -4,7 +4,6 @@ import { useIplLoaderApi } from '../api.js';
 
 const api = useIplLoaderApi();
 const rooms: string[] = [
-    'branded_style_set',
     'v_gabz_mrpd_rm1', 'v_gabz_mrpd_rm2', 'v_gabz_mrpd_rm3', 'v_gabz_mrpd_rm4',
     'v_gabz_mrpd_rm5', 'v_gabz_mrpd_rm6', 'v_gabz_mrpd_rm7', 'v_gabz_mrpd_rm8',
     'v_gabz_mrpd_rm9', 'v_gabz_mrpd_rm10', 'v_gabz_mrpd_rm11', 'v_gabz_mrpd_rm12',
@@ -15,9 +14,9 @@ const rooms: string[] = [
     'v_gabz_mrpd_rm29', 'v_gabz_mrpd_rm30', 'v_gabz_mrpd_rm31'
 ];
 
-export function loadMrpd() {   
-    api.enableIpl('gabz_mrpd_milo_', true);
+export function loadMrpd() {
     const interiorID = natives.getInteriorAtCoords(451.0129, -993.3741, 29.1718);
+    api.enableIpl('gabz_mrpd_milo_', true);
     natives.pinInteriorInMemory(interiorID);
 
     if (natives.isValidInterior(interiorID)) {
