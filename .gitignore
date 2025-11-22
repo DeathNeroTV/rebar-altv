@@ -19,6 +19,7 @@ resources/fonts/**/*.ttf
 resources/rmlui/plugins
 resources/gabz_*
 resources/lsiar
+resources/patoche*
 webview/public/sounds/**/*.ogg
 webview/public/images/**/*.png
 webview/public/images/**/*.jpg

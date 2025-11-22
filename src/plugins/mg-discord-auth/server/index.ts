@@ -216,7 +216,9 @@ async function generateWhitelistCode() {
     return code;
 }
 
-function cleanupSessions() {
+function cleanupSessions(tick: number) {
+    if (tick % 5 !== 0) return;
+
     let count = 0;
     for (let i = sessions.length - 1; i >= 0; i--) {
         if (sessions[i].expiration > Date.now() && !sessions[i].finished) {
@@ -267,6 +269,6 @@ function setAccount(player: alt.Player, account: Account) {
 function init() {
     requestInit();
     useIntroApi().onFinished(handleFinished);
-    alt.setInterval(cleanupSessions, 5000);
+    alt.on('rebar:onTick', cleanupSessions);
 }
 init();
