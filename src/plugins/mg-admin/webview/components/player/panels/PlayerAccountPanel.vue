@@ -1,6 +1,8 @@
 <script setup lang="ts">
-	import { ref, watch } from 'vue';
+	import { computed, ref, watch } from 'vue';
 	import { Account } from '@Shared/types';
+	import DropDown from '../../DropDown.vue';
+	import { AdminConfig } from '@Plugins/mg-admin/shared/config';
 
 	const props = defineProps<{
 		account: Account | null;
@@ -9,6 +11,8 @@
 
 	const emits = defineEmits<{
 		(e: 'close'): void;
+		(e: 'save', account: Account): void;
+		(e: 'delete', _id: string): void;
 		(e: 'unban', _id: string): void;
 	}>();
 
@@ -16,6 +20,24 @@
 
 	// Local switch state – folgt account.banned
 	const bannedState = ref<boolean>(props.account?.banned ?? false);
+
+	const banTimes = computed(() => [
+		{ label: '10 Minuten', value: Date.now() + 10 * 60 * 1000 },
+		{ label: '30 Minuten', value: Date.now() + 30 * 60 * 1000 },
+		{ label: '1 Stunde', value: Date.now() + 60 * 60 * 1000 },
+		{ label: '3 Stunden', value: Date.now() + 3 * 60 * 60 * 1000 },
+		{ label: '6 Stunden', value: Date.now() + 6 * 60 * 60 * 1000 },
+		{ label: '12 Stunden', value: Date.now() + 12 * 60 * 60 * 1000 },
+		{ label: '1 Tag', value: Date.now() + 24 * 60 * 60 * 1000 },
+		{ label: '3 Tage', value: Date.now() + 3 * 24 * 60 * 60 * 1000 },
+		{ label: '1 Woche', value: Date.now() + 7 * 24 * 60 * 60 * 1000 },
+		{ label: '2 Wochen', value: Date.now() + 14 * 24 * 60 * 60 * 1000 },
+		{ label: '1 Monat', value: Date.now() + 30 * 24 * 60 * 60 * 1000 },
+		{ label: '3 Monate', value: Date.now() + 90 * 24 * 60 * 60 * 1000 },
+		{ label: '6 Monate', value: Date.now() + 180 * 24 * 60 * 60 * 1000 },
+		{ label: '1 Jahr', value: Date.now() + 365 * 24 * 60 * 60 * 1000 },
+		{ label: 'Permanent', value: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000 },
+	]);
 
 	// Sync toggle-UI mit neuen Daten
 	watch(
@@ -39,7 +61,12 @@
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-semibold text-[#008736]">Benutzerkonto</h2>
 
-				<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
+				<div class="flex flex-row gap-4 items-center">
+					<font-awesome-icon :icon="['fas', 'floppy-disk']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('save', account)" />
+					<font-awesome-icon :icon="['fas', 'trash']" class="text-neutral-400 hover:text-emerald-400 cursor-pointer text-2xl" @click="emits('delete', account?._id)" />
+					<div class="w-0.5 h-8 bg-neutral-600 rounded-full"></div>
+					<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
+				</div>
 			</div>
 
 			<!-- CONTENT -->
@@ -122,6 +149,16 @@
 						<p class="text-md text-red-400 mt-1">
 							{{ props.account?.reason ?? 'Kein Grund angegeben' }}
 						</p>
+						<p class="text-gray-400">Zeit</p>
+						<p class="text-md text-red-400 mt-1">
+							{{ new Date(props.account?.time) ?? '—' }}
+						</p>
+					</div>
+					<div v-else class="flex flex-col gap-2 mt-3">
+						<p class="text-gray-400">Grund</p>
+						<DropDown :model-value="account?.reason" placeholder="Grund wählen" :options="AdminConfig.kickAndBanReasons" />
+						<p class="text-gray-400">Zeitraum</p>
+						<DropDown :model-value.number="account?.time" placeholder="Zeit wählen" :options="banTimes" />
 					</div>
 				</div>
 			</div>
@@ -144,5 +181,25 @@
 
 	.animate-slideInRight {
 		animation: slideInRight 0.35s ease-out;
+	}
+
+	::-webkit-scrollbar {
+		width: 8px;
+	}
+	::-webkit-scrollbar-track {
+		background: rgba(31, 31, 31, 0.8); /* dunkler Hintergrund */
+		border-radius: 8px;
+	}
+	::-webkit-scrollbar-thumb {
+		background: #008736; /* dein GTA-RP Grün */
+		border-radius: 8px;
+		transition: background-color 0.3s ease;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background: #00a74b; /* etwas helleres Grün beim Hover */
+	} /* Firefox-Unterstützung */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: #008736 rgba(31, 31, 31, 0.8);
 	}
 </style>

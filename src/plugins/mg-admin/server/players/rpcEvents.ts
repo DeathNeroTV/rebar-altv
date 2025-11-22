@@ -28,7 +28,7 @@ alt.onRpc(AdminEvents.toServer.request.player, async (player: alt.Player) => {
             pos: { x: target.pos.x, y: target.pos.y, z: target.pos.z }, 
             rot: { x: target.rot.x, y: target.rot.y, z: target.rot.z } 
         });
-        else players.push({ account_id: acc._id, id: acc.id, name: acc.discord });
+        else players.push({ account_id: acc._id, id: acc.id, name: acc.username });
     }
     return players;
 });

@@ -7,8 +7,7 @@
 
 	const playerJob = (_id: string) => {
 		const player = props.players.find((x) => x.account_id === _id);
-		if (typeof player.name === 'number') return '—';
-		return Array.isArray(player.job!) ? player.job!.join(', ') : player.job! || 'arbeitslos';
+		return Array.isArray(player.job!) ? player.job!.join(', ') : player.job! || '—';
 	};
 
 	const emits = defineEmits<{

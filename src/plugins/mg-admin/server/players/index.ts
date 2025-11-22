@@ -9,14 +9,292 @@ import { AdminEvents } from '../../shared/events.js';
 import { AdminConfig } from '../../shared/config.js';
 
 import './rpcEvents.js';
+import { Character } from '@Shared/types/character.js';
+import { Inventory } from '@Plugins/mg-inventory/shared/interfaces.js';
+import { InventoryConfig } from '@Plugins/mg-inventory/shared/config.js';
+import { Vehicle } from '@Shared/types/vehicle.js';
+import { Account } from '@Shared/types/account.js';
 
 const Rebar = useRebar();
+const db = Rebar.database.useDatabase();
+const CollectionNames = { ...Rebar.database.CollectionNames, ...{ Items: 'Items', Inventories: 'Inventories' } };
 const medicalService = useMedicalService();
 const notifyApi = await useRebar().useApi().getAsync('notify-api');
 
-alt.onClient(AdminEvents.toServer.request.user.create.character, (player: alt.Player, account_id: string, name: string) => {});
+alt.onClient(AdminEvents.toServer.request.user.edit.account, async <K extends keyof Account>(player: alt.Player, _id: string, key: K, value: Account[K]) => {
+    const account = await db.get<Account>({ _id }, CollectionNames.Accounts);
+    if (!account) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Benutzerverwaltung',
+            message: `Das Benutzerkonto wurde nicht gefunden`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
 
-alt.onClient(AdminEvents.toServer.request.user.create.vehicle, (player: alt.Player, character_id: string, name: string) => {});
+    account[key] = value;
+    await db.update<Account>(account, CollectionNames.Accounts);
+
+    const target = alt.Player.all.find(x => Rebar.document.account.useAccount(x).isValid() && Rebar.document.account.useAccount(x).getField('_id') === _id);
+    if (target) {
+        Rebar.document.account.useAccountBinder(target).unbind();
+        Rebar.document.account.useAccountBinder(target).bind(account); 
+    }
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Benutzerverwaltung',
+        message: `Das Benutzerkonto wurde bearbeitet`,
+        oggFile: 'notification'
+    });
+});
+
+alt.onClient(AdminEvents.toServer.request.user.delete.account, async (player: alt.Player, _id: string) => {
+    const account = await db.get<Account>({ _id }, CollectionNames.Accounts);
+    if (!account) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Benutzerverwaltung',
+            message: `Das Benutzerkonto wurde nicht gefunden`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
+
+    const target = alt.Player.all.find(x => Rebar.document.account.useAccount(x).isValid() && Rebar.document.account.useAccount(x).getField('_id') === _id);
+    if (target) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Benutzerverwaltung',
+            message: `Das Benutzerkonto wird gerade verwendet`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Benutzerverwaltung',
+        message: `Das Benutzerkonto wurde gelöscht`,
+        oggFile: 'notification'
+    });
+});
+
+alt.onClient(AdminEvents.toServer.request.user.create.character, async (player: alt.Player, account_id: string, name: string, groups: string[]) => {
+    const character: Character = {
+        name,
+        account_id,
+        food: 100,
+        health: 200,
+        armour: 0,
+        water: 100,
+        bank: 10000,
+        isDead: false,
+        groups,
+    };
+    if (groups.length === 0) delete character.groups;
+
+    const charId = await db.create<Character>(character, CollectionNames.Characters);
+    if (!charId) return;
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Charaktererstellung',
+        message: `${name} wurde erfolgreich erstellt`,
+        oggFile: 'notification'
+    });
+
+    const inventory: Inventory = {
+        capacity: InventoryConfig.maxWeight,
+        slots: [],
+        owner: charId.toString(),
+        type: 'player'
+    };
+    const invId = await db.create<Inventory>(inventory, CollectionNames.Inventories);
+    if (!invId) return;
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Inventarerstellung',
+        message: `Das Inventar für den Charakter wurde erstellt`,
+        oggFile: 'notification'
+    });
+
+});
+
+alt.onClient(AdminEvents.toServer.request.user.edit.character, async <K extends keyof Character>(player: alt.Player, _id: string, key: K, value: Character[K]) => {
+    const character = await db.get<Character>({ _id }, CollectionNames.Characters);
+    if (!character) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Charakterverwaltung',
+            message: `Der Charakter wurde nicht gefunden`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
+
+    character[key] = value;
+    await db.update<Character>(character, CollectionNames.Characters);
+
+    const target = alt.Player.all.find(x => Rebar.document.character.useCharacter(x).isValid() && Rebar.document.character.useCharacter(x).getField('_id') === _id);
+    if (target) {
+        character.pos = player.pos;
+        character.rot = player.rot;
+        character.dimension = player.dimension;
+        
+        Rebar.document.character.useCharacterBinder(player).unbind();
+        Rebar.document.character.useCharacterBinder(target, true).bind(character);
+    }
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Charakterverwaltung',
+        message: `Der Charakter wurde bearbeitet`,
+        oggFile: 'notification'
+    });
+
+});
+
+alt.onClient(AdminEvents.toServer.request.user.delete.character, async (player: alt.Player, _id: string) => {
+    const character = await db.get<Character>({ _id }, CollectionNames.Characters);
+    if (!character) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Charakterverwaltung',
+            message: `Der Charakter wurde nicht gefunden`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
+
+    const target = alt.Player.all.find(x => Rebar.document.character.useCharacter(x).isValid() && Rebar.document.character.useCharacter(x).getField('_id') === _id);
+    if (target) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Charakterverwaltung',
+            message: `Der Charakter ist gerade in Benutzung`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
+
+    const success = await db.deleteDocument(_id, CollectionNames.Characters);
+    if (!success) return;
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Charakterverwaltung',
+        message: `Der Charakter wurde bearbeitet`,
+        oggFile: 'notification'
+    });
+
+});
+
+alt.onClient(AdminEvents.toServer.request.user.create.vehicle, async (player: alt.Player, character_id: string, model: string) => {
+    const target = alt.Player.all.find(x => Rebar.document.character.useCharacter(x).isValid() && Rebar.document.character.useCharacter(x).getField('_id') === character_id);
+    const pos = target.valid ? target.pos : player.pos;
+    const rot = target.valid ? target.rot : player.rot;
+
+    const vehicle = new alt.Vehicle(model, pos, rot);
+    if (!vehicle.valid) return;
+
+    const document = await Rebar.vehicle.useVehicle(vehicle).create(character_id);
+    if (!document) vehicle.destroy();
+    
+    const icon = document ? notifyApi.general.getTypes().SUCCESS : notifyApi.general.getTypes().ERROR;
+    const message = document ? 'Das Fahrzeug wurde erstellt.' : 'Das Fahrzeug wurde nicht erstellt';
+    const oggFile = document ? 'notification' : 'systemfault';
+    notifyApi.general.send(player, {
+        title: 'Admin-System',
+        subtitle: 'Fahrzeug-Manager',
+        icon, 
+        message, 
+        oggFile
+    });
+
+    if (target.valid) target.setIntoVehicle(vehicle, 1);
+    else vehicle.destroy();
+});
+
+alt.onClient(AdminEvents.toServer.request.user.edit.vehicle, async <K extends keyof Vehicle>(player: alt.Player, _id: string, key: K, value: Vehicle[K]) => {
+    const document = await db.get<Vehicle>({ _id }, CollectionNames.Vehicles);
+    if (!document) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Fahrzeugverwaltung',
+            message: `Das Fahrzeug wurde nicht gefunden`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
+
+    document[key] = value;
+    await db.update<Vehicle>(document, CollectionNames.Vehicles);
+
+    const target = alt.Vehicle.all.find(x => Rebar.document.vehicle.useVehicle(x).isValid() && Rebar.document.vehicle.useVehicle(x).getField('_id') === _id);
+    if (target) {
+        document.pos = target.pos;
+        document.rot = target.rot;
+        document.dimension = target.dimension;
+        
+        Rebar.document.vehicle.useVehicleBinder(target).unbind();
+        Rebar.document.vehicle.useVehicleBinder(target).bind(document);
+        Rebar.vehicle.useVehicle(target).sync();
+    }
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Fahrzeugverwaltung',
+        message: `Das Fahrzeug wurde bearbeitet`,
+        oggFile: 'notification'
+    });
+
+});
+
+alt.onClient(AdminEvents.toServer.request.user.delete.vehicle, async (player: alt.Player, _id: string) => {
+    const document = await db.get<Vehicle>({ _id }, CollectionNames.Vehicles);
+    if (!document) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().ERROR,
+            title: 'Admin-System',
+            subtitle: 'Fahrzeugverwaltung',
+            message: `Das Fahrzeug wurde nicht gefunden`,
+            oggFile: 'systemfault'
+        });
+        return;
+    }
+
+    const success = await db.deleteDocument(_id, CollectionNames.Vehicles);
+    if (!success) return;
+
+    const vehicle = alt.Vehicle.all.find(x => Rebar.document.vehicle.useVehicle(x).isValid() && Rebar.document.vehicle.useVehicle(x).getField('_id') === _id);
+    if (vehicle) vehicle.destroy();
+
+    notifyApi.general.send(player, {
+        icon: notifyApi.general.getTypes().SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Fahrzeugverwaltung',
+        message: `Das Fahrzeug wurde gelöscht`,
+        oggFile: 'notification'
+    });
+    
+});
 
 alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminAction) => {
     const target = alt.Player.all.find(p => p.id === data.playerId);

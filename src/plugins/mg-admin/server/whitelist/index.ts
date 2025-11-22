@@ -9,6 +9,12 @@ import { WhitelistRequest } from '../../shared/interfaces.js';
 const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
 
+declare module '@Shared/types/account.js' {
+    export interface Account {
+        time: number;
+    }
+}
+
 alt.onRpc(AdminEvents.toServer.request.whitelist, async() => {
     const requests = await db.getAll<WhitelistRequest & { _id: string }>('WhitelistRequests') ?? []; 
     return requests;

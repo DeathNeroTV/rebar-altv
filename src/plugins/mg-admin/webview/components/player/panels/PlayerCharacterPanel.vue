@@ -1,6 +1,9 @@
 <script setup lang="ts">
 	import { ref, watch } from 'vue';
 	import { Character } from '@Shared/types';
+	import { AdminConfig } from '@Plugins/mg-admin/shared/config';
+
+	import MultiSelect from '../../MultiSelect.vue';
 
 	const props = defineProps<{
 		characters: Character[] | null;
@@ -9,13 +12,17 @@
 
 	const emits = defineEmits<{
 		(e: 'close'): void;
-		(e: 'selectCharacter', _id: string): void;
-		(e: 'createCharacter', name: string): void;
+		(e: 'save', character: Character): void;
+		(e: 'delete', _id: string): void;
+		(e: 'select', _id: string): void;
+		(e: 'update', _id: string, key: keyof Character, value: any): void;
+		(e: 'create', name: string, groups: string[]): void;
 	}>();
 
 	const show = ref(props.visible);
 	const selected = ref<Character | null>(null);
 	const newName = ref<string>('');
+	const newGroups = ref<string[]>([]);
 
 	// Sync visible
 	watch(
@@ -25,7 +32,7 @@
 
 	watch(
 		() => selected.value,
-		(val) => emits('selectCharacter', val?._id ?? null)
+		(val) => emits('select', val?._id ?? null)
 	);
 
 	// initial character
@@ -34,15 +41,17 @@
 		(list) => {
 			if (list && list.length > 0) {
 				selected.value = list[0];
-				emits('selectCharacter', selected.value._id);
 			}
 		}
 	);
 
 	const createCharacter = () => {
 		if (!newName.value.trim()) return;
-		emits('createCharacter', newName.value.trim());
+		const name = newName.value.trim();
+		if (!name.includes('_') && !name.includes(' ')) return;
+		emits('create', name.replaceAll(' ', '_'), newGroups.value);
 		newName.value = '';
+		newGroups.value = [];
 	};
 
 	// Clipboard helper
@@ -73,7 +82,16 @@
 			<!-- Header -->
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-semibold text-[#008736]">Charaktere</h2>
-				<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
+				<div class="flex flex-row gap-4 items-center">
+					<font-awesome-icon
+						:icon="['fas', 'floppy-disk']"
+						class="text-neutral-400 hover:text-emerald-400 cursor-pointer text-2xl"
+						@click="emits('update', selected._id, 'groups', selected.groups ?? [])"
+					/>
+					<font-awesome-icon :icon="['fas', 'trash']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('delete', selected?._id)" />
+					<div class="w-0.5 h-8 bg-neutral-600 rounded-full"></div>
+					<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
+				</div>
 			</div>
 
 			<!-- Charakter erstellen -->
@@ -81,12 +99,18 @@
 				<p class="text-gray-400">Neuen Charakter erstellen</p>
 				<div class="w-full h-[1px] bg-[#008736]/60 my-2"></div>
 
-				<div class="flex gap-2 items-center">
+				<div class="flex flex gap-2 items-center">
 					<input
 						v-model="newName"
 						type="text"
 						placeholder="Name eingeben"
 						class="w-full p-2 rounded-lg bg-neutral-700 text-gray-200 border border-neutral-600 focus:border-[#008736] outline-none"
+					/>
+					<MultiSelect
+						:model-value="newGroups"
+						:options="AdminConfig.teamRoles.map((x) => x)"
+						placeholder="Teamrang wählen"
+						@update:model-value="(val) => (newGroups = val as string[])"
 					/>
 					<button @click="createCharacter" class="px-4 py-2 rounded-lg bg-[#008736] text-white hover:bg-[#00a34b] transition">Erstellen</button>
 				</div>
@@ -124,6 +148,21 @@
 				<div>
 					<p class="text-gray-400">Charakter-ID</p>
 					<p class="text-xl text-gray-200">{{ selected.id }}</p>
+				</div>
+
+				<!-- Groups -->
+				<div>
+					<p class="text-gray-400">Rang im Team</p>
+					<div class="w-full h-[1px] bg-[#008736]/60 my-2"></div>
+
+					<div class="flex justify-between items-center">
+						<MultiSelect
+							:model-value="selected?.groups"
+							placeholder="Teamrang wählen"
+							:options="AdminConfig.teamRoles"
+							@update:model-value="(val) => (selected.groups = val as string[])"
+						/>
+					</div>
 				</div>
 
 				<!-- Position -->
@@ -197,5 +236,25 @@
 	}
 	.animate-slideInRight {
 		animation: slideInRight 0.35s ease-out;
+	}
+
+	::-webkit-scrollbar {
+		width: 8px;
+	}
+	::-webkit-scrollbar-track {
+		background: rgba(31, 31, 31, 0.8); /* dunkler Hintergrund */
+		border-radius: 8px;
+	}
+	::-webkit-scrollbar-thumb {
+		background: #008736; /* dein GTA-RP Grün */
+		border-radius: 8px;
+		transition: background-color 0.3s ease;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background: #00a74b; /* etwas helleres Grün beim Hover */
+	} /* Firefox-Unterstützung */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: #008736 rgba(31, 31, 31, 0.8);
 	}
 </style>

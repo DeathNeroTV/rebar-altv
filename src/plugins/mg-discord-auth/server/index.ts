@@ -38,6 +38,12 @@ const disable = [
     'hideVehicleName',
 ] as const satisfies (keyof ServerConfig)[];
 
+declare module '@Shared/types/account.js' {
+    export interface Account {
+        username: string;
+    }
+}
+
 disable.forEach(section => serverConfig.set(section, true));
 
 async function handleFinished(player: alt.Player) {
@@ -80,13 +86,11 @@ async function handleCheckToken(player: alt.Player, token: string) {
     );
 
     if (!account) {
-        const _id = await db.create<Partial<Account>>(
-            {
-                discord: currentUser.id,
-                email: currentUser.email,
-            },
-            Rebar.database.CollectionNames.Accounts
-        );
+        const _id = await db.create<Partial<Account>>({
+            discord: currentUser.id,
+            username: currentUser.username,
+            ...(currentUser.email ? { email: currentUser.email } : {})
+        }, Rebar.database.CollectionNames.Accounts);
         account = await db.get<Account>({ _id }, Rebar.database.CollectionNames.Accounts);
     }
 
@@ -95,18 +99,28 @@ async function handleCheckToken(player: alt.Player, token: string) {
         return;
     }
 
-    if (!account.email) {
-        account.email = currentUser.email;
+    if (account.banned) {
+        if (account.time >= Date.now()) {            
+            webview.emit(DiscordAuthEvents.toWebview.send, 
+                account.reason 
+                ? t("discord.auth.banned.with.reason", {reason: account.reason }) 
+                : t("discord.auth.banned.no.reason")
+            );
+            return;
+        }
+        account.time = 0;
+        account.banned = false;
+        account.reason = '';
         await db.update<Account>(account, CollectionNames.Accounts);
     }
 
-    if (account.banned) {
-        webview.emit(DiscordAuthEvents.toWebview.send, 
-            account.reason 
-            ? t("discord.auth.banned.with.reason", {reason: account.reason }) 
-            : t("discord.auth.banned.no.reason")
-        );
-        return;
+    if (!account.email) {
+        account = { 
+            ...account, 
+            ...(currentUser.email ? { email: currentUser.email } : {}),
+            username: currentUser.username
+        };
+        await db.update<Account>(account, CollectionNames.Accounts);
     }
 
     if (DiscordAuthConfig.SERVER_ID && DiscordAuthConfig.SERVER_ID.length !== 0) {

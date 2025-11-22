@@ -250,27 +250,80 @@
 	);
 
 	// restliche helper functions (select/create/unban) unverändert
-	const selectCharacter = async (_id: string) => {
-		const selected = characters.value.find((x) => x._id === _id) || null;
-		character.value = selected;
-		// die watch auf character.value?._id lädt vehicles/logs automatisch
-	};
-
-	const selectVehicle = (_id: string) => {
-		vehicle.value = vehicles.value.find((x) => x._id === _id) || null;
+	const selectCharacter = (_id: string) => {
+		if (!props.player) return;
+		const selected = characters.value.find((x) => x._id === _id);
+		character.value = { ...selected, groups: selected.groups ?? [] };
 	};
 
 	const createCharacter = (name: string) => {
 		if (!props.player) return;
 		events.emitServer(AdminEvents.toServer.request.user.create.character, props.player.account_id, name);
+		emits('close');
+	};
+
+	const deleteCharacter = (_id: string) => {
+		if (!props.player) return;
+		events.emitServer(AdminEvents.toServer.request.user.delete.character, _id);
+		emits('close');
+	};
+
+	const saveCharacter = (data: Character) => {
+		if (!props.player) return;
+		events.emitServer(AdminEvents.toServer.request.user.edit.character, data._id, 'groups', data.groups);
+		emits('close');
+	};
+
+	const updateCharacter = <K extends keyof Character>(_id: string, key: K, value: Character[K]) => {
+		if (!props.player) return;
+		events.emitServer(AdminEvents.toServer.request.user.edit.character, _id, key, value);
+		emits('close');
+	};
+
+	const selectVehicle = (_id: string) => {
+		if (!props.player) return;
+		const selected = vehicles.value.find((x) => x._id === _id) || null;
+		vehicle.value = selected;
 	};
 
 	const createVehicle = (name: string) => {
-		if (!character.value) return;
+		if (!character.value || !props.player) return;
 		events.emitServer(AdminEvents.toServer.request.user.create.vehicle, character.value._id, name);
+		emits('close');
+	};
+
+	const deleteVehicle = (_id: string) => {
+		if (!props.player) return;
+		events.emitServer(AdminEvents.toServer.request.user.delete.vehicle, _id);
+		emits('close');
+	};
+
+	const saveVehicle = (data: Vehicle) => {
+		if (!props.player) return;
+		emits('close');
+	};
+
+	const updateVehicle = <K extends keyof Vehicle>(_id: string, key: K, value: Vehicle[K]) => {
+		if (!props.player) return;
+		events.emitServer(AdminEvents.toServer.request.user.edit.vehicle, _id, key, value);
+		emits('close');
+	};
+
+	const saveAccount = async (data: Account) => {
+		if (!props.player) return;
+		events.emitServer(AdminEvents.toServer.request.user.edit.account, data._id, 'banned', data.banned ?? false);
+		events.emitServer(AdminEvents.toServer.request.user.edit.account, data._id, 'reason', data.reason ?? '');
+		events.emitServer(AdminEvents.toServer.request.user.edit.account, data._id, 'time', data.time ?? 0);
+	};
+
+	const deleteAccount = async (_id: string) => {
+		if (!props.player) return;
+		events.emitServer(AdminEvents.toServer.request.user.delete.account, _id);
+		emits('close');
 	};
 
 	const unbanAccount = async (_id: string) => {
+		if (!props.player) return;
 		account.value = await events.emitServerRpc(AdminEvents.toServer.request.user.unban, _id);
 	};
 </script>
@@ -355,17 +408,30 @@
 			</div>
 			<!-- Panels: außerhalb der Box, rechts einfahrende Slider -->
 			<transition name="slide-panel"> <PlayerLogPanel :visible="showLogs" :logs="logs" @close="closePanels" /></transition>
-			<transition name="slide-panel"> <PlayerAccountPanel :visible="showAccount" :account="account" @close="closePanels" @unban="unbanAccount" /></transition>
+			<transition name="slide-panel">
+				<PlayerAccountPanel :visible="showAccount" :account="account" @close="closePanels" @unban="unbanAccount" @save="saveAccount" @delete="deleteAccount"
+			/></transition>
 			<transition name="slide-panel">
 				<PlayerCharacterPanel
 					:visible="showCharacters"
 					:characters="characters"
 					@close="closePanels"
-					@create-character="createCharacter"
-					@select-character="selectCharacter"
+					@save="saveCharacter"
+					@delete="deleteCharacter"
+					@create="createCharacter"
+					@select="selectCharacter"
+					@update="updateCharacter"
 			/></transition>
 			<transition name="slide-panel">
-				<PlayerVehiclePanel :visible="showVehicles" :vehicles="vehicles" @close="closePanels" @create-vehicle="createVehicle" @select-vehicle="selectVehicle"
+				<PlayerVehiclePanel
+					:visible="showVehicles"
+					:vehicles="vehicles"
+					@close="closePanels"
+					@save="saveVehicle"
+					@delete="deleteVehicle"
+					@create="createVehicle"
+					@select="selectVehicle"
+					@update="updateVehicle"
 			/></transition>
 		</div>
 	</div>

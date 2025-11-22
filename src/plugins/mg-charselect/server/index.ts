@@ -139,22 +139,25 @@ async function handleSelectCharacter(player: alt.Player, id: string) {
         return;
     }
 
+    alt.log('[mg-charselect]', 'character wurde ausgewählt', character._id);
+
     Rebar.document.character.useCharacterBinder(player).bind(character);
     Rebar.player.useWebview(player).hide('CharacterSelect');
     Rebar.player.useWorld(player).enableControls();    
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
     player.dimension = 0;
 
-    if (character.pos) player.pos = new alt.Vector3(character.pos);
-    if (character.rot) player.rot = new alt.Vector3(character.rot);
-
     if (character.appearance) {
         player.visible = true;
         Rebar.player.usePlayerAppearance(player).sync();
     }
 
+    Rebar.player.useClothing(player).sync();
+    Rebar.player.useState(player).sync();
+
     player.frozen = false;
     player.deleteMeta(sessionKey);
+    await alt.Utils.wait(250);
     invokeSelect(player, character);
 }
 
@@ -229,5 +232,4 @@ async function init() {
     alt.onClient(CharacterSelectEvents.toServer.syncCharacter, handleSyncCharacter);
     alt.onClient(CharacterSelectEvents.toServer.logoutCharacter, invokeLogout);
 }
-
 init();

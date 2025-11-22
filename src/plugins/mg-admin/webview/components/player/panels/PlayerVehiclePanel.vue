@@ -207,4 +207,24 @@
 	.animate-slideInRight {
 		animation: slideInRight 0.35s ease-out;
 	}
+
+	::-webkit-scrollbar {
+		width: 8px;
+	}
+	::-webkit-scrollbar-track {
+		background: rgba(31, 31, 31, 0.8); /* dunkler Hintergrund */
+		border-radius: 8px;
+	}
+	::-webkit-scrollbar-thumb {
+		background: #008736; /* dein GTA-RP Grün */
+		border-radius: 8px;
+		transition: background-color 0.3s ease;
+	}
+	::-webkit-scrollbar-thumb:hover {
+		background: #00a74b; /* etwas helleres Grün beim Hover */
+	} /* Firefox-Unterstützung */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: #008736 rgba(31, 31, 31, 0.8);
+	}
 </style>

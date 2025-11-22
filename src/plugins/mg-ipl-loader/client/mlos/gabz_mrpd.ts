@@ -4,7 +4,6 @@ import * as alt from 'alt-client';
 import * as natives from 'natives';
 import { useIplLoaderApi } from '../api.js';
 
-
 const api = useIplLoaderApi();
 const rooms: string[] = [
     'v_gabz_mrpd_rm1', 'v_gabz_mrpd_rm2', 'v_gabz_mrpd_rm3', 'v_gabz_mrpd_rm4',

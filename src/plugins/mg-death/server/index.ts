@@ -208,9 +208,6 @@ const handleRescue = async (player: alt.Player) => {
 
 const handleDeathScreen = (player: alt.Player) => {
     Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
-    Rebar.player.useClothing(player).sync();
-    Rebar.player.useWeapon(player).sync();
-    Rebar.player.useState(player).sync();
 };
 
 Rebar.services.useServiceRegister().register('medicalService', {

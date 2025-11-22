@@ -17,9 +17,11 @@ import { useRebar } from '@Server/index.js';
 import { IntroEvents } from '../shared/events.js';
 import { invokeFinished } from './api.js';
 import { readdir } from "fs/promises";
+import { Character } from '@Shared/types/character.js';
 
 const sessionKey = 'can-see-intro';
 const Rebar = useRebar();
+const db = Rebar.database.useDatabase();
 
 alt.on('playerConnect', (player: alt.Player) => {
     Rebar.player.useWebview(player).show('Intro', 'page');
@@ -38,6 +40,8 @@ alt.onRpc(IntroEvents.toServer.request, async (player: alt.Player) => {
     const result = await getDirectories("src/plugins/");
     return result;
 });
+
+
 
 alt.onClient(IntroEvents.toServer.finished, async (player: alt.Player) => {
     player.deleteMeta(sessionKey);

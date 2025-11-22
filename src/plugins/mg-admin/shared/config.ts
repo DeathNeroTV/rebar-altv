@@ -24,6 +24,12 @@ export const AdminConfig = {
         moderator: '1304085950405677076',
         supporter: '1435181489515003937',
     },
+    teamRoles: [
+        { label: 'Projektleiter*in', value: 'owner' },
+        { label: 'Administrator*in', value: 'admin' },
+        { label: 'Moderator*in', value: 'moderator' },
+        { label: 'Supporter*in', value: 'supporter' },
+    ],
     kickAndBanReasons: [
         { label: 'Fail-RP', value: 'failRP' },
         { label: 'Rechtemissbrauch', value: 'adminAbuse' },
@@ -34,5 +40,12 @@ export const AdminConfig = {
         { label: 'Trolling', value: 'trolling' },
         { label: 'Sinnlose Tötung', value: 'rdm' },
         { label: 'Tötung durch fahren/parken', value: 'vdm' },
+    ],
+    banTimes: [
+        { label: 'Permanent', value: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000 },
+        { label: '1 Stunde', value: Date.now() + 1 * 24 * 60 * 60 * 1000 },
+        { label: '1 Tag', value: Date.now() + 1 * 24 * 60 * 60 * 1000 },
+        { label: '1 Woche', value: Date.now() + 7 * 24 * 60 * 60 * 1000 },
+        { label: '1 Monat', value: Date.now() + 30 * 24 * 60 * 60 * 1000 },
     ],
 };

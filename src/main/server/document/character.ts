@@ -29,11 +29,11 @@ export function useCharacter(player: alt.Player) {
      * Check if the player currently has a character bound to them
      */
     function isValid() {
-        if (!player.hasMeta(sessionKey)) {
+        if (!player.valid || !player.hasMeta(sessionKey)) {
             return false;
         }
 
-        if (!player.getMeta(sessionKey)) {
+        if (!player.valid || !player.getMeta(sessionKey)) {
             return false;
         }
 
@@ -46,7 +46,7 @@ export function useCharacter(player: alt.Player) {
      * @return {(Character | undefined)}
      */
     function get(): Character | undefined {
-        if (!player.hasMeta(sessionKey)) {
+        if (!player.valid || !player.hasMeta(sessionKey)) {
             return undefined;
         }
 
@@ -62,7 +62,7 @@ export function useCharacter(player: alt.Player) {
      * @return {(Character[K] | undefined)}
      */
     function getField<K extends keyof Character>(fieldName: K): Character[K] | undefined {
-        if (!player.hasMeta(sessionKey)) {
+        if (!player.valid || !player.hasMeta(sessionKey)) {
             return undefined;
         }
 
@@ -79,7 +79,7 @@ export function useCharacter(player: alt.Player) {
      * @return
      */
     async function set<K extends keyof Character>(fieldName: K, value: Character[K]) {
-        if (!player.hasMeta(sessionKey)) {
+        if (!player.valid || !player.hasMeta(sessionKey)) {
             return undefined;
         }
 
@@ -116,7 +116,7 @@ export function useCharacter(player: alt.Player) {
      * @return
      */
     async function setBulk(fields: Partial<Character>) {
-        if (!player.hasMeta(sessionKey)) {
+        if (!player.valid || !player.hasMeta(sessionKey)) {
             return undefined;
         }
 

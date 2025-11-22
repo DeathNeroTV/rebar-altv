@@ -7,7 +7,6 @@
 
 	import PlayerTable from '../components/player/PlayerTable.vue';
 	import PlayerDetails from '../components/player/PlayerDetails.vue';
-	import { Account } from '@Shared/types';
 
 	const events = useEvents();
 	const players = ref<PlayerStats[]>([]);
@@ -55,7 +54,7 @@
 		<PlayerTable :players="filteredPlayers" @selectPlayer="openPlayerDetails" />
 
 		<!-- 🧍 Detailmodal -->
-		<PlayerDetails v-if="selectedPlayer" :visible="selectedPlayer !== null" :player="selectedPlayer" @close="selectedPlayer = null" />
+		<PlayerDetails :visible="!!selectedPlayer" :player="selectedPlayer" @close="selectedPlayer = null" />
 	</div>
 </template>
 

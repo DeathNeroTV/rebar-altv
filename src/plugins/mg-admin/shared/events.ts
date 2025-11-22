@@ -48,6 +48,16 @@ export const AdminEvents = {
                     character: 'mg-admin:user:create:character',
                     vehicle: 'mg-admin:user:create:vehicle',
                 },
+                edit: {
+                    account: 'mg-admin:user:edit:account',
+                    character: 'mg-admin:user:edit:character',
+                    vehicle: 'mg-admin:user:edit:vehicle',
+                },
+                delete: {
+                    account: 'mg-admin:user:delete:account',
+                    character: 'mg-admin:user:delete:character',
+                    vehicle: 'mg-admin:user:delete:vehicle',
+                },
             },
         },
         item: {

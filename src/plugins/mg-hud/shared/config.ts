@@ -26,7 +26,7 @@ export const Config: HudConfig = {
         isShooting: { multiplier: 1.1, weight: 0.7 },   // Puls & Stress steigen
         isSwimming: { multiplier: 1.5, weight: 1.0 },   // Mittel-hohe Belastung, Wasserverlust realistisch
     },
-    CharKeys: [ 'id', 'armour', 'food', 'water', 'health', 'voiceRange', 'isDead', 'weapon' ] as (keyof Character)[],
+    CharKeys: [ 'id', 'armour', 'food', 'water', 'health', 'voiceRange', 'isDead', 'weapon', 'weapons' ] as (keyof Character)[],
     VehKeys: [ 'speed', 'gear', 'maxSpeed', 'fuel', 'rpm', 'stateProps' ] as (keyof Vehicle)[],
 };
 
