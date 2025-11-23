@@ -7,9 +7,8 @@ import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
 import { useHelicopter } from './controller.js';
-import { circleUntilFree, ensureValidation, findSafeLanding, getFreeHelipad, getSafeGroundZ, isHelipadClear, setHelipadUsage } from './functions.js';
+import { circleUntilFree, ensureValidation, findSafeLanding, getSafeGroundZ, setHelipadUsage } from './functions.js';
 import { MissionFlag, MissionType } from '../shared/enums.js';
-import { networkEarnFromDailyObjectives } from 'natives';
 
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
@@ -59,8 +58,6 @@ const handleRescue = async (player: alt.Player) => {
         try { helicopter.destroy(); } catch {} 
         try { pilot.destroy(); } catch {} 
         try {
-            player.rot = new alt.Vector3(hospitalRot);
-            player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1); 
             await useMedicalService().respawn(player); 
 
             notifyApi.general.send(player, {
@@ -200,6 +197,7 @@ const handleRescue = async (player: alt.Player) => {
         helicopter.rot = new alt.Vector3(helipad.rot);
         natives.invoke('placeObjectOnGroundProperly', helicopter);
     } catch {}
+
     await alt.Utils.wait(1000);
 
     const okOut = await flyCtrl.getOut(15);
@@ -207,7 +205,14 @@ const handleRescue = async (player: alt.Player) => {
         await resetAction();
         return;
     }
-    
+
+    natives.invoke('taskLeaveVehicle', player, 1);
+    while (await natives.invokeWithResult('isPedInAnyVehicle', player, false))
+        await alt.Utils.wait(50);
+
+    player.rot = new alt.Vector3(hospitalRot);
+    player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
+
     await resetAction();
     setHelipadUsage(helipad.name, false);
 };
@@ -406,7 +411,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
         }
 
         // Unfreeze und setze neue Werte
-        const { pos: hospitalPos, rot: hospitalRot, name: hospitalName } = useMedicalService().hospital(player.pos)
+        const { pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);
         const data = pos ? { pos, rot: player.rot } : { pos: hospitalPos, rot: hospitalRot };
 
         await document.setBulk({

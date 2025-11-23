@@ -75,11 +75,9 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false;
             for (let attempt = 0; attempt < maxAttempts; attempt++) { 
                 if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false;
-                const isPlayerInVehicle = await natives.invokeWithResult('isPedInAnyVehicle', player, false); 
                 const isPedInVehicle = await pedCtrl.invokeRpc('isPedInAnyVehicle', false); 
-                if (!isPedInVehicle && !isPlayerInVehicle) return true;
-                if (isPedInVehicle) pedCtrl.invoke('taskLeaveVehicle', helicopter, 1); 
-                if (isPlayerInVehicle) natives.invoke('taskLeaveVehicle', player, helicopter, 1); 
+                if (!isPedInVehicle) return true;
+                pedCtrl.invoke('taskLeaveVehicle', helicopter, 1); 
                 await alt.Utils.wait(150); 
             }
             return true; 
