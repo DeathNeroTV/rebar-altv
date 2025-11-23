@@ -43,6 +43,6 @@ alt.onRpc(IntroEvents.toServer.request, async (player: alt.Player) => {
 alt.onClient(IntroEvents.toServer.finished, async (player: alt.Player) => {
     player.deleteMeta(sessionKey);
     Rebar.player.useWebview(player).hide('Intro');
-    await alt.Utils.wait(100);
+    await alt.Utils.wait(500);
     invokeFinished(player);
 });

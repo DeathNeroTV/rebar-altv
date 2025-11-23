@@ -109,73 +109,12 @@ function registerListeners() {
 
     alt.onServer(DeathEvents.toClient.disableControls, (value: boolean) => {
         if (value) {
-            if (interval) alt.clearEveryTick(interval);
+            if (!!interval) alt.clearEveryTick(interval!);
             interval = alt.everyTick(handleControls);
             return;
         }
 
-        if (!interval) return;
-        alt.clearEveryTick(interval);
-    });
-
-    alt.onRpc(DeathEvents.toClient.startRescue, async(payload: { 
-        pilot: alt.Ped;
-        helicopter: alt.Vehicle;
-        startPoint: alt.IVector3, 
-        landPoint: alt.IVector3, 
-        endPoint: alt.IVector3 
-    }) => {
-        const pilot = payload.pilot;
-        const helicopter = payload.helicopter;
-        const player = alt.Player.local;
-        const landPoint = payload.landPoint;
-        const endPoint = payload.endPoint;
-
-        natives.taskWarpPedIntoVehicle(pilot.scriptID, helicopter.scriptID, -1);
-
-        // Bodenhöhe
-        const [foundZ, groundZ] = natives.getGroundZFor3dCoord(landPoint.x, landPoint.y, landPoint.z, 0, false, false);
-        const z = foundZ ? groundZ : landPoint.z;
-
-        // 1️⃣ Heli fliegt über Landepunkt
-        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, landPoint.x, landPoint.y, z + 20, 4, 30.0, 10.0, 0.0, 50, 20, 50.0, 0);
-
-        // Warten bis Heli nah am Hover-Punkt ist
-        let attempts = 0;
-        while(helicopter.pos.distanceTo(new alt.Vector3(landPoint.x, landPoint.y, z + 20)) > 5 && attempts < 200) {
-            attempts++;
-            await alt.Utils.wait(20);
-        }
-
-        // 2️⃣ Heli landet
-        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, landPoint.x, landPoint.y, z, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
-        await alt.Utils.wait(3000);
-
-        // 3️⃣ Spieler einsteigen
-        natives.taskWarpPedIntoVehicle(player.scriptID, helicopter.scriptID, 2); // hinterer Sitz
-        await alt.Utils.wait(1000);
-
-        // 4️⃣ Heli startet erneut und fliegt zum Endpunkt
-       const [foundEndZ, groundEndZ] = natives.getGroundZFor3dCoord(endPoint.x, endPoint.y, endPoint.z, 0, false, false);
-       const hoverZ = 100; // Immer 100m Höhe über Ziel
-
-        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, endPoint.x, endPoint.y, hoverZ, 4, 35.0, 10.0, 0.0, 50, 20, 50.0, 0);
-
-        // Warten bis Heli am Ziel angekommen
-        attempts = 0;
-        while(helicopter.pos.distanceTo(new alt.Vector3(endPoint.x, endPoint.y, hoverZ)) > 5 && attempts < 500) {
-            attempts++;
-            await alt.Utils.wait(20);
-        }
-
-        // 5️⃣ Heli landet am Endpunkt
-        const finalZ = foundEndZ ? groundEndZ : endPoint.z;
-        natives.taskHeliMission(pilot.scriptID, helicopter.scriptID, 0, 0, endPoint.x, endPoint.y, finalZ, 20, 10.0, 5.0, 0.0, 30, 10, 20.0, 0);
-        await alt.Utils.wait(3000);
-
-        natives.deleteVehicle(helicopter.scriptID);
-        natives.deletePed(pilot.scriptID);
-        return {};
+        if (!!interval) alt.clearEveryTick(interval!);
     });
 }
 
@@ -209,5 +148,4 @@ async function init() {
     await registerKeybinds();
     registerListeners();
 }
-
 init();

@@ -17,7 +17,6 @@ export const DeathEvents = {
         respawned: 'mg-death:webview:respawned'
     },
     toClient: {
-        startRescue: 'mg-death:start:rescue',
         startTimer: 'mg-death:timer:start',
         stopTimer: 'mg-death:timer:stop',
         startRevive: 'mg-death:revive:start',

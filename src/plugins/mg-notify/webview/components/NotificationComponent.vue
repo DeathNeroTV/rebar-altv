@@ -1,54 +1,47 @@
 <template>
-    <div
-        class="iphone-notification max-w-200 mx-auto mb-2 w-full rounded-lg p-4 shadow-lg sm:w-[350px] bg-neutral-950/25"
-    >
-        <div class="flex w-full items-center justify-between border-b border-gray-200 select-none">
-            <div class="iphone-title flex w-full items-center mb-1">
-                <span class="text-lg font-semibold text-gray-100">
-                    {{ notificationProp.icon }} {{ notificationProp.title }}
-                </span>
-            </div>
-            <span class="text-gray-500" v-if="secondsAgo > 1">{{ secondsAgo }}s</span>
-            <span class="text-gray-500" v-else>{{ t('notification.timing.now') }}</span>
-        </div>
-        <div class="mt-2">
-            <div
-                class="notification-progress h-2 w-full bg-gradient-to-r from-green-200 to-green-500"
-                :style="{ animationDuration: notificationProp.duration + 'ms' }"
-            ></div>
-        </div>
-        <div class="mt-2">
-            <p class="text-gray-200">{{ notificationProp.subtitle }}</p>
-            <p class="text-gray-300">{{ notificationProp.message }}</p>
-        </div>
-    </div>
+	<div class="iphone-notification max-w-200 mx-auto mb-2 w-full rounded-lg p-4 shadow-lg sm:w-[350px] bg-neutral-950/25">
+		<div class="flex w-full items-center justify-between border-b border-gray-200 select-none space-x-2">
+			<div class="iphone-title flex w-full items-center mb-1">
+				<span class="text-lg font-semibold text-gray-100 truncate"> {{ notificationProp.icon }} {{ notificationProp.title }} </span>
+			</div>
+			<span class="text-gray-500" v-if="secondsAgo > 1">{{ secondsAgo }}s</span>
+			<span class="text-gray-500" v-else>{{ t('notification.timing.now') }}</span>
+		</div>
+		<div class="mt-2">
+			<div class="notification-progress h-2 w-full bg-gradient-to-r from-green-200 to-green-500" :style="{ animationDuration: notificationProp.duration + 'ms' }"></div>
+		</div>
+		<div class="mt-2">
+			<p class="text-gray-200">{{ notificationProp.subtitle }}</p>
+			<p class="text-gray-300">{{ notificationProp.message }}</p>
+		</div>
+	</div>
 </template>
 
 <script lang="ts" setup>
-import { useTranslate } from '@Shared/translate';
-import '../../translate/index';
+	import { useTranslate } from '@Shared/translate';
+	import '../../translate/index';
 
-const { t } = useTranslate('de');
+	const { t } = useTranslate('de');
 
-const { notificationProp } = defineProps({
-    notificationProp: Object,
-    secondsAgo: Number,
-});
+	const { notificationProp } = defineProps({
+		notificationProp: Object,
+		secondsAgo: Number,
+	});
 </script>
 
 <style scoped>
-.notification-progress {
-    width: 100%;
-    animation: progressAnimation linear forwards;
-    height: 2px;
-}
+	.notification-progress {
+		width: 100%;
+		animation: progressAnimation linear forwards;
+		height: 2px;
+	}
 
-@keyframes progressAnimation {
-    0% {
-        width: 0;
-    }
-    100% {
-        width: 100%;
-    }
-}
+	@keyframes progressAnimation {
+		0% {
+			width: 0;
+		}
+		100% {
+			width: 100%;
+		}
+	}
 </style>

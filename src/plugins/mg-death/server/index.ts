@@ -7,8 +7,9 @@ import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
 import { useHelicopter } from './controller.js';
-import { circleUntilFree, ensureValidation, findSafeLanding, getSafeGroundZ, setHelipadUsage } from './functions.js';
+import { circleUntilFree, ensureValidation, findSafeLanding, getFreeHelipad, getSafeGroundZ, setHelipadUsage } from './functions.js';
 import { MissionFlag, MissionType } from '../shared/enums.js';
+import { Marker, MarkerType } from '@Shared/types/marker.js';
 
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
@@ -17,6 +18,7 @@ const TimeOfDeath: Map<string, number> = new Map();
 const ActiveTasks: Map<string, number> = new Map();
 const ActiveRescue: Map<string, { pilot: alt.Ped, helicopter: alt.Vehicle }> = new Map();
 const ActiveLabels: Map<string, ReturnType<typeof Rebar.controllers.useTextLabelGlobal>> = new Map();
+const markers: Map<string, ReturnType<typeof Rebar.controllers.useMarkerGlobal>> = new Map();
 
 const handleRescue = async (player: alt.Player) => {
     if (!player || !player.valid) return;
@@ -35,7 +37,22 @@ const handleRescue = async (player: alt.Player) => {
     }); 
 
     const startZ = await getSafeGroundZ(player.pos.x, player.pos.y, player.pos.z, natives);
-    const { pos: heliPos } = await findSafeLanding(player.pos, player.rot, 6, 2, natives);
+    const heliPos = await findSafeLanding(player.pos, natives, 5, 15);
+    if (!heliPos) {
+        try {
+            await useMedicalService().respawn(player); 
+
+            notifyApi.general.send(player, {
+                icon: notifyApi.general.getTypes().SUCCESS,
+                title: hospitalName,
+                subtitle: 'Notfallzentrum',
+                message: 'Bitte lassen Sie sich nochmal durch die Ärzte im Krankenhaus nachbehandeln.',
+                oggFile: 'notification'
+            });
+        } catch {}
+        return;
+    }
+
     const headingToPlayer = Math.atan2(player.pos.y - heliPos.y, player.pos.x - heliPos.x) * (180 / Math.PI);
     const heading = headingToPlayer - 90;
     const rad = (heading + 90) * (Math.PI / 180);
@@ -125,9 +142,9 @@ const handleRescue = async (player: alt.Player) => {
 
     const okTakeOff = await flyCtrl.takeoff(heliPos.z + 20, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
-        missionFlags: MissionFlag.StartEngineImmediately, 
+        missionFlags: MissionFlag.StartEngineImmediately | MissionFlag.DontDoAvoidance, 
         missionType: MissionType.GoTo, 
-        radius: 5, slowDistance: -1, speed: 12 
+        radius: 10, slowDistance: -1, speed: 12 
     }); 
     if (!okTakeOff) {
         await resetAction();
@@ -136,7 +153,7 @@ const handleRescue = async (player: alt.Player) => {
 
     const okClimb = await flyCtrl.climb(heliPos.z + 45, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
-        missionFlags: MissionFlag.None, 
+        missionFlags: MissionFlag.DontDoAvoidance, 
         missionType: MissionType.GoTo, 
         radius: 5, slowDistance: -1, speed: 20 
     }); 
@@ -149,13 +166,13 @@ const handleRescue = async (player: alt.Player) => {
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None,
         missionType: MissionType.GoTo, 
-        radius: 10, slowDistance: -1, speed: 50 
+        radius: 20, slowDistance: -1, speed: 50 
     }); 
     if (!okCruise) {
         await resetAction();
         return;
     }
-
+    
     const helipad = await circleUntilFree(flyCtrl, hospitalName, new alt.Vector3(hospitalPos), 3000);
     setHelipadUsage(helipad.name, true);
 
@@ -206,15 +223,15 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    natives.invoke('taskLeaveVehicle', player, 1);
-    while (await natives.invokeWithResult('isPedInAnyVehicle', player, false))
-        await alt.Utils.wait(50);
-
-    player.rot = new alt.Vector3(hospitalRot);
-    player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
-
-    await resetAction();
-    setHelipadUsage(helipad.name, false);
+    try {
+        natives.invoke('taskLeaveVehicle', player, helicopter, 1);
+        while (await natives.invokeWithResult('isPedInAnyVehicle', player, false))
+            await alt.Utils.wait(100);
+        player.rot = new alt.Vector3(hospitalRot);
+        player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
+        await resetAction();
+        setHelipadUsage(helipad.name, false);
+    } catch {}
 };
 
 const handleDeathScreen = async (player: alt.Player) => {
@@ -455,12 +472,33 @@ async function init() {
     charEditorApi.onCreate(handleDeathScreen);
     charEditorApi.onSkipCreate(handleDeathScreen);
 
+    for (const helipad of DeathConfig.helipads) {
+        const marker: Marker = {
+            type: MarkerType.FLAT_CIRCLE_SKINNY,
+            pos: { ...helipad.pos, z: helipad.pos.z - 0.9 },
+            scale: new alt.Vector3(5),
+            bobUpAndDown: false,
+            faceCamera: true,
+            rotate: false,
+            color: new alt.RGBA(255, 0, 0, 255),
+            uid: helipad.name,
+        };
+        const markerCtrl = Rebar.controllers.useMarkerGlobal(marker);
+        markers.set(marker.uid, markerCtrl);
+    }
+
     // Server Events
     alt.on('playerDeath', async (player: alt.Player) => {
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid() || document.getField('isDead')) return;
         alt.log('[mg-death', document.getField('name') ?? player.name, 'ist gestorben');
         await useMedicalService().unconscious(player);
+    });
+
+    alt.on('resourceStop', () => {
+        for (const [key, markerCtrl] of markers)
+            markerCtrl.destroy();
+        markers.clear();
     });
 
     // Client Events
