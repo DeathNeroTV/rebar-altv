@@ -44,7 +44,7 @@ alt.setInterval(() => {
     if (!alt.Player.local.vehicle || !alt.Player.local.vehicle.valid) return;
 
     const vehicle = alt.Player.local.vehicle;
-    if (!vehicle.engineOn) return;
+    if (!natives.getIsVehicleEngineRunning(vehicle)) return;
 
     const rpm = vehicle.rpm;
     const gear = vehicle.gear;

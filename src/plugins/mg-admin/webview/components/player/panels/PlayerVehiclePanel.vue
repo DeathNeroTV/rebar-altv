@@ -1,5 +1,5 @@
 <script setup lang="ts">
-	import { ref, watch } from 'vue';
+	import { computed, ref, watch } from 'vue';
 	import { Vehicle } from '@Shared/types';
 
 	const props = defineProps<{
@@ -9,8 +9,11 @@
 
 	const emits = defineEmits<{
 		(e: 'close'): void;
-		(e: 'selectVehicle', _id: string): void;
-		(e: 'createVehicle', name: string): void;
+		(e: 'select', _id: string): void;
+		(e: 'delete', _id: string): void;
+		(e: 'repair', _id: string): void;
+		(e: 'refuel', _id: string): void;
+		(e: 'create', name: string): void;
 	}>();
 
 	const show = ref(props.visible);
@@ -24,7 +27,7 @@
 
 	watch(
 		() => selected.value,
-		(val) => emits('selectVehicle', val?._id ?? null)
+		(val) => emits('select', val?._id ?? null)
 	);
 
 	watch(
@@ -32,14 +35,26 @@
 		(list) => {
 			if (list && list.length > 0) {
 				selected.value = list[0];
-				emits('selectVehicle', selected.value._id);
+				emits('select', selected.value._id);
 			}
 		}
 	);
 
+	const getLockState = computed(() => {
+		if (selected.value.stateProps?.lockState) return '—';
+		switch (selected.value.stateProps?.lockState) {
+			case 1:
+				return 'Aufgeschlossen';
+			case 2:
+				return 'Abgeschlossen';
+			default:
+				return '—';
+		}
+	});
+
 	const createVehicle = () => {
 		if (!newName.value.trim()) return;
-		emits('createVehicle', newName.value.trim());
+		emits('create', newName.value.trim());
 		newName.value = '';
 	};
 
@@ -70,7 +85,13 @@
 			<!-- HEADER -->
 			<div class="flex justify-between items-center mb-6">
 				<h2 class="text-2xl font-semibold text-[#008736]">Fahrzeuge</h2>
-				<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
+				<div class="flex flex-row gap-4 items-center">
+					<font-awesome-icon :icon="['fas', 'wrench']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('repair', selected._id)" />
+					<font-awesome-icon :icon="['fas', 'gas-pump']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('refuel', selected._id)" />
+					<font-awesome-icon :icon="['fas', 'trash']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('delete', selected._id)" />
+					<div class="w-0.5 h-8 bg-neutral-600 rounded-full"></div>
+					<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
+				</div>
 			</div>
 
 			<!-- Charakter erstellen -->
@@ -145,7 +166,7 @@
 				<!-- Fuel / Engine / LockState / BodyHealth -->
 				<div>
 					<p class="text-gray-400">Tankfüllung</p>
-					<p class="text-xl text-gray-200">{{ selected.fuel ?? 0 }}</p>
+					<p class="text-xl text-gray-200">{{ selected.fuel ?? '—' }}</p>
 				</div>
 				<div>
 					<p class="text-gray-400">Motorstruktur</p>
@@ -155,31 +176,16 @@
 					<p class="text-gray-400">Fahrzeugstruktur</p>
 					<p class="text-xl text-gray-200">{{ selected.stateProps?.bodyHealth ?? '—' }}</p>
 				</div>
+				<div>
+					<p class="text-gray-400">Fahrzeugverriegelung</p>
+					<p class="text-xl text-gray-200">{{ getLockState }}</p>
+				</div>
 
 				<!-- WheelState -->
 				<div>
 					<p class="text-gray-400">Rad Zustand</p>
 					<p class="text-xl text-gray-200">
 						{{ selected.wheelState?.join(', ') ?? '—' }}
-					</p>
-				</div>
-
-				<!-- Colors -->
-				<div>
-					<p class="text-gray-400">Farben</p>
-					<p class="text-xl text-gray-200">
-						Primär: {{ selected.color.primary }} | Sekundär: {{ selected.color.secondary }} | Reifen: {{ selected.color.wheel }} | Glanz: {{ selected.color.pearl }} |
-						Xenon: {{ selected.color.xenon }}
-					</p>
-				</div>
-
-				<!-- Neon -->
-				<div v-if="selected.neon">
-					<p class="text-gray-400">Neon</p>
-					<p class="text-xl text-gray-200">
-						Farbe: rgba({{ selected.neon.color.r }}, {{ selected.neon.color.g }}, {{ selected.neon.color.b }}, {{ selected.neon.color.a }}) | Platzierungen: Vorne:
-						{{ selected.neon.placement.front }}, Hinten: {{ selected.neon.placement.back }}, Links: {{ selected.neon.placement.left }}, Rechts:
-						{{ selected.neon.placement.right }}
 					</p>
 				</div>
 

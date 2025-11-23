@@ -209,6 +209,7 @@ alt.onClient(AdminEvents.toServer.request.user.create.vehicle, async (player: al
     const pos = target.valid ? target.pos : player.pos;
     const rot = target.valid ? target.rot : player.rot;
 
+    const natives = Rebar.player.useNative(player);
     const vehicle = new alt.Vehicle(model, pos, rot);
     if (!vehicle.valid) return;
 
@@ -226,8 +227,13 @@ alt.onClient(AdminEvents.toServer.request.user.create.vehicle, async (player: al
         oggFile
     });
 
-    if (target.valid) target.setIntoVehicle(vehicle, 1);
-    else vehicle.destroy();
+    if (!vehicle) return;    
+    natives.invoke('placeObjectOnGroundProperly', vehicle);
+
+    if (target.valid) {
+        target.setIntoVehicle(vehicle, 1);
+        Rebar.vehicle.useVehicle(vehicle).toggleEngineAsPlayer(target);
+    } else vehicle.destroy();
 });
 
 alt.onClient(AdminEvents.toServer.request.user.edit.vehicle, async <K extends keyof Vehicle>(player: alt.Player, _id: string, key: K, value: Vehicle[K]) => {

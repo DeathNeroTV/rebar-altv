@@ -31,6 +31,7 @@ declare module '@Shared/types/vehicle.js' {
         maxSpeed?: number;
         rpm?: number;
         gear?: number;
+        garageId?: string;
     }
 }
 
@@ -96,15 +97,13 @@ alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value:
     useHudService().updateVehicle(vehicle.driver, key, value);
 });
 
-alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
-    if (seat !== 0) return;
-    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, true);
-});
+alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => 
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, true)
+);
 
-alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
-    if (seat !== 0) return;    
-    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, false);
-});
+alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => 
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, false)
+);
 
 alt.on('playerWeaponChange', async(player: alt.Player, oldWeapon: number, newWeapon: number) => {
     const document = Rebar.document.character.useCharacter(player);
@@ -130,6 +129,7 @@ alt.on('playerDamage', async (victim: alt.Player, attacker: alt.Entity, healthDa
 });
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
+    if (!player.vehicle) return;
     const vehicleData = Rebar.document.vehicle.useVehicle(player.vehicle);
     if (!vehicleData.isValid()) return;
 

@@ -436,7 +436,8 @@
 					@delete="deleteVehicle"
 					@create="createVehicle"
 					@select="selectVehicle"
-					@update="updateVehicle"
+					@refuel="(_id) => events.emitServer(AdminEvents.toServer.request.vehicle.fuel, _id)"
+					@repair="(_id) => events.emitServer(AdminEvents.toServer.request.vehicle.fix, _id)"
 			/></transition>
 		</div>
 	</div>

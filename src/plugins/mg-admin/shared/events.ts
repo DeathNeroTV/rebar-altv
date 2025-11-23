@@ -61,6 +61,10 @@ export const AdminEvents = {
                     vehicle: 'mg-admin:user:delete:vehicle',
                 },
             },
+            vehicle: {
+                fix: 'mg-admin:request:vehicle:repair',
+                fuel: 'mg-admin:request:vehicle:refuel',
+            },
         },
         item: {
             create: 'mg-admin:item:create',

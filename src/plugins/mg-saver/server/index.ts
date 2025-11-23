@@ -18,18 +18,19 @@ const updatePlayers = async () => {
     isUpdatingPlayers = true;
 
     for (let player of alt.Player.all) {
-        if (!player.valid) continue;
-        const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid()) continue;
+        if (!player.valid) continue;        
+        try {
+            const document = Rebar.document.character.useCharacter(player);
+            if (!document.isValid()) continue;
 
-        const natives = Rebar.player.useNative(player);
-        const weapon = document.getField('weapon');
-        if (weapon && weapon.hash === player.currentWeapon) {
-            weapon.ammo = await natives.invokeWithResult('getAmmoInClip', player, weapon.hash);
-            weapon.totalAmmo = await natives.invokeWithResult('getAmmoInPedWeapon', player, weapon.hash);            
-        }
-
-        await document.setBulk({ pos: player.pos, rot: player.rot, dimension: player.dimension, ...(weapon ? { ...weapon } : {}) });
+            const natives = Rebar.player.useNative(player);
+            const weapon = document.getField('weapon');
+            if (weapon && weapon.hash === player.currentWeapon) {
+                weapon.ammo = await natives.invokeWithResult('getAmmoInClip', player, weapon.hash);
+                weapon.totalAmmo = await natives.invokeWithResult('getAmmoInPedWeapon', player, weapon.hash);            
+            }
+            await document.setBulk({ pos: player.pos, rot: player.rot, dimension: player.dimension, ...(weapon ? { ...weapon } : {}) });
+        } catch {}
         Rebar.player.useWeapon(player).save();
     }
 

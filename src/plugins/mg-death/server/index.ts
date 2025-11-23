@@ -166,13 +166,14 @@ const handleRescue = async (player: alt.Player) => {
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None,
         missionType: MissionType.GoTo, 
-        radius: 20, slowDistance: -1, speed: 50 
+        radius: 8, slowDistance: -1, speed: 50 
     }); 
     if (!okCruise) {
         await resetAction();
         return;
     }
-    
+
+
     const helipad = await circleUntilFree(flyCtrl, hospitalName, new alt.Vector3(hospitalPos), 3000);
     setHelipadUsage(helipad.name, true);
 
@@ -186,7 +187,7 @@ const handleRescue = async (player: alt.Player) => {
         await resetAction();
         return;
     }
-    
+ 
     const okDesc2 = await flyCtrl.descend(helipad.pos.x, helipad.pos.y, helipad.pos.z + 5, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 

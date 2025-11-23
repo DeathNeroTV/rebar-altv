@@ -12,6 +12,7 @@ import { handleNoClipRequest, handleNoClipToggle, isMemberOfAllowedGroups } from
 import '../translate/index.js';
 import './whitelist/index.js';
 import './players/index.js';
+import './vehicles/index.js';
 import './items/index.js';
 import './settings/index.js';
 
