@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-	import { onMounted, ref } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
 	import { useTranslate } from '@Shared/translate';
 	import { useEvents } from '@Composables/useEvents';
 
@@ -42,10 +42,9 @@
 	};
 
 	const navigate = (page: string) => emits('navigate', page);
+	const isOwner = computed(async () => await events.emitServerRpc(AdminEvents.toServer.request.owner));
 
-	onMounted(async () => {
-		isInGhost.value = await events.emitServerRpc(AdminEvents.toServer.ghosting.request) ?? true;
-	});
+	onMounted(async () => isInGhost.value = await events.emitServerRpc(AdminEvents.toServer.ghosting.request) ?? true);
 </script>
 
 <template>
@@ -71,7 +70,7 @@
 					No-Clip
 				</div>
 			</div>
-			<SidebarItem icon="cog" :label="t('admin.panel.dashboard.settings.title')" id="settings" :active="active === 'settings'" @click="navigate('settings')" />
+			<SidebarItem v-if="isOwner" icon="cog" :label="t('admin.panel.dashboard.settings.title')" id="settings" :active="active === 'settings'" @click="navigate('settings')" />
 			<div class="relative group w-full min-h-fit max-h-fit items-center text-center">
 				<button
 					@click="emits('logout')"

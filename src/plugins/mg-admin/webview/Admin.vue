@@ -8,7 +8,7 @@
 	import PlayerManager from './views/PlayerManager.vue';
 	import VehicleManager from './views/VehicleManager.vue';
 	import JobManager from './views/JobManager.vue';
-	import Settings from './views/Settings.vue';
+	import SettingsManager from './views/SettingsManager.vue';
 	import GarageManager from './views/GarageManager.vue';
 	import { AdminEvents } from '../shared/events';
 	import { AdminConfig } from '../shared/config';
@@ -30,7 +30,7 @@
 		jobs: JobManager,
 		garages: GarageManager,
 		items: ItemManager,
-		settings: Settings,
+		settings: SettingsManager,
 	};
 
 	const activeComponent = computed(() => pages[activePage.value]);

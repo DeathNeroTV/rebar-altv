@@ -32,12 +32,14 @@ export const AdminEvents = {
             request: 'mg-admin:ghost:request',
         },
         request: {
+            owner: 'mg-admin:request:owner',
             usage: 'mg-admin:request:usage',
             stats: 'mg-admin:request:stats',
             whitelist: 'mg-admin:request:whitelist',
             player: 'mg-admin:request:player',
             items: 'mg-admin:request:items',
             weapons: 'mg-admin:request:weapons',
+            configs: 'mg-admin:request:configs',
             user: {
                 account: 'mg-admin:request:user:account',
                 unban: 'mg-admin:request:user:unban',

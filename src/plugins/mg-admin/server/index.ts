@@ -13,6 +13,7 @@ import '../translate/index.js';
 import './whitelist/index.js';
 import './players/index.js';
 import './items/index.js';
+import './settings/index.js';
 
 import * as os from 'os';
 import * as disk from 'diskusage';
@@ -20,6 +21,7 @@ import * as disk from 'diskusage';
 const { t }  = useTranslate(AdminConfig.language);
 const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
+const CollectionNames = { ...Rebar.database.CollectionNames, ...{ Logs: 'Logs', Configs: 'Configs' } };
 
 const stats: DashboardStat[] = AdminConfig.useWhitelist ? AdminConfig.infos : AdminConfig.infos.filter(data => data.id !== 'whitelist');
 
@@ -91,6 +93,13 @@ alt.onRpc(AdminEvents.toServer.request.stats, async () => {
     return AdminConfig.useWhitelist ? stats : stats.filter(data => data.id !== 'whitelist');
 });
 
+alt.onRpc(AdminEvents.toServer.request.owner, async (player: alt.Player) => {
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return false;
+    const groups = document.getField('groups') ?? [];
+    return groups.includes('owner');
+});
+
 alt.onRpc(AdminEvents.toServer.request.usage, async () => {
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
@@ -124,7 +133,7 @@ function handleWhitelistRequest(player: alt.Player, request: WhitelistRequest) {
 }
 
 async function init() {
-    await db.createCollection('Logs');
+    await db.createCollection(CollectionNames.Logs);
     
     const discordAuthApi = await Rebar.useApi().getAsync('discord-auth-api');
     if (!discordAuthApi) {
