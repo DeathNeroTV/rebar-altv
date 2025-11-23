@@ -52,8 +52,8 @@ const isLandingSafe = async (pos: alt.IVector3, extraRadius: number, natives: Re
     return true;
 };
 
-const findSafeLanding = async (center: alt.IVector3, natives: ReturnType<typeof Rebar.player.useNative>, step: number = 5, ringStep: number = 20) => {
-    if (await isLandingSafe(center, 5, natives)) return center;
+const findSafeLanding = async (center: alt.IVector3, natives: ReturnType<typeof Rebar.player.useNative>, extraRadius: number = 15, step: number = 5, ringStep: number = 20) => {
+    if (await isLandingSafe(center, extraRadius, natives)) return center;
     let radius = 0;
     while (true) {
         radius += ringStep;
@@ -63,7 +63,7 @@ const findSafeLanding = async (center: alt.IVector3, natives: ReturnType<typeof 
                 if (distToRing > step * 1.5) continue;
 
                 const testPos = new alt.Vector3(center.x + dx, center.y + dy, center.z);
-                if (await isLandingSafe(testPos, 5, natives)) return testPos;
+                if (await isLandingSafe(testPos, extraRadius, natives)) return testPos;
             }
         }
         await new Promise(r => alt.nextTick(r));

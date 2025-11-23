@@ -37,7 +37,7 @@ const handleRescue = async (player: alt.Player) => {
     }); 
 
     const startZ = await getSafeGroundZ(player.pos.x, player.pos.y, player.pos.z, natives);
-    const heliPos = await findSafeLanding(player.pos, natives, 5, 15);
+    const heliPos = await findSafeLanding({ ...player.pos, z: startZ }, natives);
     if (!heliPos) {
         try {
             await useMedicalService().respawn(player); 
@@ -58,7 +58,7 @@ const handleRescue = async (player: alt.Player) => {
     const rad = (heading + 90) * (Math.PI / 180);
     const leftX = Math.cos(rad);
     const leftY = Math.sin(rad);
-    const startRot = new alt.Vector3(player.rot.x, player.rot.y, heading);
+    const startRot = new alt.Vector3(0, 0, heading);
     const pilotPos = { x: heliPos.x + leftX * 2, y: heliPos.y + leftY * 2, z: startZ + 1 }; 
     
     player.emit(DeathEvents.toClient.disableControls, true);
