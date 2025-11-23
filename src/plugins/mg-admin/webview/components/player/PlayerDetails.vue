@@ -276,7 +276,12 @@
 
 	const updateCharacter = <K extends keyof Character>(_id: string, key: K, value: Character[K]) => {
 		if (!props.player) return;
-		events.emitServer(AdminEvents.toServer.request.user.edit.character, _id, key, value);
+
+		let safeValue: Character[K] = value;
+		if (Array.isArray(value)) safeValue = [...value] as Character[K];
+		else if (value !== null && typeof value === 'object') safeValue = JSON.parse(JSON.stringify(value));
+
+		events.emitServer(AdminEvents.toServer.request.user.edit.character, _id, key, safeValue);
 		emits('close');
 	};
 

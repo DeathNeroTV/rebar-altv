@@ -141,7 +141,8 @@ async function handleSelectCharacter(player: alt.Player, id: string) {
 
     Rebar.document.character.useCharacterBinder(player).bind(character);
     Rebar.player.useWebview(player).hide('CharacterSelect');
-    Rebar.player.useWorld(player).enableControls();    
+    Rebar.player.useWorld(player).enableControls();
+    Rebar.player.useWorld(player).disableCameraControls(false);
     player.emit(CharacterSelectEvents.toClient.toggleCamera, true);
     player.dimension = 0;
 

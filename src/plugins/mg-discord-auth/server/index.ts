@@ -49,9 +49,6 @@ disable.forEach(section => serverConfig.set(section, true));
 async function handleFinished(player: alt.Player) {
     player.dimension = player.id + 1;
 
-    const playerWorld = Rebar.player.useWorld(player);
-    playerWorld.setScreenFade(0);
-
     sessions.push({
         id: player.id,
         expiration: Date.now() + 60000 * DiscordAuthConfig.SESSION_EXPIRE_TIME_IN_MINUTES

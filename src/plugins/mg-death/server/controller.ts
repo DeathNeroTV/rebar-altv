@@ -81,8 +81,7 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
                 if (isPedInVehicle) pedCtrl.invoke('taskLeaveVehicle', helicopter, 1); 
                 if (isPlayerInVehicle) natives.invoke('taskLeaveVehicle', player, helicopter, 1); 
                 await alt.Utils.wait(150); 
-            } 
-            if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false;
+            }
             return true; 
         }, 
     };

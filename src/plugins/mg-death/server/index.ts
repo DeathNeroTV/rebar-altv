@@ -9,6 +9,7 @@ import { useMedicalService } from './services.js';
 import { useHelicopter } from './controller.js';
 import { circleUntilFree, ensureValidation, findSafeLanding, getFreeHelipad, getSafeGroundZ, isHelipadClear, setHelipadUsage } from './functions.js';
 import { MissionFlag, MissionType } from '../shared/enums.js';
+import { networkEarnFromDailyObjectives } from 'natives';
 
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
@@ -20,11 +21,11 @@ const ActiveLabels: Map<string, ReturnType<typeof Rebar.controllers.useTextLabel
 
 const handleRescue = async (player: alt.Player) => {
     if (!player || !player.valid) return;
-    natives.invoke('placeObjectOnGroundProperly', player);
 
     const world = Rebar.player.useWorld(player);
     const natives = Rebar.player.useNative(player); 
     const { name: hospitalName, pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);
+    natives.invoke('placeObjectOnGroundProperly', player);
 
     notifyApi.general.send(player, { 
         icon: notifyApi.general.getTypes().INFO, 
@@ -46,7 +47,9 @@ const handleRescue = async (player: alt.Player) => {
     
     player.emit(DeathEvents.toClient.disableControls, true);
     world.setScreenFade(1000); 
-    await alt.Utils.wait(1000);
+    await alt.Utils.wait(1200);
+    player.spawn(player.pos);
+    player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
     
     const helicopter = new alt.Vehicle('polmav', new alt.Vector3(heliPos.x, heliPos.y, heliPos.z), startRot);
     const pilot = new alt.Ped('s_m_m_pilot_02', new alt.Vector3(pilotPos.x, pilotPos.y, pilotPos.z), startRot);
@@ -169,7 +172,7 @@ const handleRescue = async (player: alt.Player) => {
         await resetAction();
         return;
     }
-
+    
     const okDesc2 = await flyCtrl.descend(helipad.pos.x, helipad.pos.y, helipad.pos.z + 5, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 
@@ -185,14 +188,18 @@ const handleRescue = async (player: alt.Player) => {
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.LandOnArrival | MissionFlag.IgnoreHiddenEntitiesDuringLand,
         missionType: MissionType.LandAndWait, 
-        radius: 1.5, slowDistance: -1, speed: 12
+        radius: 3, slowDistance: -1, speed: 12
     });
     if (!okLand) {
         await resetAction();
         return;
     }
 
-    natives.invoke('placeObjectOnGroundProperly', helicopter);
+    try {
+        helicopter.pos = new alt.Vector3(helipad.pos);
+        helicopter.rot = new alt.Vector3(helipad.rot);
+        natives.invoke('placeObjectOnGroundProperly', helicopter);
+    } catch {}
     await alt.Utils.wait(1000);
 
     const okOut = await flyCtrl.getOut(15);
@@ -201,13 +208,17 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
     
-    await alt.Utils.wait(2000); 
     await resetAction();
     setHelipadUsage(helipad.name, false);
 };
 
-const handleDeathScreen = (player: alt.Player) => {
+const handleDeathScreen = async (player: alt.Player) => {
     Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) return;
+
+    if (document.getField('isDead')) 
+        await useMedicalService().unconscious(player);
 };
 
 Rebar.services.useServiceRegister().register('medicalService', {
@@ -226,30 +237,15 @@ Rebar.services.useServiceRegister().register('medicalService', {
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid()) return;
 
-        const charPos = document.getField('pos') ?? player.pos;
-        const charRot = document.getField('rot') ?? player.rot;
-        player.pos = new alt.Vector3(charPos);
-        player.rot = new alt.Vector3(charRot);
-
-        await document.setBulk({ isDead: true, health: 99, food: 100, water: 100, armour: 0, pos: player.pos, rot: player.rot });
+        await document.setBulk({ isDead: true, health: 124, food: 100, water: 100, armour: 0 });
 
         const charId = document.getField('_id');
-        const savedPos = document.getField('pos') ?? player.pos;
-        player.spawn(savedPos);
-        player.pos = new alt.Vector3(savedPos);
-        player.health = 124;
-        player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
-        alt.setTimeout(() => (player.frozen = true), 2000);
-
-        const label = Rebar.controllers.useTextLabelGlobal(
-            {
-                pos: savedPos,
-                text: '[H] - Person stabilisieren',
-                dimension: player.dimension,
-                uid: `reanimate-${charId}`,
-            },
-            3.0,
-        );
+        const label = Rebar.controllers.useTextLabelGlobal({ 
+            pos: player.pos, 
+            text: '[H] - Person stabilisieren', 
+            dimension: player.dimension, 
+            uid: `reanimate-${charId}`
+        }, 3.0);
         ActiveLabels.set(charId, label);
 
         // TTL setzen
@@ -277,6 +273,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
         const victimDoc = Rebar.document.character.useCharacter(victim);
         if (!victimDoc.isValid() || !victimDoc.getField('isDead')) return;
         victim.frozen = true;
+        natives.invoke('placeObjectOnGroundProperly', victim);
 
         // Zielposition leicht vor dem Opfer
         const chestPos = await natives.invokeWithResult('getPedBoneCoords', victim, 24816, 0, 0, 0);
@@ -308,10 +305,12 @@ Rebar.services.useServiceRegister().register('medicalService', {
             await alt.Utils.wait(1);
         }
 
+        victim.spawn(victim.pos);
         reviver.clearTasks();
         victim.clearTasks();
         reviver.playAnimation('mini@cpr@char_a@cpr_def', 'cpr_intro', 8.0, 8.0, 5000, 1);
         victim.playAnimation('mini@cpr@char_b@cpr_def', 'cpr_intro', 8.0, 8.0, 5000, 1);
+        natives.invoke('placeObjectOnGroundProperly', victim);
 
         await alt.Utils.wait(5000);
 
@@ -383,6 +382,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
         if (!document.isValid() || !document.getField('isDead')) return;
 
         // Aufräumen: alle temporären Einträge
+        const world = Rebar.player.useWorld(player);
         const charId = document.getField('_id');
         if (ActiveLabels.has(charId)) {
             const label = ActiveLabels.get(charId)!;
@@ -419,16 +419,16 @@ Rebar.services.useServiceRegister().register('medicalService', {
         });
 
         // Visual respawn
-        Rebar.player.useWorld(player).setScreenFade(DeathConfig.fadeDelay);
+        world.setScreenFade(DeathConfig.fadeDelay);
         await alt.Utils.wait(DeathConfig.coolDown);
 
+        player.spawn(data.pos);
         player.frozen = false;
         player.pos = new alt.Vector3(data.pos);
         player.rot = new alt.Vector3(data.rot);
         player.clearTasks();
         player.clearBloodDamage();
-        Rebar.player.useWorld(player).clearScreenFade(DeathConfig.fadeDelay);
-        await alt.Utils.wait(DeathConfig.fadeDelay);
+        world.clearScreenFade(DeathConfig.fadeDelay);
     },
 
     called(player: alt.Player) {
@@ -449,18 +449,14 @@ async function init() {
 
     charEditorApi.onCreate(handleDeathScreen);
     charEditorApi.onSkipCreate(handleDeathScreen);
+
     // Server Events
-    alt.on('playerDimensionChange', async (player: alt.Player, oldDim: number, newDim: number) => {
+    alt.on('playerDeath', async (player: alt.Player) => {
         const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid()) return;
-        await document.set('dimension', newDim);
+        if (!document.isValid() || document.getField('isDead')) return;
+        alt.log('[mg-death', document.getField('name') ?? player.name, 'ist gestorben');
+        await useMedicalService().unconscious(player);
     });
-    alt.on('playerInteriorChange', async (player: alt.Player, oldInt: number, newInt: number) => {
-        const document = Rebar.document.character.useCharacter(player);
-        if (!document.isValid()) return;
-        await document.set('interior', newInt);
-    });
-    alt.on('playerDeath', useMedicalService().unconscious);
 
     // Client Events
     alt.onClient(DeathEvents.toServer.reviveComplete, useMedicalService().revived);

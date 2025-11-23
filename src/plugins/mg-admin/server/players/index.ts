@@ -152,7 +152,7 @@ alt.onClient(AdminEvents.toServer.request.user.edit.character, async <K extends 
         character.rot = player.rot;
         character.dimension = player.dimension;
         
-        Rebar.document.character.useCharacterBinder(player).unbind();
+        Rebar.document.character.useCharacterBinder(target).unbind();
         Rebar.document.character.useCharacterBinder(target, true).bind(character);
     }
 
@@ -312,8 +312,9 @@ alt.onClient(AdminEvents.toServer.action, async (admin: alt.Player, data: AdminA
                 Rebar.player.useWebview(admin).hide('Admin');
                 Rebar.player.useWorld(admin).enableControls();
                 Rebar.player.useWorld(admin).disableCameraControls(false);
+                await alt.Utils.wait(1);
             }
-            await useMedicalService().unconscious(target);
+            target.health = 99;
             notifyApi.general.send(admin, {
                 title: 'Admin-System',
                 icon: notifyApi.general.getTypes().INFO,

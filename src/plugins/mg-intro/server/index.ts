@@ -15,9 +15,8 @@ app.component('font-awesome-icon', FontAwesomeIcon);
 import * as alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
 import { IntroEvents } from '../shared/events.js';
-import { invokeFinished } from './api.js';
 import { readdir } from "fs/promises";
-import { Character } from '@Shared/types/character.js';
+import { invokeFinished } from './api.js';
 
 const sessionKey = 'can-see-intro';
 const Rebar = useRebar();
@@ -41,17 +40,9 @@ alt.onRpc(IntroEvents.toServer.request, async (player: alt.Player) => {
     return result;
 });
 
-
-
 alt.onClient(IntroEvents.toServer.finished, async (player: alt.Player) => {
     player.deleteMeta(sessionKey);
-
     Rebar.player.useWebview(player).hide('Intro');
-    Rebar.player.useWorld(player).clearScreenFade(0);
-    Rebar.player.useWorld(player).enableControls();
-    Rebar.player.useWorld(player).disableCameraControls(false);
-    Rebar.player.useAudio(player).stopAudio();
-
-    // Wichtig: async callbacks werden sauber awaited
-    await invokeFinished(player);
+    await alt.Utils.wait(100);
+    invokeFinished(player);
 });

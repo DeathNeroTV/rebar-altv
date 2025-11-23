@@ -85,6 +85,13 @@
 					<p class="text-xl text-gray-200">{{ props.account?.discord ?? '—' }}</p>
 				</div>
 
+				<!-- Username -->
+				<div class="bg-neutral-800 rounded-xl p-4">
+					<p class="text-gray-400">Benutzername</p>
+					<div class="w-full h-[1px] bg-[#008736]/60 my-2"></div>
+					<p class="text-xl text-gray-200">{{ props.account?.username ?? '—' }}</p>
+				</div>
+
 				<!-- Email -->
 				<div class="bg-neutral-800 rounded-xl p-4">
 					<p class="text-gray-400">E-Mail</p>

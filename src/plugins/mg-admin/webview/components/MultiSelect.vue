@@ -5,18 +5,18 @@
 	const props = defineProps<{
 		options: DropDownOption[];
 		placeholder?: string;
-		modelValue?: (string | number)[];
+		modelValue?: Array<string | number>;
 	}>();
 
 	const emits = defineEmits<{
-		(e: 'update:modelValue', value: (string | number)[]): void;
-		(e: 'selected', value: (string | number)[]): void;
+		(e: 'update:modelValue', value: Array<string | number>): void;
+		(e: 'selected', value: Array<string | number>): void;
 	}>();
 
 	const showDropdown = ref(false);
 
 	// interner Zustand
-	const selectedValues = ref<(string | number)[]>(props.modelValue ?? []);
+	const selectedValues = ref<Array<string | number>>(props.modelValue ?? []);
 
 	watch(
 		() => props.modelValue,
@@ -26,20 +26,18 @@
 	function toggleValue(value: string | number) {
 		const exists = selectedValues.value.includes(value);
 
-		if (exists) {
-			selectedValues.value = selectedValues.value.filter((v) => v !== value);
-		} else {
-			selectedValues.value.push(value);
-		}
+		if (exists) selectedValues.value = selectedValues.value.filter((v) => v !== value);
+		else selectedValues.value.push(value);
 
-		emits('update:modelValue', selectedValues.value);
-		emits('selected', selectedValues.value);
+		emits('update:modelValue', [...selectedValues.value]);
+		emits('selected', [...selectedValues.value]);
 	}
 
 	function removeValue(value: string | number) {
 		selectedValues.value = selectedValues.value.filter((v) => v !== value);
-		emits('update:modelValue', selectedValues.value);
-		emits('selected', selectedValues.value);
+
+		emits('update:modelValue', [...selectedValues.value]);
+		emits('selected', [...selectedValues.value]);
 	}
 
 	function toggleDropdown() {

@@ -15,7 +15,7 @@
 		(e: 'save', character: Character): void;
 		(e: 'delete', _id: string): void;
 		(e: 'select', _id: string): void;
-		(e: 'update', _id: string, key: keyof Character, value: any): void;
+		(e: 'update', _id: string, key: keyof Character, value: Character[keyof Character]): void;
 		(e: 'create', name: string, groups: string[]): void;
 	}>();
 
@@ -49,7 +49,7 @@
 		if (!newName.value.trim()) return;
 		const name = newName.value.trim();
 		if (!name.includes('_') && !name.includes(' ')) return;
-		emits('create', name.replaceAll(' ', '_'), newGroups.value);
+		emits('create', name.replaceAll(' ', '_'), [...newGroups.value]);
 		newName.value = '';
 		newGroups.value = [];
 	};
@@ -86,9 +86,9 @@
 					<font-awesome-icon
 						:icon="['fas', 'floppy-disk']"
 						class="text-neutral-400 hover:text-emerald-400 cursor-pointer text-2xl"
-						@click="emits('update', selected._id, 'groups', selected.groups ?? [])"
+						@click="emits('update', selected._id, 'groups', selected.groups)"
 					/>
-					<font-awesome-icon :icon="['fas', 'trash']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('delete', selected?._id)" />
+					<font-awesome-icon :icon="['fas', 'trash']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('delete', selected._id)" />
 					<div class="w-0.5 h-8 bg-neutral-600 rounded-full"></div>
 					<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
 				</div>
