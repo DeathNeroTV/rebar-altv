@@ -28,8 +28,10 @@ const setHelipadUsage = (name: string, value: boolean) => {
 };
 
 const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: number = 5) => {
+
     while (vehicle && vehicle.valid && vehicle.pos.distanceTo(pos) > distance) 
-        await new Promise(r => alt.nextTick(r));
+        await alt.Utils.wait(50);
+    return;
 };
 
 const isLandingSafe = async (pos: alt.IVector3, model: string, natives: ReturnType<typeof Rebar.player.useNative>, extraRadius: number, reservedSpots: alt.IVector3[]) => {
@@ -39,29 +41,16 @@ const isLandingSafe = async (pos: alt.IVector3, model: string, natives: ReturnTy
     const heliSize = new alt.Vector3(hMax).sub(new alt.Vector3(hMin));
     const heliRadius = heliSize.length / 2;
 
-    for (const entity of alt.Entity.all) {
-        if (!entity.valid) continue;
-        const entityPos = entity.pos;
-
-        const [__, eMin, eMax] = await natives.invokeWithResult('getModelDimensions', entity.model);
-        if (!eMin || !eMax) continue;
-
-        const eSize = new alt.Vector3(eMax).sub(new alt.Vector3(eMin));
-        const eRadius = eSize.length / 2;
-
-        const dist = Utility.vector.distance(landingCenter, { ...entityPos, z: posZ });
-        if (dist <= eRadius + heliRadius + extraRadius) return false;
-    }
-
     for (const spot of reservedSpots) {
         if (Utility.vector.distance(landingCenter, spot) <= heliRadius + extraRadius) return false;
     }
 
-    const tempVehicle = new alt.Vehicle(model, pos, { x: 0, y: 0, z: 0});
-    tempVehicle.frozen = true;
-    const blocked = await natives.invokeWithResult('isHeliLandingAreaBlocked', tempVehicle);
-    tempVehicle.destroy();
-    return !blocked;
+    const start = landingCenter;
+    const end = { ...landingCenter , z: landingCenter.z + 300 };
+
+    const hit = await natives.invokeWithResult('startShapeTestSweptSphere', start.x, start.y, start.z, end.x, end.y, end.z, heliRadius + extraRadius, 1 | 2 | 16 | 128 | 256, 0, 7);
+    const [didHit] = await natives.invokeWithResult('getShapeTestResult', hit);
+    return !didHit;
 };
 
 const findSafeLanding = async (center: alt.IVector3, model: string, natives: ReturnType<typeof Rebar.player.useNative>, extraRadius: number = 5, step: number = 5, ringStep: number = 20, reservedSpots: alt.IVector3[] = []) => {
@@ -78,7 +67,7 @@ const findSafeLanding = async (center: alt.IVector3, model: string, natives: Ret
             }
         }
         radius += ringStep;
-        await new Promise(r => alt.nextTick(r)); // Event loop nicht blockieren
+        await new Promise(r => alt.nextTick(r));
     }
 };
 
