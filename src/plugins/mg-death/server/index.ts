@@ -191,8 +191,7 @@ const handleRescue = async (player: alt.Player) => {
     world.clearScreenFade(3000);
     await alt.Utils.wait(1500);
 
-
-    textCtrl.update( { text: 'Pilot steigt ein' });
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Pilot steigt ein' });
     const okIn = await flyCtrl.getIn(); 
     if (!okIn) {
         await resetAction();
@@ -200,7 +199,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { text: 'Hubschrauber hebt ab' });
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber hebt ab' });
     const okTakeOff = await flyCtrl.takeoff(heliPos.z + 20, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.StartEngineImmediately, 
@@ -212,7 +211,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { text: 'Hubschrauber steigt auf Abflugshöhe an' });
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber steigt auf Abflugshöhe an' });
     const okClimb = await flyCtrl.climb(heliPos.z + 45, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 
@@ -224,7 +223,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { text: 'Hubschrauber fliegt zum krankenhaus' });
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber fliegt zum krankenhaus' });
     const okCruise = await flyCtrl.cruise(hospitalPos.x, hospitalPos.y, hospitalPos.z + 45, { 
         heading: -1, maxHeight: -1, minHeight: hospitalPos.z + 45, 
         missionFlags: MissionFlag.None,
@@ -236,11 +235,11 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { text: 'Pilot erfragt Landeplatz' });
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Pilot erfragt Landeplatz' });
     const helipad = await circleUntilFree(flyCtrl, hospitalName, new alt.Vector3(hospitalPos), 5000);
     setHelipadUsage(helipad.name, true);
     
-    textCtrl.update( { text: `Landeplatz freigegeben: ${helipad.name}` }); 
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: `Landeplatz freigegeben: ${helipad.name}` }); 
     const okDesc1 = await flyCtrl.descend(helipad.pos.x, helipad.pos.y, helipad.pos.z + 20, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 
@@ -253,7 +252,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { text: 'Hubschrauber sinkt bis Landezone ab' }); 
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber sinkt bis Landezone ab' }); 
     const okDesc2 = await flyCtrl.descend(helipad.pos.x, helipad.pos.y, helipad.pos.z + 5, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 
@@ -266,7 +265,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { text: 'Hubschrauber setzt zur Landung an' }); 
+    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber setzt zur Landung an' }); 
     const okLand = await flyCtrl.land(helipad.pos.x, helipad.pos.y, helipad.pos.z, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.LandOnArrival,
@@ -279,8 +278,8 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.destroy();
     pDebugs.delete(charId);
+    textCtrl.destroy();
 
     try {
         helicopter.pos = new alt.Vector3(helipad.pos);
@@ -598,26 +597,28 @@ init();
 alt.everyTick(() => {
     // [H] Input Nachricht
     for (const [charId, label] of ActiveLabels.entries()) {
-        if (!label) continue;
-        const player = alt.Player.all.find(x => x.valid && 
-            Rebar.document.character.useCharacter(x) && Rebar.document.character.useCharacter(x).isValid() &&
-            Rebar.document.character.useCharacter(x).getField('_id') === charId
-        );
+        if (!label) {
+            ActiveLabels.delete(charId);
+            continue;
+        }
+
+        const baseLabel = label.getLabel();
+        if (!baseLabel) {
+            ActiveLabels.delete(charId);
+            continue;
+        }
+
+        const player = alt.Player.all.find(x => {
+            if (!x || !x.valid) return false;
+            const charDoc = Rebar.document.character.useCharacter(x);
+            if (!charDoc || !charDoc.isValid()) return false;
+            return charDoc.getField('_id') === charId;
+        });
         if (!player || !player.valid) continue;
 
-        const distance = Utility.vector.distance2d({ x: player.pos.x, y: player.pos.y }, { x: label.getLabel().pos.x, y: label.getLabel().pos.y });
+        const distance = Utility.vector.distance(player.pos, baseLabel.pos);
         if (distance <= 0.5) continue;
-        label.update({ pos: { ...player.pos, z: player.pos.z + 1 } });
-    }
 
-    // Aktueller Task Status vom Helikopter
-    for (const [charId, label] of pDebugs.entries()) {
-        if (!label) continue;
-        if (!ActiveRescue.has(charId)) continue;
-        const helicopter = ActiveRescue.get(charId).helicopter; 
-        if (!helicopter || !helicopter.valid) continue;
-        const distance = Utility.vector.distance(helicopter.pos, label.getLabel().pos);
-        if (distance <= 0.5) continue;
-        label.update({ pos: { ...helicopter.pos, z: helicopter.pos.z + 2 } });
+        label.update({ pos: { ...player.pos, z: player.pos.z + 1 } });
     }
 });

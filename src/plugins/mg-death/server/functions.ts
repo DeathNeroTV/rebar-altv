@@ -28,7 +28,6 @@ const setHelipadUsage = (name: string, value: boolean) => {
 };
 
 const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: number = 5) => {
-
     while (vehicle && vehicle.valid && vehicle.pos.distanceTo(pos) > distance) 
         await alt.Utils.wait(50);
     return;

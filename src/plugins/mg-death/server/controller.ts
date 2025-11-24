@@ -2,7 +2,7 @@ import * as alt from 'alt-server';
 import { useRebar } from "@Server/index.js";
 import { reachGoal } from './functions.js';
 import { HeliMission } from '../shared/interfaces.js';
-import { MissionFlag, MissionType } from '../shared/enums.js';
+import { MissionFlag } from '../shared/enums.js';
 
 const Rebar =  useRebar();
 
@@ -15,7 +15,7 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
                 const isInVehicle = await pedCtrl.invokeRpc('isPedInAnyVehicle', false); 
                 if (isInVehicle) return true; 
                 pedCtrl.invoke('taskEnterVehicle', helicopter, -1, -1, 1.0, 1, undefined, 0); 
-                await new Promise(r => alt.nextTick(r));
+                await alt.Utils.wait(150);
             } 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false; 
             pedCtrl.invoke('taskWarpPedIntoVehicle', helicopter, -1); 

@@ -38,6 +38,7 @@ export function useTextLabelGlobal(label: TextLabel, maxDistance: number = 20) {
     }
 
     function update(newTextLabel: Partial<TextLabel>) {
+        if (!label) return;
         label = Object.assign(label, newTextLabel);
         try {
             entity.destroy();
