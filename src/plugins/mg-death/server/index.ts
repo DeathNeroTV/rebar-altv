@@ -31,14 +31,6 @@ const handleRescue = async (player: alt.Player) => {
     const { name: hospitalName, pos: hospitalPos, rot: hospitalRot } = useMedicalService().hospital(player.pos);
     natives.invoke('placeObjectOnGroundProperly', player);
 
-    notifyApi.general.send(player, { 
-        icon: notifyApi.general.getTypes().INFO, 
-        title: hospitalName, 
-        subtitle: 'Notfallzentrum', 
-        message: 'Es wurde ein Rettungshelikopter entsendet', 
-        oggFile: 'notification', 
-    }); 
-
     const startZ = await getSafeGroundZ(player.pos.x, player.pos.y, player.pos.z, natives);
 
     let release: () => void;
@@ -49,7 +41,7 @@ const handleRescue = async (player: alt.Player) => {
 
     let heliPos: alt.IVector3 | null = null;
     try {
-        heliPos = await findSafeLanding({ ...player.pos, z: startZ }, 'polmav', natives, 5, 20, 20, ReservedLandingSpots);
+        heliPos = await findSafeLanding({ ...player.pos, z: startZ }, 'polmav', natives, 15, 20, 20, ReservedLandingSpots);
         if (!heliPos) {
             try {
                 notifyApi.general.send(player, {
@@ -73,6 +65,15 @@ const handleRescue = async (player: alt.Player) => {
         }
         ReservedLandingSpots.push(heliPos);
     } finally { release!(); }
+    
+    notifyApi.general.send(player, { 
+        icon: notifyApi.general.getTypes().INFO, 
+        title: hospitalName, 
+        subtitle: 'Notfallzentrum', 
+        message: 'Es wurde ein Rettungshelikopter entsendet', 
+        oggFile: 'notification', 
+        duration: 5000
+    }); 
 
     const headingToPlayer = Math.atan2(player.pos.y - heliPos.y, player.pos.x - heliPos.x) * (180 / Math.PI);
     const heading = headingToPlayer - 90;
@@ -186,6 +187,7 @@ const handleRescue = async (player: alt.Player) => {
         await resetAction();
         return;
     }
+
     const okCruise = await flyCtrl.cruise(hospitalPos.x, hospitalPos.y, hospitalPos.z + 45, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None,
@@ -196,7 +198,6 @@ const handleRescue = async (player: alt.Player) => {
         await resetAction();
         return;
     }
-
 
     const helipad = await circleUntilFree(flyCtrl, hospitalName, new alt.Vector3(hospitalPos), 3000);
     setHelipadUsage(helipad.name, true);
@@ -209,6 +210,7 @@ const handleRescue = async (player: alt.Player) => {
     });
     if (!okDesc1) {
         await resetAction();
+        setHelipadUsage(helipad.name, false);
         return;
     }
  
@@ -220,6 +222,7 @@ const handleRescue = async (player: alt.Player) => {
     });
     if (!okDesc2) {
         await resetAction();
+        setHelipadUsage(helipad.name, false);
         return;
     }
 
@@ -231,6 +234,7 @@ const handleRescue = async (player: alt.Player) => {
     });
     if (!okLand) {
         await resetAction();
+        setHelipadUsage(helipad.name, false);
         return;
     }
 
@@ -245,6 +249,7 @@ const handleRescue = async (player: alt.Player) => {
     const okOut = await flyCtrl.getOut();
     if (!okOut) {
         await resetAction();
+        setHelipadUsage(helipad.name, false);
         return;
     }
 

@@ -2,6 +2,7 @@ import * as alt from 'alt-server';
 import { useRebar } from "@Server/index.js";
 import { reachGoal } from './functions.js';
 import { HeliMission } from '../shared/interfaces.js';
+import { MissionFlag, MissionType } from '../shared/enums.js';
 
 const Rebar =  useRebar();
 
@@ -46,11 +47,45 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
             return true; 
         },
 
-        circle(pos: alt.IVector3, mission: HeliMission) {
+        async circle(center: alt.IVector3, mission: HeliMission) {
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, pos.x, pos.y, pos.z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags); 
-            pedCtrl.invoke('setPedKeepTask', true);
-            return true;
+
+            const radius = mission.radius ?? 20;
+            const speed = mission.speed ?? 10;
+            const minHeight = mission.minHeight ?? center.z;
+            const maxHeight = mission.maxHeight ?? center.z + 5;
+
+            const stepCount = 36;
+            const stepAngle = (2 * Math.PI) / stepCount;
+
+            let step = 0;
+            while (true) {
+                if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
+
+                const angle = stepAngle * step;
+                const targetX = center.x + radius * Math.cos(angle);
+                const targetY = center.y + radius * Math.sin(angle);
+                const targetZ = minHeight + (maxHeight - minHeight) * 0.5;
+
+                pedCtrl.invoke(
+                    'taskHeliMission',
+                    helicopter,
+                    0, 0,
+                    targetX, targetY, targetZ,
+                    mission.missionType,
+                    speed,
+                    5,
+                    mission.heading ?? -1,
+                    maxHeight,
+                    minHeight,
+                    mission.slowDistance ?? -1,
+                    mission.missionFlags ?? MissionFlag.None
+                );
+                pedCtrl.invoke('setPedKeepTask', true);
+
+                step = (step + 1) % stepCount;
+                await alt.Utils.wait(500); // Zeit zwischen den einzelnen Wegpunkten
+            }
         },
 
         async cruise(x: number, y: number, z: number, mission: HeliMission) { 

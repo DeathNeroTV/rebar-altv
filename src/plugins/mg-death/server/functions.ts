@@ -34,9 +34,8 @@ const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: numb
 const isLandingSafe = async (pos: alt.IVector3, model: string, natives: ReturnType<typeof Rebar.player.useNative>, extraRadius: number, reservedSpots: alt.IVector3[]) => {
     const posZ = await getSafeGroundZ(pos.x, pos.y, pos.z, natives);
     const landingCenter = { ...pos, z: posZ + 1.5 };
-
-    const [_, min, max] = await natives.invokeWithResult('getModelDimensions', alt.hash(model));
-    const heliSize = new alt.Vector3(max).sub(new alt.Vector3(min));
+    const [_, hMin, hMax] = await natives.invokeWithResult('getModelDimensions', alt.hash(model));
+    const heliSize = new alt.Vector3(hMax).sub(new alt.Vector3(hMin));
     const heliRadius = heliSize.length / 2;
 
     for (const entity of alt.Entity.all) {
@@ -87,11 +86,11 @@ const circleUntilFree = async (flyCtrl: ReturnType<typeof useHelicopter>, hospit
     const mission: HeliMission = {
         missionType: MissionType.Circle,
         missionFlags: MissionFlag.None,
-        radius: 40,
+        radius: 20,
         speed: 12,
         heading: -1,
-        minHeight: hospitalPos.z + 40,
-        maxHeight: hospitalPos.z + 50,
+        minHeight: hospitalPos.z + 60,
+        maxHeight: hospitalPos.z + 70,
         slowDistance: -1,
     };
 
@@ -106,4 +105,4 @@ const circleUntilFree = async (flyCtrl: ReturnType<typeof useHelicopter>, hospit
     return helipad;
 };
 
-export { setHelipadUsage, isHelipadClear, getFreeHelipad, getSafeGroundZ, ensureValidation, findSafeLanding, isLandingSafe, reachGoal, circleUntilFree };
+export { setHelipadUsage, isHelipadClear, getFreeHelipad, getSafeGroundZ, findSafeLanding, isLandingSafe, reachGoal, circleUntilFree };
