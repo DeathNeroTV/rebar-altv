@@ -7,12 +7,16 @@ import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
 import { useHelicopter } from './controller.js';
-import { circleUntilFree, ensureValidation, findSafeLanding, getFreeHelipad, getSafeGroundZ, setHelipadUsage } from './functions.js';
+import { circleUntilFree, findSafeLanding, getSafeGroundZ, setHelipadUsage } from './functions.js';
 import { MissionFlag, MissionType } from '../shared/enums.js';
 import { Marker, MarkerType } from '@Shared/types/marker.js';
+import { useConfigService } from '@Plugins/mg-configs/server/service.js';
+import { DefaultConfig } from '@Plugins/mg-configs/shared/interfaces.js';
 
 const Rebar = useRebar();
+const db = Rebar.database.useDatabase();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
+let config: Record<string, any> = DeathConfig;
 
 const ReservedLandingSpots: alt.IVector3[] = [];
 let heliMutex = Promise.resolve();
@@ -21,7 +25,9 @@ const TimeOfDeath: Map<string, number> = new Map();
 const ActiveTasks: Map<string, number> = new Map();
 const ActiveRescue: Map<string, { pilot: alt.Ped, helicopter: alt.Vehicle }> = new Map();
 const ActiveLabels: Map<string, ReturnType<typeof Rebar.controllers.useTextLabelGlobal>> = new Map();
-const markers: Map<string, ReturnType<typeof Rebar.controllers.useMarkerGlobal>> = new Map();
+
+//debug draws
+const padMarkers: Map<string, ReturnType<typeof Rebar.controllers.useMarkerGlobal>> = new Map();
 
 const handleRescue = async (player: alt.Player) => {
     if (!player || !player.valid) return;
@@ -48,7 +54,7 @@ const handleRescue = async (player: alt.Player) => {
                     icon: notifyApi.general.getTypes().INFO,
                     title: hospitalName,
                     subtitle: 'Notfallzentrum',
-                    message: 'Kein sicherer Landeplatz gefunden!',
+                    message: 'Keinen sicheren Landeplatz gefunden!',
                     duration: 5000
                 });
                 await useMedicalService().respawn(player); 
@@ -88,6 +94,7 @@ const handleRescue = async (player: alt.Player) => {
     await alt.Utils.wait(1200);
     player.spawn(player.pos);
     player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
+    await new Promise((r) => alt.nextTick(r));
     
     const helicopter = new alt.Vehicle('polmav', new alt.Vector3(heliPos.x, heliPos.y, heliPos.z), startRot);
     const pilot = new alt.Ped('s_m_m_pilot_02', new alt.Vector3(pilotPos.x, pilotPos.y, pilotPos.z), startRot);
@@ -275,7 +282,7 @@ const handleDeathScreen = async (player: alt.Player) => {
 
 Rebar.services.useServiceRegister().register('medicalService', {
     hospital(pos: alt.IVector3) {
-        const sorted = DeathConfig.hospitals.slice().sort((a, b) => {
+        const sorted = config.hospitals.slice().sort((a, b) => {
             const distA = Utility.vector.distance(pos, a.pos);
             const distB = Utility.vector.distance(pos, b.pos);
             return distA - distB;
@@ -301,7 +308,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
         ActiveLabels.set(charId, label);
 
         // TTL setzen
-        const respawnAt = Date.now() + DeathConfig.respawnTime;
+        const respawnAt = Date.now() + config.respawnTime;
         TimeOfDeath.set(charId, respawnAt);
         player.emit(DeathEvents.toClient.startTimer, respawnAt - Date.now());
 
@@ -313,7 +320,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
 
             alt.clearTimeout(timeout);
             ActiveTasks.delete(charId);
-        }, DeathConfig.respawnTime);
+        }, config.respawnTime);
         ActiveTasks.set(charId, timeout);
     },
 
@@ -376,7 +383,7 @@ Rebar.services.useServiceRegister().register('medicalService', {
 
     async revived(player: alt.Player, isReviver: boolean) {
         if (!player || !player.valid) return;
-        alt.setTimeout(() => player.clearTasks(), DeathConfig.coolDown);
+        alt.setTimeout(() => player.clearTasks(), config.coolDown);
         if (isReviver) return;
 
         const document = Rebar.document.character.useCharacter(player);
@@ -416,15 +423,15 @@ Rebar.services.useServiceRegister().register('medicalService', {
             dimension: player.dimension,
         });
 
-        Rebar.player.useWorld(player).setScreenFade(DeathConfig.fadeDelay);
-        await alt.Utils.wait(DeathConfig.coolDown);
+        Rebar.player.useWorld(player).setScreenFade(config.fadeDelay);
+        await alt.Utils.wait(config.coolDown);
 
         player.frozen = false;
         player.spawn(data.pos);
         player.pos = new alt.Vector3(data.pos);
         player.clearBloodDamage();
         player.emit(DeathEvents.toClient.respawned);
-        Rebar.player.useWorld(player).clearScreenFade(DeathConfig.fadeDelay);
+        Rebar.player.useWorld(player).clearScreenFade(config.fadeDelay);
     },
 
     async respawn(player: alt.Player, pos: alt.IVector3) {
@@ -471,8 +478,8 @@ Rebar.services.useServiceRegister().register('medicalService', {
         });
 
         // Visual respawn
-        world.setScreenFade(DeathConfig.fadeDelay);
-        await alt.Utils.wait(DeathConfig.coolDown);
+        world.setScreenFade(config.fadeDelay);
+        await alt.Utils.wait(config.coolDown);
 
         player.spawn(data.pos);
         player.frozen = false;
@@ -480,7 +487,8 @@ Rebar.services.useServiceRegister().register('medicalService', {
         player.rot = new alt.Vector3(data.rot);
         player.clearTasks();
         player.clearBloodDamage();
-        world.clearScreenFade(DeathConfig.fadeDelay);
+        world.clearScreenFade(config.fadeDelay);
+        player.emit(DeathEvents.toClient.respawned);
     },
 
     called(player: alt.Player) {
@@ -490,6 +498,20 @@ Rebar.services.useServiceRegister().register('medicalService', {
 
         // TODO: später Broadcast an Medics; aktuell nur confirm an den Spieler
     },
+});
+
+alt.on('mg-config:createdConfig', async (_id: string) => {
+    const cfg = await useConfigService().get(_id);
+    if (cfg.name !== 'DeathScreen-Einstellungen') return;
+    if (cfg && cfg.data) config = cfg.data;
+    else config = DeathConfig;
+});
+
+alt.on('mg-config:changedConfig', (changed: boolean, _id: string, key: keyof DefaultConfig, value: DefaultConfig[keyof DefaultConfig]) => {
+    if (!changed) return;
+    if (key === 'name' || key === '_id') return;
+    if (!(key in config)) return;
+    config[key] = value;
 });
 
 async function init() {
@@ -502,33 +524,30 @@ async function init() {
     charEditorApi.onCreate(handleDeathScreen);
     charEditorApi.onSkipCreate(handleDeathScreen);
 
-    for (const helipad of DeathConfig.helipads) {
+    await useConfigService().create('DeathScreen-Einstellungen', DeathConfig);
+
+    for (const helipad of config.helipads) {
         const marker: Marker = {
-            type: MarkerType.FLAT_CIRCLE_SKINNY,
+            type: MarkerType.FLAT_CIRCLE_SKINNY_SPLIT,
             pos: { ...helipad.pos, z: helipad.pos.z - 0.9 },
-            scale: new alt.Vector3(5),
+            scale: new alt.Vector3(10),
             bobUpAndDown: false,
-            faceCamera: true,
-            rotate: false,
-            color: new alt.RGBA(255, 0, 0, 255),
+            faceCamera: false,
+            rotate: true,
+            color: new alt.RGBA(255, 0, 0, 128),
             uid: helipad.name,
         };
         const markerCtrl = Rebar.controllers.useMarkerGlobal(marker);
-        markers.set(marker.uid, markerCtrl);
+        padMarkers.set(marker.uid, markerCtrl);
     }
 
     // Server Events
     alt.on('playerDeath', async (player: alt.Player) => {
         const document = Rebar.document.character.useCharacter(player);
         if (!document.isValid() || document.getField('isDead')) return;
-        alt.log('[mg-death', document.getField('name') ?? player.name, 'ist gestorben');
+        //TODO: handle log entry for character death with time and data
+        alt.log('[mg-death]', document.getField('name') ?? player.name, 'ist ohnmächtig geworden');
         await useMedicalService().unconscious(player);
-    });
-
-    alt.on('resourceStop', () => {
-        for (const [key, markerCtrl] of markers)
-            markerCtrl.destroy();
-        markers.clear();
     });
 
     // Client Events
@@ -538,3 +557,19 @@ async function init() {
     alt.onClient(DeathEvents.toServer.toggleEms, useMedicalService().called);
 }
 init();
+
+alt.everyTick(() => {
+    for (const [charId, label] of ActiveLabels.entries()) {
+        for (const player of alt.Player.all) {
+            if (!player || !player.valid || !label) continue;
+
+            const charDoc = Rebar.document.character.useCharacter(player);
+            if (!charDoc || !charDoc.isValid()) continue;
+
+            const playerCharId = charDoc.getField('_id'); 
+            if (!playerCharId || playerCharId !== charId) continue;
+
+            label.update({ pos: { ...player.pos, z: player.pos.z + 1 } });
+        }
+    }
+});

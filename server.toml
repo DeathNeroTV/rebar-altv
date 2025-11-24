@@ -12,9 +12,9 @@ debug = false
 description = 'alt:V Sample Server'
 modules = [ 'js-module' ]
 resources = [
-    'gabz_mrpd',
     'gabz_pillbox',
     'lsiar',
+    'strawberry_gardens',
     'images',
     'fonts',
     'sounds',

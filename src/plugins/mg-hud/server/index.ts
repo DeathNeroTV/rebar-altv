@@ -11,12 +11,14 @@ import { DateTimeSecond } from 'alt-server';
 import { getDrainMultiplier, Config } from '../shared/config.js';
 import { ActionModifiers, HudConfig, VitalCoolDowns } from '../shared/interfaces.js';
 import { useHudService } from './services.js';
+import { useConfigService } from '@Plugins/mg-configs/server/service.js';
+import { DefaultConfig } from '@Plugins/mg-configs/shared/interfaces.js';
 
 const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 const vitalWarnings: Map<string, VitalCoolDowns> = new Map();
-let config: HudConfig;
+let config: Record<string, any> = Config;
 
 declare module '@Shared/types/character.js' {
     export interface Character {
@@ -33,19 +35,6 @@ declare module '@Shared/types/vehicle.js' {
         gear?: number;
         garageId?: string;
     }
-}
-
-async function createCollections() {
-    await db.createCollection('Configs');
-
-    config = await db.get<HudConfig>({ name: 'HUD-Einstellungen' }, 'Configs');
-    if (config) return;
-
-    const _id = await db.create<HudConfig>(config, 'Configs');
-    if (!_id) return;
-
-    config = Config;
-    config._id = _id.toString();
 }
 
 Rebar.services.useServiceRegister().register('hudService', {
@@ -126,6 +115,20 @@ alt.on('playerDamage', async (victim: alt.Player, attacker: alt.Entity, healthDa
 
     await document.setBulk({ health: Math.max(99, Math.min(200, victim.health)), armour: Math.max(0, Math.min(100, victim.armour)) });
     Rebar.player.useState(victim).apply({ health: Math.max(99, Math.min(200, victim.health)), armour: Math.max(0, Math.min(100, victim.armour)) });
+});
+
+alt.on('mg-config:createdConfig', async (_id: string) => {
+    const cfg = await useConfigService().get(_id);
+    if (cfg.name !== 'HUD-Einstellungen') return;
+    if (cfg && cfg.data) config = cfg.data;
+    else config = Config;
+});
+
+alt.on('mg-config:changedConfig', (changed: boolean, _id: string, key: keyof DefaultConfig, value: DefaultConfig[keyof DefaultConfig]) => {
+    if (!changed) return;
+    if (key === 'name' || key === '_id') return;
+    if (!(key in config)) return;
+    config[key] = value;
 });
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
@@ -264,8 +267,7 @@ async function init() {
 
     Config.CharKeys.forEach(Rebar.systems.useStreamSyncedBinder().syncCharacterKey);
     Config.VehKeys.forEach(Rebar.systems.useStreamSyncedBinder().syncVehicleKey);
-    
-    await createCollections();
-}
 
+    await useConfigService().create('HUD-Einstellungen', Config);
+}
 init();

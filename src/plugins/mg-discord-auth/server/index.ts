@@ -1,5 +1,5 @@
 import * as alt from 'alt-server';
-import { DiscordAuthConfig } from './config.js';
+import { DiscordAuthConfig } from '../shared/config.js';
 import { DiscordAuthEvents } from '../shared/events.js';
 import { useRebar } from '@Server/index.js';
 import { Account, ServerConfig } from '@Shared/types/index.js';
@@ -12,10 +12,13 @@ import { getClient } from '@Plugins/mg-discord/server/bot.js';
 import { EmbedBuilder, TextChannel } from 'discord.js';
 import { CollectionNames } from '@Server/document/shared.js';
 import { useIntroApi } from '@Plugins/mg-intro/server/api.js';
+import { useConfigService } from '@Plugins/mg-configs/server/service.js';
+import { DefaultConfig } from '@Plugins/mg-configs/shared/interfaces.js';
 
 const Rebar = useRebar();
 const db = Rebar.database.useDatabase();
 const { t } = useTranslate('de');
+let config: Record<string, any> = DiscordAuthConfig;
 
 const sessionKey = 'can-auth-account';
 const sessions: Array<DiscordSession> = [];
@@ -46,18 +49,33 @@ declare module '@Shared/types/account.js' {
 
 disable.forEach(section => serverConfig.set(section, true));
 
+
+alt.on('mg-config:createdConfig', async (_id: string) => {
+    const cfg = await useConfigService().get(_id);
+    if (cfg.name !== 'DiscordAuth-Einstellungen') return;
+    if (cfg && cfg.data) config = cfg.data;
+    else config = DiscordAuthConfig;
+});
+
+alt.on('mg-config:changedConfig', (changed: boolean, _id: string, key: keyof DefaultConfig, value: DefaultConfig[keyof DefaultConfig]) => {
+    if (!changed) return;
+    if (key === 'name' || key === '_id') return;
+    if (!(key in config)) return;
+    config[key] = value;
+});
+
 async function handleFinished(player: alt.Player) {
     player.dimension = player.id + 1;
 
     sessions.push({
         id: player.id,
-        expiration: Date.now() + 60000 * DiscordAuthConfig.SESSION_EXPIRE_TIME_IN_MINUTES
+        expiration: Date.now() + 60000 * config.SESSION_EXPIRE_TIME_IN_MINUTES
     });
     player.setMeta(sessionKey, true);
 
     Rebar.player.useWebview(player).show('DiscordAuth', 'page');
 
-    const token: string = await player.emitRpc(DiscordAuthEvents.toClient.requestToken, DiscordAuthConfig.APPLICATION_ID);
+    const token: string = await player.emitRpc(DiscordAuthEvents.toClient.requestToken, config.APPLICATION_ID);
 
     setSessionFinish(player);
 
@@ -120,15 +138,15 @@ async function handleCheckToken(player: alt.Player, token: string) {
         await db.update<Account>(account, CollectionNames.Accounts);
     }
 
-    if (DiscordAuthConfig.SERVER_ID && DiscordAuthConfig.SERVER_ID.length !== 0) {
+    if (config.SERVER_ID && config.SERVER_ID.length !== 0) {
         const guildMember = await getGuildMember(currentUser.id);
         if (!guildMember) {
             webview.emit(DiscordAuthEvents.toWebview.send, t("discord.auth.guild.no.member"));
             return;
         }
 
-        if (DiscordAuthConfig.WHITELIST_ROLE_ID && DiscordAuthConfig.WHITELIST_ROLE_ID.length !== 0) {
-            const role = guildMember.roles.cache.get(DiscordAuthConfig.WHITELIST_ROLE_ID);
+        if (config.WHITELIST_ROLE_ID && config.WHITELIST_ROLE_ID.length !== 0) {
+            const role = guildMember.roles.cache.get(config.WHITELIST_ROLE_ID);
             const request: WhitelistRequest = await db.get<WhitelistRequest>({ discordId: currentUser.id }, 'WhitelistRequests');
 
             if (!request) {
@@ -138,7 +156,7 @@ async function handleCheckToken(player: alt.Player, token: string) {
                 const _id = await db.create<WhitelistRequest>(data, 'WhitelistRequests');
                 data._id = _id.toString();
 
-                const channel: TextChannel = await getClient().channels.fetch(DiscordAuthConfig.WHITELIST_CHANNEL_ID) as TextChannel;
+                const channel: TextChannel = await getClient().channels.fetch(config.WHITELIST_CHANNEL_ID) as TextChannel;
                 const embed = new EmbedBuilder()
                 .setAuthor({ name: "Test", })
                 .setTitle("Whitelist-Anfrage")
@@ -168,7 +186,7 @@ async function handleCheckToken(player: alt.Player, token: string) {
                 }
 
                 if (request.state === 'approved') {
-                    await guildMember.roles.add(DiscordAuthConfig.WHITELIST_ROLE_ID);
+                    await guildMember.roles.add(config.WHITELIST_ROLE_ID);
                     setAccount(player, account);
                     return;
                 }
@@ -183,7 +201,7 @@ async function handleCheckToken(player: alt.Player, token: string) {
             }
 
             if (request.state === 'rejected') {
-                await guildMember.roles.remove(DiscordAuthConfig.WHITELIST_ROLE_ID);
+                await guildMember.roles.remove(config.WHITELIST_ROLE_ID);
                 webview.emit(DiscordAuthEvents.toWebview.send, t('discord.auth.guild.rejected.whitelist'));
                 return;
             }
@@ -263,9 +281,10 @@ function setAccount(player: alt.Player, account: Account) {
     invokeLogin(player, account);
 }
 
-function init() {
+async function init() {
     requestInit();
     useIntroApi().onFinished(handleFinished);
     alt.on('rebar:onTick', cleanupSessions);
+    await useConfigService().create('DiscordAuth-Einstellungen', DiscordAuthConfig);
 }
 init();

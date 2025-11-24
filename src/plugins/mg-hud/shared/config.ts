@@ -1,9 +1,7 @@
 import { Character } from "@Shared/types/character.js";
 import { Vehicle } from "@Shared/types/vehicle.js";
-import { HudConfig } from "./interfaces.js";
 
-export const Config: HudConfig = {
-    name: 'HUD-Einstellungen',
+export const Config = {
     language: 'de',
     timePerSecond: 30,
     ticksInMS: 500,

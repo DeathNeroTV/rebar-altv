@@ -1,7 +1,7 @@
 import * as alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
 import { NotificationTypes } from '@Plugins/mg-notify/shared/interface.js';
-import { DiscordAuthConfig } from '@Plugins/mg-discord-auth/server/config.js';
+import { DiscordAuthConfig } from '@Plugins/mg-discord-auth/shared/config.js';
 
 import { AdminEvents } from "../../shared/events.js";
 import { WhitelistRequest } from '../../shared/interfaces.js';

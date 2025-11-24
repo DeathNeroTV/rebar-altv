@@ -28,7 +28,8 @@ const setHelipadUsage = (name: string, value: boolean) => {
 };
 
 const reachGoal = async (pos: alt.IVector3, vehicle: alt.Vehicle, distance: number = 5) => {
-    while (vehicle && vehicle.valid && vehicle.pos.distanceTo(pos) > distance) await alt.Utils.wait(100);
+    while (vehicle && vehicle.valid && vehicle.pos.distanceTo(pos) > distance) 
+        await new Promise(r => alt.nextTick(r));
 };
 
 const isLandingSafe = async (pos: alt.IVector3, model: string, natives: ReturnType<typeof Rebar.player.useNative>, extraRadius: number, reservedSpots: alt.IVector3[]) => {
@@ -56,7 +57,11 @@ const isLandingSafe = async (pos: alt.IVector3, model: string, natives: ReturnTy
         if (Utility.vector.distance(landingCenter, spot) <= heliRadius + extraRadius) return false;
     }
 
-    return true;
+    const tempVehicle = new alt.Vehicle(model, pos, { x: 0, y: 0, z: 0});
+    tempVehicle.frozen = true;
+    const blocked = await natives.invokeWithResult('isHeliLandingAreaBlocked', tempVehicle);
+    tempVehicle.destroy();
+    return !blocked;
 };
 
 const findSafeLanding = async (center: alt.IVector3, model: string, natives: ReturnType<typeof Rebar.player.useNative>, extraRadius: number = 5, step: number = 5, ringStep: number = 20, reservedSpots: alt.IVector3[] = []) => {
@@ -94,12 +99,12 @@ const circleUntilFree = async (flyCtrl: ReturnType<typeof useHelicopter>, hospit
         slowDistance: -1,
     };
 
-    let helipad = getFreeHelipad(hospitalName, 5);
+    let helipad = getFreeHelipad(hospitalName, 10);
     while (!helipad) {
         const success = flyCtrl.circle(hospitalPos, mission);
         if (!success) return null;
         await alt.Utils.wait(checkInterval);
-        helipad = getFreeHelipad(hospitalName, 5);
+        helipad = getFreeHelipad(hospitalName, 10);
     }
 
     return helipad;

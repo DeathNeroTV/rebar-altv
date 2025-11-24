@@ -5,7 +5,7 @@
 
 	import { DiscordAuthEvents } from '../shared/events.js';
 	import '../translate/index.js';
-	import { inviteCode } from '../shared/config.js';
+	import { DiscordAuthConfig } from '../shared/config.js';
 
 	const { t } = useTranslate('de');
 	const events = useEvents();
@@ -13,7 +13,7 @@
 	const message = ref<string | null>(t('discord.auth.information'));
 
 	const handleMessage = (text: string) => (message.value = text);
-	const inviteLink = `https://discord.gg/${inviteCode}`; // Dein Discord Invite
+	const inviteLink = `https://discord.gg/${DiscordAuthConfig.INVITE_CODE}`; // Dein Discord Invite
 	const copied = ref(false);
 
 	const copyInvite = () => {

@@ -1,6 +1,6 @@
 import * as alt from 'alt-server';
 import { useDiscord } from "@Plugins/mg-discord/server/api.js";
-import {DiscordAuthConfig} from "./config.js";
+import {DiscordAuthConfig} from "../shared/config.js";
 import {Client, GuildMember} from "discord.js";
 import {DiscordInfo} from "../shared/interfaces.js";
 import * as https from "node:https";
