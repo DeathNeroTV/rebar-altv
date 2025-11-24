@@ -83,7 +83,7 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid) return false;
             pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z, mission.missionType, mission.speed, mission.radius, mission.heading, mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags);
             pedCtrl.invoke('setPedKeepTask', true);
-            const minDistance = Math.max(10, mission.radius * 2);
+            const minDistance = Math.max(10, mission.radius * 1.5);
             await reachGoal({ x, y, z }, helicopter, minDistance); 
             return true; 
         }, 
