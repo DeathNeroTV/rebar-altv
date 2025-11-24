@@ -106,6 +106,8 @@ const handleRescue = async (player: alt.Player) => {
     natives.invoke('placeObjectOnGroundProperly', helicopter);
     natives.invoke('placeObjectOnGroundProperly', pilot);
 
+    const flyCtrl = useHelicopter(player, pilot, helicopter, ped, natives); 
+
     const cleanup = () => {
         const index = ReservedLandingSpots.indexOf(heliPos!);
         if (index !== -1) ReservedLandingSpots.splice(index, 1);
@@ -163,8 +165,17 @@ const handleRescue = async (player: alt.Player) => {
     
     const ped = Rebar.controllers.usePed(pilot); 
     ped.setOption('makeStupid', true);
-
-    const flyCtrl = useHelicopter(player, pilot, helicopter, ped, natives); 
+    
+    player.frozen = false; 
+    player.clearTasks(); 
+    await alt.Utils.wait(500);
+    world.setScreenFade(0); 
+    await alt.Utils.wait(1000);
+    player.clearTasks();
+    await alt.Utils.wait(500);
+    player.setIntoVehicle(helicopter, 4);
+    world.clearScreenFade(3000);
+    await alt.Utils.wait(1500);
 
     const okIn = await flyCtrl.getIn(); 
     if (!okIn) {
@@ -206,7 +217,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    const helipad = await circleUntilFree(flyCtrl, hospitalName, new alt.Vector3(hospitalPos), 3000);
+    const helipad = await circleUntilFree(flyCtrl, hospitalName, new alt.Vector3(hospitalPos), 5000);
     setHelipadUsage(helipad.name, true);
 
     const okDesc1 = await flyCtrl.descend(helipad.pos.x, helipad.pos.y, helipad.pos.z + 20, { 
@@ -569,6 +580,8 @@ alt.everyTick(() => {
             const playerCharId = charDoc.getField('_id'); 
             if (!playerCharId || playerCharId !== charId) continue;
 
+            const distance = Utility.vector.distance2d({ x: player.pos.x, y: player.pos.y }, { x: label.getLabel().pos.x, y: label.getLabel().pos.y });
+            if (distance <= 0.5) continue;
             label.update({ pos: { ...player.pos, z: player.pos.z + 1 } });
         }
     }

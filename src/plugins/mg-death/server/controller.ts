@@ -10,21 +10,12 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
     return {
         async getIn(maxAttempts: number = 15) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false; 
-            player.frozen = false; 
-            player.clearTasks(); 
-            await alt.Utils.wait(100);
-            Rebar.player.useWorld(player).setScreenFade(0); 
-            await alt.Utils.wait(500);
-            player.setIntoVehicle(helicopter, 4); 
-            await alt.Utils.wait(1000); 
-            Rebar.player.useWorld(player).clearScreenFade(3000); 
-            await alt.Utils.wait(1500);
             for (let attempt = 0; attempt < maxAttempts; attempt++) { 
                 if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false; 
                 const isInVehicle = await pedCtrl.invokeRpc('isPedInAnyVehicle', false); 
                 if (isInVehicle) return true; 
                 pedCtrl.invoke('taskEnterVehicle', helicopter, -1, -1, 1.0, 1, undefined, 0); 
-                await alt.Utils.wait(100); 
+                await new Promise(r => alt.nextTick(r));
             } 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false; 
             pedCtrl.invoke('taskWarpPedIntoVehicle', helicopter, -1); 
