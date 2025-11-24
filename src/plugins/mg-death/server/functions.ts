@@ -78,18 +78,6 @@ const findSafeLanding = async (center: alt.IVector3, model: string, natives: Ret
     }
 };
 
-const ensureValidation = async (ped: alt.Ped, vehicle: alt.Vehicle, natives: ReturnType<typeof Rebar.player.useNative>, maxAttempts: number = 10, delay: number = 500) => {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        if (ped && ped.valid && vehicle && vehicle.valid) {
-            natives.invoke('placeObjectOnGroundProperly', vehicle);
-            natives.invoke('placeObjectOnGroundProperly', ped);
-            return true;
-        }
-        await alt.Utils.wait(delay);
-    }
-    return false;
-};
-
 const getSafeGroundZ = async (x: number, y: number, z: number, natives: ReturnType<typeof Rebar.player.useNative>) => {
     const [found, ground] = await natives.invokeWithResult('getGroundZFor3dCoord', x, y, z, 0, false, false);
     return found && ground > 0 ? ground : z;

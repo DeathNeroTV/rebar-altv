@@ -7,7 +7,7 @@ const Rebar =  useRebar();
 
 export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: alt.Vehicle, pedCtrl: ReturnType<typeof Rebar.controllers.usePed>, natives: ReturnType<typeof Rebar.player.useNative>) {
     return {
-        async getIn(maxAttempts: number) { 
+        async getIn(maxAttempts: number = 15) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false; 
             player.frozen = false; 
             player.clearTasks(); 
@@ -77,7 +77,7 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
             return true; 
         }, 
 
-        async getOut(maxAttempts: number) { 
+        async getOut(maxAttempts: number = 15) { 
             if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false;
             for (let attempt = 0; attempt < maxAttempts; attempt++) { 
                 if (!pilot || !pilot.valid || !helicopter || !helicopter.valid || !player || !player.valid) return false;
