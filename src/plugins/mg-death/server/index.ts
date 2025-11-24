@@ -12,10 +12,8 @@ import { MissionFlag, MissionType } from '../shared/enums.js';
 import { Marker, MarkerType } from '@Shared/types/marker.js';
 import { useConfigService } from '@Plugins/mg-configs/server/service.js';
 import { DefaultConfig } from '@Plugins/mg-configs/shared/interfaces.js';
-import { D2DTextLabel } from '@Shared/types/d2dTextLabel.js';
 
 const Rebar = useRebar();
-const db = Rebar.database.useDatabase();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 let config: Record<string, any> = DeathConfig;
 
@@ -29,7 +27,6 @@ const ActiveLabels: Map<string, ReturnType<typeof Rebar.controllers.useTextLabel
 
 //debug draws
 const padMarkers: Map<string, ReturnType<typeof Rebar.controllers.useMarkerGlobal>> = new Map();
-const pDebugs: Map<string, ReturnType<typeof Rebar.controllers.useD2DTextLabelLocal>> = new Map();
 
 const handleRescue = async (player: alt.Player) => {
     if (!player || !player.valid) return;
@@ -164,18 +161,6 @@ const handleRescue = async (player: alt.Player) => {
         ActiveTasks.delete(charId);
     }
 
-    const label : D2DTextLabel = {
-        pos: helicopter.pos.add(0, 0, 2),
-        text: 'Starte Rettungseinsatz...',
-        dimension: player.dimension,
-        fontOutline: 0.25,
-        fontScale: 0.8,
-        uid: `debugInfo_${charId}`
-    };
-
-    const textCtrl = Rebar.controllers.useD2DTextLabelLocal(player, label);
-    pDebugs.set(charId, textCtrl);
-
     ActiveRescue.set(charId, { helicopter, pilot });
     player.emit(DeathEvents.toClient.respawned);
     await document.setBulk({ pos: player.pos, rot: player.rot });
@@ -191,7 +176,6 @@ const handleRescue = async (player: alt.Player) => {
     world.clearScreenFade(3000);
     await alt.Utils.wait(1500);
 
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Pilot steigt ein' });
     const okIn = await flyCtrl.getIn(); 
     if (!okIn) {
         await resetAction();
@@ -199,8 +183,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber hebt ab' });
-    const okTakeOff = await flyCtrl.takeoff(heliPos.z + 20, { 
+    const okTakeOff = await flyCtrl.takeoff(heliPos.x, heliPos.y, heliPos.z + 20, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.StartEngineImmediately, 
         missionType: MissionType.GoTo, 
@@ -211,8 +194,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber steigt auf Abflugshöhe an' });
-    const okClimb = await flyCtrl.climb(heliPos.z + 45, { 
+    const okClimb = await flyCtrl.climb(heliPos.x, heliPos.y, heliPos.z + 45, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 
         missionType: MissionType.GoTo, 
@@ -223,10 +205,9 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber fliegt zum krankenhaus' });
     const okCruise = await flyCtrl.cruise(hospitalPos.x, hospitalPos.y, hospitalPos.z + 45, { 
-        heading: -1, maxHeight: -1, minHeight: hospitalPos.z + 45, 
-        missionFlags: MissionFlag.None,
+        heading: -1, maxHeight: -1, minHeight: -1, 
+        missionFlags: MissionFlag.HeightMapOnlyAvoidance,
         missionType: MissionType.GoTo, 
         radius: 8, slowDistance: -1, speed: 50 
     }); 
@@ -235,11 +216,9 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Pilot erfragt Landeplatz' });
     const helipad = await circleUntilFree(flyCtrl, hospitalName, new alt.Vector3(hospitalPos), 5000);
     setHelipadUsage(helipad.name, true);
     
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: `Landeplatz freigegeben: ${helipad.name}` }); 
     const okDesc1 = await flyCtrl.descend(helipad.pos.x, helipad.pos.y, helipad.pos.z + 20, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 
@@ -252,7 +231,6 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber sinkt bis Landezone ab' }); 
     const okDesc2 = await flyCtrl.descend(helipad.pos.x, helipad.pos.y, helipad.pos.z + 5, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None, 
@@ -265,7 +243,6 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    textCtrl.update( { pos: helicopter.pos.add(0, 0, 2), text: 'Hubschrauber setzt zur Landung an' }); 
     const okLand = await flyCtrl.land(helipad.pos.x, helipad.pos.y, helipad.pos.z, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.LandOnArrival,
@@ -277,9 +254,6 @@ const handleRescue = async (player: alt.Player) => {
         setHelipadUsage(helipad.name, false);
         return;
     }
-
-    pDebugs.delete(charId);
-    textCtrl.destroy();
 
     try {
         helicopter.pos = new alt.Vector3(helipad.pos);
@@ -594,7 +568,7 @@ async function init() {
 }
 init();
 
-alt.everyTick(() => {
+alt.on('rebar:onTick', () => {
     // [H] Input Nachricht
     for (const [charId, label] of ActiveLabels.entries()) {
         if (!label) {
@@ -619,6 +593,7 @@ alt.everyTick(() => {
         const distance = Utility.vector.distance(player.pos, baseLabel.pos);
         if (distance <= 0.5) continue;
 
-        label.update({ pos: { ...player.pos, z: player.pos.z + 1 } });
+        try { label.update({ pos: { ...player.pos, z: player.pos.z + 0.5 } }); } 
+        catch {}
     }
 });

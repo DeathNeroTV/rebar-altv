@@ -134,7 +134,6 @@ export function useD2DTextLabelLocal(player: alt.Player, label: D2DTextLabel) {
     }
 
     function update(newMarker: Partial<D2DTextLabel>) {
-        if (!label) return;
         label = Object.assign(label, newMarker);
         player.emit(Events.controllers.dxgilabel.create, label);
     }

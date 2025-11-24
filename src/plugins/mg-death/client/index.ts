@@ -34,7 +34,6 @@ async function registerKeybinds() {
                 state.canRespawn = false;
             },
             allowIfDead: true,
-            restrictions: { isOnFoot: true }
         },
         {
             key: alt.KeyCode.G,
@@ -46,7 +45,6 @@ async function registerKeybinds() {
                 state.calledEMS = true;
             },
             allowIfDead: true,
-            restrictions: { isOnFoot: true }
         },
         {
             key: alt.KeyCode.H,
@@ -57,7 +55,6 @@ async function registerKeybinds() {
                 if (!victim || !victim.valid) return;
                 emitServerSafe(DeathEvents.toServer.toggleRevive, victim);
             },
-
             restrictions: { isOnFoot: true }
         }
     ];
@@ -109,12 +106,12 @@ function registerListeners() {
 
     alt.onServer(DeathEvents.toClient.disableControls, (value: boolean) => {
         if (value) {
-            if (!!interval) alt.clearEveryTick(interval!);
+            try { alt.clearEveryTick(interval); } catch {}
             interval = alt.everyTick(handleControls);
             return;
         }
 
-        if (!!interval) alt.clearEveryTick(interval!);
+        try { alt.clearEveryTick(interval); } catch {}
     });
 }
 
