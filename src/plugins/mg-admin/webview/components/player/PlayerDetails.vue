@@ -256,9 +256,9 @@
 		character.value = { ...selected, groups: selected.groups ?? [] };
 	};
 
-	const createCharacter = (name: string) => {
+	const createCharacter = (name: string, groups: string[]) => {
 		if (!props.player) return;
-		events.emitServer(AdminEvents.toServer.request.user.create.character, props.player.account_id, name);
+		events.emitServer(AdminEvents.toServer.request.user.create.character, props.player.account_id, name, groups);
 		emits('close');
 	};
 

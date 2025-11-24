@@ -217,6 +217,20 @@
 					<p class="text-xl text-gray-200">{{ selected.interior ?? '—' }}</p>
 				</div>
 
+				<div>
+					<p class="text-gray-400">Aussehen</p>
+					<div class="flex justify-between items-center">
+						<p class="text-lg text-gray-200">
+							{{ selected.appearance ? JSON.stringify(selected.appearance) : '—' }}
+						</p>
+						<font-awesome-icon
+							:icon="['fas', 'trash']"
+							class="text-gray-400 hover:text-red-500 cursor-pointer"
+							@click="emits('update', selected._id, 'appearance', null)"
+						/>
+					</div>
+				</div>
+
 				<!-- You can extend with weapons, clothes, etc. -->
 			</div>
 		</div>

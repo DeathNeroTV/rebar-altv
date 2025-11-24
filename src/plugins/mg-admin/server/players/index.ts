@@ -143,6 +143,10 @@ alt.onClient(AdminEvents.toServer.request.user.edit.character, async <K extends 
         return;
     }
 
+    if (key === 'appearance' && !value) {
+        delete character.appearance;
+    }
+
     character[key] = value;
     await db.update<Character>(character, CollectionNames.Characters);
 

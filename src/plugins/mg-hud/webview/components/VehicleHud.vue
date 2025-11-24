@@ -7,7 +7,7 @@
 
 	const events = useEvents();
 
-	let isVisible = ref<boolean>(true);
+	let isVisible = ref<boolean>(false);
 	const data = reactive<Partial<Vehicle>>({
 		speed: 250,
 		gear: 5,
@@ -105,7 +105,7 @@
 				</div>
 				<div class="flex flex-1 gap-2 w-full h-7 border-t border-b items-center justify-center">
 					<font-awesome-icon :icon="['fas', 'dashboard']" class="text-lg text-gray-100" />
-					<div class="text-center">{{ data.speed }} KM/H</div>
+					<div class="text-center">{{ data.speed.toFixed(0) }} KM/H</div>
 				</div>
 			</div>
 		</div>

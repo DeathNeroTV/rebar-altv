@@ -19,13 +19,10 @@ alt.onClient(VehicleEvents.toServer.toggle.engine, (player: alt.Player) => {
 });
 
 async function init() {
-    let counter = 0;
     const vehicles = (await db.getAll<Vehicle & { _id: string }>(Rebar.database.CollectionNames.Vehicles)).filter(x => !x.garageId);
     vehicles.forEach(document => {
         const tempVeh = new alt.Vehicle(document.model, document.pos, document.rot);
-        if (tempVeh) counter++;
         Rebar.document.vehicle.useVehicleBinder(tempVeh).bind(document, true);
     });
-    alt.log('[mg-vehicles] Es wurden', counter, 'Fahrzeuge erstellt');
 }
 init();

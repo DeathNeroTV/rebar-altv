@@ -14,6 +14,9 @@ import { Marker, MarkerType } from '@Shared/types/marker.js';
 const Rebar = useRebar();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 
+const ReservedLandingSpots: alt.IVector3[] = [];
+let heliMutex = Promise.resolve();
+
 const TimeOfDeath: Map<string, number> = new Map();
 const ActiveTasks: Map<string, number> = new Map();
 const ActiveRescue: Map<string, { pilot: alt.Ped, helicopter: alt.Vehicle }> = new Map();
@@ -37,21 +40,40 @@ const handleRescue = async (player: alt.Player) => {
     }); 
 
     const startZ = await getSafeGroundZ(player.pos.x, player.pos.y, player.pos.z, natives);
-    const heliPos = await findSafeLanding({ ...player.pos, z: startZ }, natives);
-    if (!heliPos) {
-        try {
-            await useMedicalService().respawn(player); 
 
-            notifyApi.general.send(player, {
-                icon: notifyApi.general.getTypes().SUCCESS,
-                title: hospitalName,
-                subtitle: 'Notfallzentrum',
-                message: 'Bitte lassen Sie sich nochmal durch die Ärzte im Krankenhaus nachbehandeln.',
-                oggFile: 'notification'
-            });
-        } catch {}
-        return;
-    }
+    let release: () => void;
+    const lock = new Promise<void>(r => release = r);
+    const prevMutex = heliMutex;
+    heliMutex = prevMutex.then(() => lock);
+    await prevMutex;
+
+    let heliPos: alt.IVector3 | null = null;
+    try {
+        heliPos = await findSafeLanding({ ...player.pos, z: startZ }, 'polmav', natives, 5, 20, 20, ReservedLandingSpots);
+        if (!heliPos) {
+            try {
+                notifyApi.general.send(player, {
+                    icon: notifyApi.general.getTypes().ERROR,
+                    title: hospitalName,
+                    subtitle: 'Notfallzentrum',
+                    message: 'Kein sicherer Landeplatz gefunden!',
+                    oggFile: 'notification',
+                    duration: 5000
+                });
+                await useMedicalService().respawn(player); 
+                player.emit(DeathEvents.toClient.disableControls, false);
+                notifyApi.general.send(player, {
+                    icon: notifyApi.general.getTypes().SUCCESS,
+                    title: hospitalName,
+                    subtitle: 'Notfallzentrum',
+                    message: 'Bitte lassen Sie sich nochmal durch die Ärzte im Krankenhaus nachbehandeln.',
+                    oggFile: 'notification'
+                });
+            } catch {}
+            return;
+        }
+        ReservedLandingSpots.push(heliPos);
+    } finally { release!(); }
 
     const headingToPlayer = Math.atan2(player.pos.y - heliPos.y, player.pos.x - heliPos.x) * (180 / Math.PI);
     const heading = headingToPlayer - 90;
@@ -69,6 +91,10 @@ const handleRescue = async (player: alt.Player) => {
     
     const helicopter = new alt.Vehicle('polmav', new alt.Vector3(heliPos.x, heliPos.y, heliPos.z), startRot);
     const pilot = new alt.Ped('s_m_m_pilot_02', new alt.Vector3(pilotPos.x, pilotPos.y, pilotPos.z), startRot);
+    
+    helicopter.livery = 2; 
+    helicopter.setNetOwner(player); 
+    pilot.setNetOwner(player); 
 
     const resetAction = async () => {
         ActiveRescue.delete(charId);
@@ -86,6 +112,11 @@ const handleRescue = async (player: alt.Player) => {
             });
             player.emit(DeathEvents.toClient.disableControls, false);
         } catch {}
+    };
+
+    const cleanup = () => {
+        const index = ReservedLandingSpots.indexOf(heliPos!);
+        if (index !== -1) ReservedLandingSpots.splice(index, 1);
     };
 
     const isValid = await ensureValidation(pilot, helicopter, natives, 15, 100); 
@@ -124,10 +155,6 @@ const handleRescue = async (player: alt.Player) => {
 
     await document.setBulk({ pos: player.pos, rot: player.rot });
     
-    helicopter.livery = 2; 
-    helicopter.setNetOwner(player); 
-    pilot.setNetOwner(player); 
-    
     const ped = Rebar.controllers.usePed(pilot); 
     ped.setOption('makeStupid', true);
 
@@ -142,7 +169,7 @@ const handleRescue = async (player: alt.Player) => {
 
     const okTakeOff = await flyCtrl.takeoff(heliPos.z + 20, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
-        missionFlags: MissionFlag.StartEngineImmediately | MissionFlag.DontDoAvoidance, 
+        missionFlags: MissionFlag.StartEngineImmediately, 
         missionType: MissionType.GoTo, 
         radius: 10, slowDistance: -1, speed: 12 
     }); 
@@ -153,7 +180,7 @@ const handleRescue = async (player: alt.Player) => {
 
     const okClimb = await flyCtrl.climb(heliPos.z + 45, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
-        missionFlags: MissionFlag.DontDoAvoidance, 
+        missionFlags: MissionFlag.None, 
         missionType: MissionType.GoTo, 
         radius: 5, slowDistance: -1, speed: 20 
     }); 
@@ -161,7 +188,7 @@ const handleRescue = async (player: alt.Player) => {
         await resetAction();
         return;
     }
-
+    cleanup();
     const okCruise = await flyCtrl.cruise(hospitalPos.x, hospitalPos.y, hospitalPos.z + 45, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
         missionFlags: MissionFlag.None,
@@ -201,7 +228,7 @@ const handleRescue = async (player: alt.Player) => {
 
     const okLand = await flyCtrl.land(helipad.pos.x, helipad.pos.y, helipad.pos.z, { 
         heading: -1, maxHeight: -1, minHeight: -1, 
-        missionFlags: MissionFlag.LandOnArrival | MissionFlag.IgnoreHiddenEntitiesDuringLand,
+        missionFlags: MissionFlag.LandOnArrival,
         missionType: MissionType.LandAndWait, 
         radius: 3, slowDistance: -1, speed: 12
     });
