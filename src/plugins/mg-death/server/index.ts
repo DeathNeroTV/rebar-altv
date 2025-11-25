@@ -18,7 +18,6 @@ const notifyApi = await Rebar.useApi().getAsync('notify-api');
 let config: Record<string, any> = DeathConfig;
 
 const ReservedLandingSpots: alt.IVector3[] = [];
-let heliMutex = Promise.resolve();
 
 const TimeOfDeath: Map<string, number> = new Map();
 const ActiveTasks: Map<string, number> = new Map();
@@ -46,6 +45,28 @@ const handleRescue = async (player: alt.Player) => {
             duration: 5000
         });
         await useMedicalService().respawn(player); 
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().SUCCESS,
+            title: hospitalName,
+            subtitle: 'Notfallzentrum',
+            message: 'Bitte lassen Sie sich nochmal nachbehandeln.',
+            duration: 5000
+        });
+        player.emit(DeathEvents.toClient.disableControls, false);
+        return;
+    }
+
+    const heliPos = await findFreePosition({ ...player.pos, z: startZ }, 'polmav', natives, ReservedLandingSpots);
+
+    if (!heliPos) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().INFO,
+            title: hospitalName,
+            subtitle: 'Notfallzentrum',
+            message: 'Keinen sicheren Landeplatz gefunden!',
+            duration: 5000
+        });
+        await useMedicalService().respawn(player); 
         player.emit(DeathEvents.toClient.disableControls, false);
         notifyApi.general.send(player, {
             icon: notifyApi.general.getTypes().SUCCESS,
@@ -57,37 +78,8 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    let release: () => void;
-    const lock = new Promise<void>(r => release = r);
-    const prevMutex = heliMutex;
-    heliMutex = prevMutex.then(() => lock);
-    await prevMutex;
+    ReservedLandingSpots.push(heliPos);
 
-    const heliPos = await findFreePosition({ ...player.pos, z: startZ }, 'polmav', natives, 8, 5, 20, 5, ReservedLandingSpots);
-    
-    if (!heliPos) {
-        try {
-            notifyApi.general.send(player, {
-                icon: notifyApi.general.getTypes().INFO,
-                title: hospitalName,
-                subtitle: 'Notfallzentrum',
-                message: 'Keinen sicheren Landeplatz gefunden!',
-                duration: 5000
-            });
-            await useMedicalService().respawn(player); 
-            player.emit(DeathEvents.toClient.disableControls, false);
-            notifyApi.general.send(player, {
-                icon: notifyApi.general.getTypes().SUCCESS,
-                title: hospitalName,
-                subtitle: 'Notfallzentrum',
-                message: 'Bitte lassen Sie sich nochmal nachbehandeln.',
-                duration: 5000
-            });
-        } finally { release!(); }
-        return;
-    }
-
-    ReservedLandingSpots.push(heliPos);    
     notifyApi.general.send(player, { 
         icon: notifyApi.general.getTypes().INFO, 
         title: hospitalName, 
@@ -110,7 +102,7 @@ const handleRescue = async (player: alt.Player) => {
     await alt.Utils.wait(1200);
     player.spawn(player.pos);
     player.playAnimation('missfinale_c1@', 'lying_dead_player0', 8.0, 8.0, -1, 1);
-    await new Promise((r) => alt.nextTick(r));
+    await alt.Utils.wait(100);
     
     const helicopter = new alt.Vehicle('polmav', new alt.Vector3(heliPos.x, heliPos.y, heliPos.z), startRot);
     const pilot = new alt.Ped('s_m_m_pilot_02', new alt.Vector3(pilotPos.x, pilotPos.y, pilotPos.z), startRot);
@@ -131,7 +123,27 @@ const handleRescue = async (player: alt.Player) => {
         const index = ReservedLandingSpots.indexOf(heliPos!);
         if (index !== -1) ReservedLandingSpots.splice(index, 1);
     };
+    
+    const document = Rebar.document.character.useCharacter(player);
+    if (!document.isValid()) {
+        try { helicopter.destroy(); } catch {} 
+        try { pilot.destroy(); } catch {} 
+        cleanup();
+        try {
+            await useMedicalService().respawn(player); 
+            notifyApi.general.send(player, {
+                icon: notifyApi.general.getTypes().SUCCESS,
+                title: hospitalName,
+                subtitle: 'Notfallzentrum',
+                message: 'Bitte lassen Sie sich nochmal durch die Ärzte im Krankenhaus nachbehandeln.',
+                oggFile: 'notification'
+            });
+            player.emit(DeathEvents.toClient.disableControls, false);
+        } catch {}
+        return;
+    }
 
+    const charId = document.getField('_id');
     const resetAction = async () => {
         ActiveRescue.delete(charId);
         try { helicopter.destroy(); } catch {} 
@@ -139,7 +151,6 @@ const handleRescue = async (player: alt.Player) => {
         cleanup();
         try {
             await useMedicalService().respawn(player); 
-
             notifyApi.general.send(player, {
                 icon: notifyApi.general.getTypes().SUCCESS,
                 title: hospitalName,
@@ -150,14 +161,7 @@ const handleRescue = async (player: alt.Player) => {
             player.emit(DeathEvents.toClient.disableControls, false);
         } catch {}
     };
-    
-    const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid()) {
-        await resetAction();
-        return;
-    }
 
-    const charId = document.getField('_id');
     if (ActiveLabels.has(charId)) {
         const label = ActiveLabels.get(charId)!;
         label.destroy();

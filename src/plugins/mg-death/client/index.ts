@@ -32,6 +32,7 @@ async function registerKeybinds() {
                 if (!state.canRespawn || state.isReviving) return;
                 emitServerSafe(DeathEvents.toServer.toggleRespawn);
                 state.canRespawn = false;
+                view.emit(DeathEvents.toWebview.requestRespawn);
             },
             allowIfDead: true,
         },

@@ -12,6 +12,7 @@
 	// === Core Reactive States ===
 	const isDead = ref(false);
 	const canRespawn = ref(false);
+	const doRespawn = ref(false);
 	const calledEMS = ref(false);
 
 	// === Revive HUD ===
@@ -44,6 +45,7 @@
 		isDead.value = false;
 		isReviving.value = false;
 		canRespawn.value = false;
+		doRespawn.value = false;
 		calledEMS.value = false;
 		reviveProgress.value = 0;
 		clearTimer();
@@ -118,10 +120,12 @@
 		calledEMS.value = true;
 	});
 
+	events.on(DeathEvents.toWebview.requestRespawn, () => (doRespawn.value = true));
+
 	events.on(DeathEvents.toWebview.respawned, resetState);
 
 	// === Cleanup ===
-	onUnmounted(() => clearTimer());
+	onUnmounted(() => resetState());
 </script>
 
 <template>
@@ -162,6 +166,11 @@
 				<!-- Respawn -->
 				<div v-if="canRespawn" class="mt-2 select-none text-xs font-semibold uppercase tracking-wider text-[#008736] animate-pulseGlow">
 					{{ t('death.pressEToRespawn') }}
+				</div>
+
+				<!-- Handled-Respawn -->
+				<div v-else-if="doRespawn" class="mt-2 select-none text-xs font-semibold uppercase tracking-wider text-[#008736] animate-pulseGlow">
+					{{ t('death.pressedEToRespawn') }}
 				</div>
 			</div>
 

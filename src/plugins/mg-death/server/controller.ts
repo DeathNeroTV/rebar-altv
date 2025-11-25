@@ -1,7 +1,7 @@
 import * as alt from 'alt-server';
 import { usePed } from '@Server/controllers/ped.js';
 
-import { findFreePosition, monitorHeliMovement, reachGoal } from './functions.js';
+import { monitorHeliMovement, reachGoal } from './functions.js';
 import { HeliMission } from '../shared/interfaces.js';
 import { MissionFlag } from '../shared/enums.js';
 import { useNative } from '@Server/player/native.js';
@@ -25,43 +25,26 @@ export function useHelicopter(player: alt.Player, pilot: alt.Ped, helicopter: al
         async takeoff(x: number, y: number, z: number, mission: HeliMission) {
             if (!pilot?.valid || !helicopter?.valid) return false;
 
-            const safePos = await findFreePos({ x, y, z }, 'polmav', z, natives);
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, safePos.x, safePos.y, safePos.z,
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z,
                 mission.missionType, mission.speed, mission.radius, mission.heading,
                 mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags
             );
             pedCtrl.invoke('setPedKeepTask', true);
-            await reachGoal(safePos, helicopter, mission.radius);
-
-            const climbPos = await findFreePos({ ...safePos, z }, 'polmav', z, natives);
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, climbPos.x, climbPos.y, climbPos.z,
-                mission.missionType, mission.speed, mission.radius, mission.heading,
-                mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags
-            );
-            pedCtrl.invoke('setPedKeepTask', true);
-            await reachGoal(climbPos, helicopter, mission.radius);
+            monitorHeliMovement(helicopter, mission, { x, y, z }, pedCtrl);
+            await reachGoal({ x, y, z }, helicopter, mission.radius);
             return true;
         },
 
         async climb(x: number, y: number, z: number, mission: HeliMission) {
             if (!pilot?.valid || !helicopter?.valid) return false;
 
-            const safePos = await findFreePosition({ x, y, z }, 'polmav', natives, 8);
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, safePos.x, safePos.y, safePos.z,
+            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, x, y, z,
                 mission.missionType, mission.speed, mission.radius, mission.heading,
                 mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags
             );
             pedCtrl.invoke('setPedKeepTask', true);
-            await reachGoal(safePos, helicopter, mission.radius);
-
-            const climbPos = await findFreePosition({ ...safePos, z }, 'polmav', natives, 8);
-            pedCtrl.invoke('taskHeliMission', helicopter, 0, 0, climbPos.x, climbPos.y, climbPos.z,
-                mission.missionType, mission.speed, mission.radius, mission.heading,
-                mission.maxHeight, mission.minHeight, mission.slowDistance, mission.missionFlags
-            );
-            pedCtrl.invoke('setPedKeepTask', true);
-            await reachGoal(climbPos, helicopter, mission.radius);
-
+            monitorHeliMovement(helicopter, mission, { x, y, z }, pedCtrl);
+            await reachGoal({ x, y, z }, helicopter, mission.radius);
             return true;
         },
 

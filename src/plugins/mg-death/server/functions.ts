@@ -47,8 +47,7 @@ const isLandingSafe = async (
     pos: alt.IVector3,
     model: string,
     natives: ReturnType<typeof useNative>,
-    extraRadius: number,
-    reservedSpots: alt.IVector3[]
+    extraRadius: number
 ): Promise<boolean> => {
 
     const posZ = await getSafeGroundZ(pos.x, pos.y, pos.z, natives);
@@ -59,11 +58,6 @@ const isLandingSafe = async (
     const size = new alt.Vector3(max).sub(new alt.Vector3(min));
     const radiusXY = Math.max(size.x, size.y) / 2;
     const heightZ = size.z;
-
-    // Reservierte Spots prüfen
-    for (const spot of reservedSpots)
-        if (Utility.vector.distance(landingCenter, spot) <= radiusXY + extraRadius) return false;
-
     const mask = 1 | 2 | 8 | 16 | 32 | 128 | 256;
 
     // Quick-Check: Startpunkt in Geometrie?
@@ -140,28 +134,41 @@ const findFreePosition = async (
     center: alt.IVector3,
     model: string,
     natives: ReturnType<typeof useNative>,
-    extraRadius: number = 8,
+    reservedSpots: alt.IVector3[] = [],
+    extraRadius: number = 5,
     step: number = 5,
     ringStep: number = 20,
-    maxRings: number = 10,
-    reservedSpots: alt.IVector3[] = []
+    maxRings: number = 10
 ): Promise<alt.IVector3 | null> => {
+    reservedSpots = Array.isArray(reservedSpots) ? reservedSpots : [];
+
     const [_, min, max] = await natives.invokeWithResult('getModelDimensions', alt.hash(model));
     const size = new alt.Vector3(max).sub(new alt.Vector3(min));
-    const radiusXY = Math.max(size.x, size.y) / 2;
+    const radiusXY = Math.max(size.x, size.y) / 2 + extraRadius;
 
     for (let ring = 0; ring <= maxRings; ring++) {
         const r = ring * ringStep;
         for (let dx = -r; dx <= r; dx += step) {
             for (let dy = -r; dy <= r; dy += step) {
+
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (Math.abs(dist - r) > step * 1.5) continue;
 
                 const testPos = { x: center.x + dx, y: center.y + dy, z: center.z };
-                if (await isLandingSafe(testPos, model, natives, extraRadius, reservedSpots)) return testPos;
+                const collides = reservedSpots.some(spot => {
+                    const d = Math.hypot(spot.x - testPos.x, spot.y - testPos.y);
+                    return d < radiusXY;
+                });
+                if (collides) continue;
+
+                const [found, groundZ] = await natives.invokeWithResult('getGroundZFor3dCoord', testPos.x, testPos.y, testPos.z + 10, testPos.z - 10, false, false);
+                if (!found) continue;
+                testPos.z = groundZ;
+
+                if (await isLandingSafe(testPos, model, natives, extraRadius)) return testPos;
             }
         }
-        await new Promise(r => alt.nextTick(r));
+        await alt.Utils.wait(10);
     }
 
     return null;
@@ -200,7 +207,7 @@ const monitorHeliMovement = async (helicopter: alt.Vehicle, mission: HeliMission
     const goalThreshold = Math.max(15, mission.radius * 1.5);
 
     while (true) {
-        await new Promise(res => alt.setTimeout(res, checkInterval));
+        await alt.Utils.wait(checkInterval);
         if (!helicopter?.valid || Utility.vector.distance(helicopter.pos, target) <= goalThreshold) return;
         const distToLast = Utility.vector.distance(helicopter.pos, lastPos);
         lastPos = helicopter.pos;
