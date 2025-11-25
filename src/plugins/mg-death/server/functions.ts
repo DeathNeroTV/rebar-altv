@@ -168,7 +168,7 @@ const findFreePosition = async (
                 if (await isLandingSafe(testPos, model, natives, extraRadius)) return testPos;
             }
         }
-        await alt.Utils.wait(10);
+        await alt.Utils.wait(100);
     }
 
     return null;
