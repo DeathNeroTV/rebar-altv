@@ -148,9 +148,10 @@ const findFreePosition = async (
 
     for (let ring = 0; ring <= maxRings; ring++) {
         const r = ring * ringStep;
+        const candidates: alt.IVector3[] = [];
+
         for (let dx = -r; dx <= r; dx += step) {
             for (let dy = -r; dy <= r; dy += step) {
-
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (Math.abs(dist - r) > step * 1.5) continue;
 
@@ -161,14 +162,23 @@ const findFreePosition = async (
                 });
                 if (collides) continue;
 
-                const [found, groundZ] = await natives.invokeWithResult('getGroundZFor3dCoord', testPos.x, testPos.y, testPos.z + 10, testPos.z - 10, false, false);
-                if (!found) continue;
-                testPos.z = groundZ;
-
-                if (await isLandingSafe(testPos, model, natives, extraRadius)) return testPos;
+                candidates.push(testPos);
             }
         }
-        await alt.Utils.wait(100);
+
+        // Parallel prüfen
+        const results = await Promise.all(candidates.map(async pos => {
+            const [found, groundZ] = await natives.invokeWithResult('getGroundZFor3dCoord', pos.x, pos.y, pos.z + 10, pos.z - 10, false, false);
+            if (!found) return null;
+            const foundPos = { ...pos, z: groundZ };
+            if (await isLandingSafe(foundPos, model, natives, extraRadius)) return foundPos;
+            return null;
+        }));
+
+        const valid = results.find(r => r !== null);
+        if (valid) return valid;
+
+        await new Promise(r => alt.nextTick(r));
     }
 
     return null;
