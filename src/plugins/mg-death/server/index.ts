@@ -7,7 +7,7 @@ import { DeathConfig } from '../shared/config.js';
 import { DeathEvents } from '../shared/events.js';
 import { useMedicalService } from './services.js';
 import { useHelicopter } from './controller.js';
-import { circleUntilFree, findSafeLanding, getSafeGroundZ, setHelipadUsage } from './functions.js';
+import { circleUntilFree, findFreePosition, getSafeGroundZ, setHelipadUsage } from './functions.js';
 import { MissionFlag, MissionType } from '../shared/enums.js';
 import { Marker, MarkerType } from '@Shared/types/marker.js';
 import { useConfigService } from '@Plugins/mg-configs/server/service.js';
@@ -37,6 +37,25 @@ const handleRescue = async (player: alt.Player) => {
     natives.invoke('placeObjectOnGroundProperly', player);
 
     const startZ = await getSafeGroundZ(player.pos.x, player.pos.y, player.pos.z, natives);
+    if (startZ === null) {
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().INFO,
+            title: hospitalName,
+            subtitle: 'Notfallzentrum',
+            message: 'Keinen sicheren Landeplatz gefunden!',
+            duration: 5000
+        });
+        await useMedicalService().respawn(player); 
+        player.emit(DeathEvents.toClient.disableControls, false);
+        notifyApi.general.send(player, {
+            icon: notifyApi.general.getTypes().SUCCESS,
+            title: hospitalName,
+            subtitle: 'Notfallzentrum',
+            message: 'Bitte lassen Sie sich nochmal nachbehandeln.',
+            duration: 5000
+        });
+        return;
+    }
 
     let release: () => void;
     const lock = new Promise<void>(r => release = r);
@@ -44,33 +63,31 @@ const handleRescue = async (player: alt.Player) => {
     heliMutex = prevMutex.then(() => lock);
     await prevMutex;
 
-    let heliPos: alt.IVector3 | null = null;
-    try {
-        heliPos = await findSafeLanding({ ...player.pos, z: startZ }, 'polmav', natives, 15, 20, 20, ReservedLandingSpots);
-        if (!heliPos) {
-            try {
-                notifyApi.general.send(player, {
-                    icon: notifyApi.general.getTypes().INFO,
-                    title: hospitalName,
-                    subtitle: 'Notfallzentrum',
-                    message: 'Keinen sicheren Landeplatz gefunden!',
-                    duration: 5000
-                });
-                await useMedicalService().respawn(player); 
-                player.emit(DeathEvents.toClient.disableControls, false);
-                notifyApi.general.send(player, {
-                    icon: notifyApi.general.getTypes().SUCCESS,
-                    title: hospitalName,
-                    subtitle: 'Notfallzentrum',
-                    message: 'Bitte lassen Sie sich nochmal nachbehandeln.',
-                    duration: 5000
-                });
-            } catch {}
-            return;
-        }
-        ReservedLandingSpots.push(heliPos);
-    } finally { release!(); }
+    const heliPos = await findFreePosition({ ...player.pos, z: startZ }, 'polmav', natives, 8, 5, 20, 5, ReservedLandingSpots);
     
+    if (!heliPos) {
+        try {
+            notifyApi.general.send(player, {
+                icon: notifyApi.general.getTypes().INFO,
+                title: hospitalName,
+                subtitle: 'Notfallzentrum',
+                message: 'Keinen sicheren Landeplatz gefunden!',
+                duration: 5000
+            });
+            await useMedicalService().respawn(player); 
+            player.emit(DeathEvents.toClient.disableControls, false);
+            notifyApi.general.send(player, {
+                icon: notifyApi.general.getTypes().SUCCESS,
+                title: hospitalName,
+                subtitle: 'Notfallzentrum',
+                message: 'Bitte lassen Sie sich nochmal nachbehandeln.',
+                duration: 5000
+            });
+        } finally { release!(); }
+        return;
+    }
+
+    ReservedLandingSpots.push(heliPos);    
     notifyApi.general.send(player, { 
         icon: notifyApi.general.getTypes().INFO, 
         title: hospitalName, 
