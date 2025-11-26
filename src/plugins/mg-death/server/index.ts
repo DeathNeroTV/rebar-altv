@@ -303,7 +303,7 @@ const handleRescue = async (player: alt.Player) => {
 };
 
 const handleDeathScreen = async (player: alt.Player) => {
-    Rebar.player.useWebview(player).show('DeathScreen', 'overlay');
+    Rebar.player.useWebview(player).show('DeathScreen', 'persistent');
     const document = Rebar.document.character.useCharacter(player);
     if (!document.isValid()) return;
 
@@ -565,7 +565,7 @@ async function init() {
             bobUpAndDown: false,
             faceCamera: false,
             rotate: true,
-            color: new alt.RGBA(255, 0, 0, 128),
+            color: new alt.RGBA(255, 0, 0, 100),
             uid: helipad.name,
         };
         const markerCtrl = Rebar.controllers.useMarkerGlobal(marker);

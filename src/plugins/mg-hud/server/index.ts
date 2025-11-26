@@ -59,6 +59,22 @@ Rebar.services.useServiceRegister().register('hudService', {
     },
 });
 
+alt.onRpc(HudEvents.toServer.loadPlayer, (player: alt.Player) => {
+    const document = Rebar.document.character.useCharacter(player);
+    const data = {
+        id: document.getField('id') ?? -1,
+        health: document.getField('health') ?? 0,
+        armour: document.getField('armour') ?? 0,
+        food: document.getField('food') ?? 0,
+        water: document.getField('water') ?? 0,
+        voiceRange: document.getField('voiceRange') ?? 0.0,
+        isDead: document.getField('isDead') ?? true,
+        weapons: document.getField('weapons') ?? [],
+        ...(document.getField('weapon') ? { weapon: document.getField('weapon') } : {})
+    }
+    return data;
+});
+
 alt.on('rebar:timeChanged', (hour: number, minute: number, second: number) => {
     const players: alt.Player[] = alt.Player.all.filter((player: alt.Player) => Rebar.document.character.useCharacter(player).isValid());
     const now: Date = new Date(Date.now()); 
@@ -166,7 +182,7 @@ alt.onClient(HudEvents.toServer.updateStats, async(player: alt.Player, data: Act
     for (const [action, active] of Object.entries(data)) {
         if (!active) continue;
         if (action in config.factors) {
-            activityFactor += getDrainMultiplier(action as keyof typeof config.factors);
+            activityFactor += getDrainMultiplier(action as keyof ActionModifiers);
         }
     }
 

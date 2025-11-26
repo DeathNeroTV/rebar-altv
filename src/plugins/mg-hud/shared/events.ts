@@ -3,6 +3,7 @@ export const HudEvents = {
         updateFuel: 'mg-hud:vehicle:fuel',
         updateStats: 'mg-hud:player:stats',
         fetchId: 'mg-hud:player:id',
+        loadPlayer: 'mg-hud:player:load'
     },
     toClient: {
         syncTime: 'mg-hud:sync:time',
