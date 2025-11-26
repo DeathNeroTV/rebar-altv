@@ -1,5 +1,5 @@
 <template>
-	<div :class="notificationPositionClass">
+	<div :class="notificationPositionClass" class="z-[9999]">
 		<transition-group :name="transitionNotificationName" tag="div">
 			<div v-for="notification in reversedNotifications" :key="notification.id">
 				<NotificationComponent :notification-prop="notification" :secondsAgo="notification.elapsedSeconds" />

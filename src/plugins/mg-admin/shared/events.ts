@@ -25,7 +25,8 @@ export const AdminEvents = {
         logout: 'mg-admin:logout',
         whitelist: {
             approve: 'mg-admin:whitelist:approve',
-            reject: 'mg-admin:whitelist:reject'
+            reject: 'mg-admin:whitelist:reject',
+            delete: 'mg-admin:whitelist:delete',
         },
         ghosting: {
             toggle: 'mg-admin:ghost:toggle',

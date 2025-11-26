@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-	import { onMounted, reactive, ref } from 'vue';
+	import { onMounted, reactive } from 'vue';
 
 	import { DashboardStat } from '@Plugins/mg-admin/shared/interfaces';
 	import { AdminConfig } from '@Plugins/mg-admin/shared/config';
@@ -71,6 +71,7 @@
 				</div>
 			</div>
 		</div>
+		<Statistics />
 	</div>
 </template>
 

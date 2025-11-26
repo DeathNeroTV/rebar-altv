@@ -77,6 +77,9 @@ alt.onClient(AdminEvents.toServer.request.user.delete.account, async (player: al
         return;
     }
 
+    const success = await db.deleteDocument(_id, CollectionNames.Accounts);
+    if (!success) return;
+
     notifyApi.general.send(player, {
         icon: notifyApi.general.getTypes().SUCCESS,
         title: 'Admin-System',

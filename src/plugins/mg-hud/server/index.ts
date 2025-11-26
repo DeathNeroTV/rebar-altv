@@ -102,9 +102,11 @@ alt.on('rebar:vehicleUpdated', (vehicle: alt.Vehicle, key: keyof Vehicle, value:
     useHudService().updateVehicle(vehicle.driver, key, value);
 });
 
-alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => 
-    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, true)
-);
+alt.on('playerEnteredVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => {
+    alt.log('[playerEnteredVehicle] Sitzplatz:', seat);
+    if (seat !== 1) return;
+    Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, true);
+});
 
 alt.on('playerLeftVehicle', (player: alt.Player, vehicle: alt.Vehicle, seat: number) => 
     Rebar.player.useWebview(player).emit(HudEvents.toWebview.toggleVehicle, false)
@@ -148,7 +150,6 @@ alt.on('mg-config:changedConfig', (changed: boolean, _id: string, key: keyof Def
 });
 
 alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { rpm: number; gear: number; speed: number; maxSpeed: number; }) => {
-    if (!player.vehicle) return;
     const vehicleData = Rebar.document.vehicle.useVehicle(player.vehicle);
     if (!vehicleData.isValid()) return;
 
@@ -158,7 +159,7 @@ alt.onClient(HudEvents.toServer.updateFuel, async (player: alt.Player, data: { r
     const rpmFactor = Math.min(1.0, Math.max(0.3, data.rpm));
     const gearFactor = Math.max(0.8, 1.5 - data.gear * 0.1);
     const speedFactor = 1 + Math.pow(data.speed / data.maxSpeed, 2) * 0.3;
-    consumption *= rpmFactor * gearFactor * speedFactor;
+    consumption *= (player.vehicle.engineOn ? rpmFactor * gearFactor * speedFactor : 1);
 
     const intervalSeconds = 0.1;
     const fuelUsed = consumption * intervalSeconds * 10;

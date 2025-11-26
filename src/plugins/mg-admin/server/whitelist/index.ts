@@ -135,3 +135,34 @@ alt.onClient(AdminEvents.toServer.whitelist.reject, async (player: alt.Player, _
         oggFile: 'notification',
     });
 });
+
+alt.onClient(AdminEvents.toServer.whitelist.delete, async (player: alt.Player, _id: string) => {
+    const notifyApi = await Rebar.useApi().getAsync('notify-api');
+    const entry: WhitelistRequest = await db.get<WhitelistRequest>({ _id }, 'WhitelistRequests');
+    if (!entry) {
+        notifyApi.general.send(player, {
+            icon: NotificationTypes.ERROR,
+            title: 'Admin-System',
+            subtitle: 'Rollenentzug',
+            message: 'Whitelisteintrag ist nicht verfügbar',
+            oggFile: 'systemfault',
+        });
+        return;
+    }
+
+    await db.deleteDocument(_id, 'WhitelistRequests');
+
+    const discordApi = await Rebar.useApi().getAsync('discord-api');
+    if (!discordApi) {
+        alt.logError('[mg-admin]', 'discord-api not found');
+        return;
+    }
+
+    notifyApi.general.send(player, {
+        icon: NotificationTypes.SUCCESS,
+        title: 'Admin-System',
+        subtitle: 'Rollenentzug',
+        message: 'Dem Spieler wurde die Whitelist entzogen',
+        oggFile: 'notification',
+    });
+});

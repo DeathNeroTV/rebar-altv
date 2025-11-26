@@ -52,12 +52,14 @@ const updateVehicles = () => {
 }
 
 alt.on('playerDisconnect', (player: alt.Player, reason: string) => {
-    const document = Rebar.document.character.useCharacter(player);
-    if (!document.isValid()) return;
-    const name = document.getField('name').replaceAll('_', ' ');
-    const data: Partial<Character> = { pos: player.pos, rot: player.rot, dimension: player.dimension };
-    document.setBulk(data);
-    alt.log('[mg-saver]', `Datensätze für ${name} gespeichert.`);
+    try {        
+        const document = Rebar.document.character.useCharacter(player);
+        if (!document.isValid()) return;
+        const name = document.getField('name').replaceAll('_', ' ');
+        const data: Partial<Character> = { pos: player.pos, rot: player.rot, dimension: player.dimension };
+        document.setBulk(data);
+        alt.log('[mg-saver]', `Datensätze für ${name} gespeichert.`);
+    } catch {}
 });
 
 alt.on('rebar:onTick', (tick: number) => {

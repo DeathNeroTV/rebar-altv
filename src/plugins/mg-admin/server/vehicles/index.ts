@@ -11,14 +11,13 @@ const db = Rebar.database.useDatabase();
 const notifyApi = await Rebar.useApi().getAsync('notify-api');
 
 alt.onClient(AdminEvents.toServer.request.vehicle.fix, async (player: alt.Player, _id: string) => {
-    const vehicle = alt.Vehicle.all.find(x => Rebar.document.vehicle.useVehicle(x).isValid() && Rebar.document.vehicle.useVehicle(x).getField('_id') === _id);
+    const vehicle = alt.Vehicle.all.find(x => x.valid && Rebar.document.vehicle.useVehicle(x)?.isValid() && Rebar.document.vehicle.useVehicle(x)?.getField('_id') === _id);
     if (!vehicle) return;
 
     const vehicleCtrl = Rebar.vehicle.useVehicle(vehicle);
     if (!vehicleCtrl) return;
 
-    const repairedVehicle = await vehicleCtrl.repair();
-    if (vehicle.id === repairedVehicle.id) return;
+    await vehicleCtrl.repair();
 
     notifyApi.general.send(player, {
         title: 'Admin-System',

@@ -12,6 +12,7 @@ const keys: { [K in keyof DataTypes]: DataTypes[K][] } = {
 };
 
 function handleKeySet(entity: alt.Entity, key: string, newValue: any) {
+    if (!entity || !entity.valid) return;
     entity.setStreamSyncedMeta(key, newValue);
 }
 
