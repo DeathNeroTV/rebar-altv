@@ -41,7 +41,7 @@ const keyBinds: KeyInfo[] = [
         keyDown: () => {
             if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             if (!currentTarget) return;
-            view.emit(TargetingEvents.toClient.openMenu, currentTarget?.options || []);
+            view.emit(TargetingEvents.toClient.openMenu, currentTarget.options);
             view.showCursor(true);
             Rebar.player.useControls().setControls(false);
         }
@@ -50,6 +50,12 @@ const keyBinds: KeyInfo[] = [
 
 const keyBindApi = await useClientApi().getAsync('keyBinds-api');
 keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
+
+view.on(TargetingEvents.toClient.hideTarget, () => {
+    view.showCursor(false);
+    Rebar.player.useControls().setControls(true);
+    view.emit(TargetingEvents.toClient.hideTarget);
+});
 
 alt.onServer(TargetingEvents.toClient.listTargets, (newTargets: TargetDefinition[]) => {
     newTargets.forEach(t => {
