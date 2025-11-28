@@ -103,6 +103,7 @@
 				<h1 class="text-6xl font-extrabold tracking-widest text-[#008736] uppercase drop-shadow-lg mb-3">
 					{{ t('intro.title') }}
 				</h1>
+				<h1 class="text-2xl font-extrabold tracking-widest text-neutral-700 uppercase drop-shadow-lg mb-3">early access alpha</h1>
 				<p class="text-gray-300 mb-8 text-lg">
 					<!-- Zeige aktuellen Plugin-Text -->
 					<template v-if="addons.length && currentPluginIndex < addons.length"> {{ addons[currentPluginIndex] }} wird geladen... </template>

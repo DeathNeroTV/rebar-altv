@@ -2,14 +2,14 @@ import * as alt from 'alt-server';
 import { useRebar } from '@Server/index.js';
 import { TargetDefinition, TargetOption } from '../shared/interfaces.js';
 
-type TargetAddModelCallback = (model: string, options: TargetOption[]) => void;
-type TargetAddEntityCallback = (entityId: number, options: TargetOption[]) => void;
-type TargetAddZoneCallback = (pos: alt.IVector3, radius: number, options: TargetOption[]) => void;
+type TargetAddModelCallback = (id: string, model: string, options: TargetOption[]) => void;
+type TargetAddEntityCallback = (id: string, entityId: number, options: TargetOption[]) => void;
+type TargetAddZoneCallback = (id: string, pos: alt.IVector3, radius: number, options: TargetOption[]) => void;
 type TargetRemoveCallback = (id: string) => void;
 type TargetSelectCallback = (player: alt.Player, data: TargetDefinition) => void;
 
 const Rebar = useRebar();
-const API_NAME = 'targeting-api';
+const API_NAME = 'mg-target-api';
 
 const modelCallbacks: TargetAddModelCallback[] = [];
 const entityCallbacks: TargetAddEntityCallback[] = [];
@@ -17,16 +17,16 @@ const zoneCallbacks: TargetAddZoneCallback[] = [];
 const removeCallbacks: TargetRemoveCallback[] = [];
 const selectCallbacks: TargetSelectCallback[] = [];
 
-export function invokeAddModel(model: string, options: TargetOption[]) {
-    modelCallbacks.forEach(cb => cb(model, options));
+export function invokeAddModel(id: string, model: string, options: TargetOption[]) {
+    modelCallbacks.forEach(cb => cb(id, model, options));
 }
 
-export function invokeAddZone(pos: alt.IVector3, radius: number, options: TargetOption[]) {
-    zoneCallbacks.forEach(cb => cb(pos, radius, options));
+export function invokeAddZone(id: string, pos: alt.IVector3, radius: number, options: TargetOption[]) {
+    zoneCallbacks.forEach(cb => cb(id, pos, radius, options));
 }
 
-export function invokeAddEntity(entityId: number, options: TargetOption[]) {
-    entityCallbacks.forEach(cb => cb(entityId, options));
+export function invokeAddEntity(id: string, entityId: number, options: TargetOption[]) {
+    entityCallbacks.forEach(cb => cb(id, entityId, options));
 }
 
 export function invokeRemoveTarget(id: string) {

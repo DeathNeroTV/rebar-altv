@@ -20,7 +20,6 @@
 	const actions = [
 		{ type: ActionType.KICK, label: 'Kicken' },
 		{ type: ActionType.TELEPORT, label: 'Teleportieren' },
-		{ type: ActionType.BAN, label: 'Bannen' },
 		{ type: ActionType.HEAL, label: 'Heilen' },
 		{ type: ActionType.SPECTATE, label: 'Beobachten' },
 		{ type: ActionType.GIVE, label: 'Geben' },

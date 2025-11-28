@@ -56,7 +56,7 @@ const handleRescue = async (player: alt.Player) => {
         return;
     }
 
-    const heliPos = await findFreePosition({ ...player.pos, z: startZ }, 'polmav', natives, ReservedLandingSpots, 2);
+    const heliPos = await findFreePosition({ ...player.pos, z: startZ }, 'polmav', natives, ReservedLandingSpots);
 
     if (!heliPos) {
         notifyApi.general.send(player, {

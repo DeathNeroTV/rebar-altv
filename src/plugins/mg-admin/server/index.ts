@@ -15,6 +15,7 @@ import './players/index.js';
 import './vehicles/index.js';
 import './items/index.js';
 import './settings/index.js';
+import './facility/index.js';
 
 import * as os from 'os';
 import * as disk from 'diskusage';

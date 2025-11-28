@@ -53,17 +53,48 @@ alt.onRpc(AdminEvents.toServer.request.user.unban, async (player: alt.Player, _i
     const account = await db.get<Account>({ _id }, CollectionNames.Accounts);
     if (!account) return null;
 
-    delete account.banned;
-    delete account.reason;
-    const updated = await db.update<Account>(account, CollectionNames.Accounts);
+    const updated = await db.unset(_id, ['banned', 'reason', 'time'], CollectionNames.Accounts);
     const icon = updated ? notifyApi.general.getTypes().SUCCESS: notifyApi.general.getTypes().ERROR;
     const oggFile = updated ? 'notification' : 'systemfault';
-    const message = updated ? 'Der Spieler wurde entbannt' : 'Der ban wurde nicht gelöscht';
+    const message = updated ? 'Der Spieler wurde entbannt' : 'Der Ban wurde nicht gelöscht';
     notifyApi.general.send(player, {
         icon,
         title: 'Entbannungsauftrag',
         message,
         oggFile
     });
-    return account;
+    return await db.get<Account>({ _id }, CollectionNames.Accounts);
+});
+
+alt.onRpc(AdminEvents.toServer.request.user.ban, async (player: alt.Player, _id: string, banned: boolean, reason: string, time: number) => {
+    const account = await db.get<Account>({ _id }, CollectionNames.Accounts);
+    if (!account) return null;
+
+    account.banned = banned;
+    account.reason = reason;
+    account.time = time;
+
+    const updated = await db.update<Account>(account, CollectionNames.Accounts);
+    const icon = updated ? notifyApi.general.getTypes().SUCCESS: notifyApi.general.getTypes().ERROR;
+    const oggFile = updated ? 'notification' : 'systemfault';
+    const message = updated ? 'Der Spieler wurde gebannt' : 'Der Ban wurde nicht erstellt';
+    notifyApi.general.send(player, {
+        icon,
+        title: 'Sperrungsauftrag',
+        message,
+        oggFile
+    });
+
+    const target = alt.Player.all.find(x => {
+        if (!x.valid) return null;
+        const userCtrl = Rebar.document.account.useAccount(x);
+        if (!userCtrl || !userCtrl.isValid()) return null;
+        if (userCtrl.getField('_id') !== _id) return null;
+        return x;
+    });
+    
+    if (updated && target) 
+        target.kick(`Sie wurden gebannt! Grund: ${reason} | Bis: ${new Date(time).toLocaleString()}`);
+    
+    return await db.get<Account>({ _id }, CollectionNames.Accounts);
 });

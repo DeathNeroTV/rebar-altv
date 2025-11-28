@@ -56,7 +56,7 @@
 </script>
 
 <template>
-	<div class="h-full flex flex-col p-4 text-gray-100 bg-neutral-900/90 rounded-2xl shadow-lg">
+	<div class="h-full flex flex-col p-4 text-gray-100">
 		<!-- 🧩 Titel & Suche -->
 		<div class="flex justify-between items-center mb-4">
 			<h1 class="text-2xl font-semibold select-none">Gegenstandsverwaltung</h1>

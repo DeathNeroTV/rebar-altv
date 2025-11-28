@@ -43,6 +43,7 @@ export const AdminEvents = {
             configs: 'mg-admin:request:configs',
             user: {
                 account: 'mg-admin:request:user:account',
+                ban: 'mg-admin:request:user:ban',
                 unban: 'mg-admin:request:user:unban',
                 vehicles: 'mg-admin:request:user:vehicles',
                 characters: 'mg-admin:request:user:characters',
@@ -72,6 +73,7 @@ export const AdminEvents = {
             save: 'mg-admin:item:save',
             delete: 'mg-admin:item:delete',
         },
+        teleport: 'mg-admin:server:teleport',
         action: 'mg-admin:action:invoke',
     }
 };

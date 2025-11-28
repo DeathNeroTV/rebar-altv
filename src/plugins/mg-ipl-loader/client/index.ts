@@ -1,9 +1,4 @@
 import * as alt from 'alt-client';
-
-// Alle IPL-Module hier importieren
-import * as SP from './sp/index.js';
-import * as GTAO from './gtao/index.js';
-import * as DLC from './dlc/index.js';
 import * as MLO from './mlos/index.js';
 
 export type IplModule = {
@@ -11,17 +6,11 @@ export type IplModule = {
     load: () => void;
 };
 
-export const IplRegistry: IplModule[] = [
-    ...SP.modules,
-    ...GTAO.modules,
-    ...DLC.modules,
-    ...MLO.modules,
-];
-
 alt.once('connectionComplete', () => {
-    alt.log(`[IPL-Loader] Starte initiales Laden von ${IplRegistry.length} Modulen...`);
+    alt.log(`[IPL-Loader] Starte initiales Laden von ${MLO.modules.length} Modulen...`);
+    alt.loadDefaultIpls();
 
-    for (const module of IplRegistry) {
+    for (const module of MLO.modules) {
         try {
             module.load();
             alt.log(`[IPL-Loader] ${module.name} geladen.`);

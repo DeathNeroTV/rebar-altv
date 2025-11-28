@@ -15,8 +15,8 @@ const rooms: string[] = [
 ];
 
 export function loadMrpd() {
-    const interiorID = natives.getInteriorAtCoords(451.0129, -993.3741, 29.1718);
     api.enableIpl('gabz_mrpd_milo_', true);
+    const interiorID = natives.getInteriorAtCoords(451.0129, -993.3741, 29.1718);
     natives.pinInteriorInMemory(interiorID);
 
     if (natives.isValidInterior(interiorID)) {

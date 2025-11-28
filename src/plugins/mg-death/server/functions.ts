@@ -137,7 +137,7 @@ const findFreePosition = async (
     reservedSpots: alt.IVector3[] = [],
     extraRadius: number = 5,
     step: number = 5,
-    ringStep: number = 20,
+    ringStep: number = 10,
     maxRings: number = 10
 ): Promise<alt.IVector3 | null> => {
     reservedSpots = Array.isArray(reservedSpots) ? reservedSpots : [];
@@ -145,6 +145,14 @@ const findFreePosition = async (
     const [_, min, max] = await natives.invokeWithResult('getModelDimensions', alt.hash(model));
     const size = new alt.Vector3(max).sub(new alt.Vector3(min));
     const radiusXY = Math.max(size.x, size.y) / 2 + extraRadius;
+
+    const colliders = reservedSpots.some(spot => {
+        const d = Math.hypot(spot.x - center.x, spot.y - center.y);
+        return d < radiusXY;
+    });
+    const isCenterSafe = await isLandingSafe(center, model, natives, extraRadius);
+
+    if (!colliders && isCenterSafe) return center;
 
     for (let ring = 0; ring <= maxRings; ring++) {
         const r = ring * ringStep;

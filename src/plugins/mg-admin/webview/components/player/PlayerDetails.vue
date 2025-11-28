@@ -308,28 +308,22 @@
 		emits('close');
 	};
 
-	const updateVehicle = <K extends keyof Vehicle>(_id: string, key: K, value: Vehicle[K]) => {
-		if (!props.player) return;
-		events.emitServer(AdminEvents.toServer.request.user.edit.vehicle, _id, key, value);
-		emits('close');
-	};
-
-	const saveAccount = async (data: Account) => {
-		if (!props.player) return;
-		events.emitServer(AdminEvents.toServer.request.user.edit.account, data._id, 'banned', data.banned ?? false);
-		events.emitServer(AdminEvents.toServer.request.user.edit.account, data._id, 'reason', data.reason ?? '');
-		events.emitServer(AdminEvents.toServer.request.user.edit.account, data._id, 'time', data.time ?? 0);
-	};
-
 	const deleteAccount = async (_id: string) => {
 		if (!props.player) return;
 		events.emitServer(AdminEvents.toServer.request.user.delete.account, _id);
 		emits('close');
 	};
 
+	const banAccount = async (_id: string, state: boolean, reason: string, time: number) => {
+		if (!props.player) return;
+		account.value = await events.emitServerRpc(AdminEvents.toServer.request.user.ban, _id, state, reason, time);
+		if (!account.value) emits('close');
+	};
+
 	const unbanAccount = async (_id: string) => {
 		if (!props.player) return;
 		account.value = await events.emitServerRpc(AdminEvents.toServer.request.user.unban, _id);
+		if (!account.value) emits('close');
 	};
 </script>
 
@@ -414,8 +408,8 @@
 			<!-- Panels: außerhalb der Box, rechts einfahrende Slider -->
 			<transition name="slide-panel"> <PlayerLogPanel :visible="showLogs" :logs="logs" @close="closePanels" /></transition>
 			<transition name="slide-panel">
-				<PlayerAccountPanel :visible="showAccount" :account="account" @close="closePanels" @unban="unbanAccount" @save="saveAccount" @delete="deleteAccount"
-			/></transition>
+				<PlayerAccountPanel :visible="showAccount" :account="account" @close="closePanels" @unban="unbanAccount" @delete="deleteAccount" @ban="banAccount" />
+			</transition>
 			<transition name="slide-panel">
 				<PlayerCharacterPanel
 					:visible="showCharacters"

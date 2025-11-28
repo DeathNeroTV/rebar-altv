@@ -14,12 +14,15 @@
 		(e: 'save', account: Account): void;
 		(e: 'delete', _id: string): void;
 		(e: 'unban', _id: string): void;
+		(e: 'ban', _id: string, state: boolean, reason: string, time: number): void;
 	}>();
 
 	const show = ref(props.visible);
 
 	// Local switch state – folgt account.banned
 	const bannedState = ref<boolean>(props.account?.banned ?? false);
+	const bannedReason = ref<string>(props.account?.reason ?? '');
+	const bannedTime = ref<number>(props.account?.time ?? 0);
 
 	const banTimes = computed(() => [
 		{ label: '10 Minuten', value: Date.now() + 10 * 60 * 1000 },
@@ -43,7 +46,14 @@
 	watch(
 		() => props.account,
 		(acc) => {
-			bannedState.value = acc?.banned ?? false;
+			if (!acc) return;
+
+			// Nur setzen, wenn die Sidebar neu geöffnet wird
+			if (!show.value) return;
+
+			bannedState.value = acc.banned;
+			bannedReason.value = acc.reason ?? '';
+			bannedTime.value = acc.time ?? 0;
 		}
 	);
 
@@ -62,7 +72,11 @@
 				<h2 class="text-2xl font-semibold text-[#008736]">Benutzerkonto</h2>
 
 				<div class="flex flex-row gap-4 items-center">
-					<font-awesome-icon :icon="['fas', 'floppy-disk']" class="text-neutral-400 hover:text-orange-500 cursor-pointer text-2xl" @click="emits('save', account)" />
+					<font-awesome-icon
+						:icon="['fas', 'ban']"
+						class="text-neutral-400 hover:text-emerald-500 cursor-pointer text-2xl"
+						@click="bannedTime > 0 && bannedReason.length > 0 && emits('ban', account._id, true, bannedReason, bannedTime)"
+					/>
 					<font-awesome-icon :icon="['fas', 'trash']" class="text-neutral-400 hover:text-emerald-400 cursor-pointer text-2xl" @click="emits('delete', account?._id)" />
 					<div class="w-0.5 h-8 bg-neutral-600 rounded-full"></div>
 					<font-awesome-icon :icon="['fas', 'xmark']" class="text-neutral-400 hover:text-red-500 cursor-pointer text-2xl" @click="emits('close')" />
@@ -129,15 +143,12 @@
 				</div>
 
 				<!-- BAN STATUS -->
-				<div class="bg-neutral-800 rounded-xl p-4">
+				<div v-if="props.account?.banned" class="bg-neutral-800 rounded-xl p-4">
 					<p class="text-gray-400">Ban-Status</p>
 					<div class="w-full h-[1px] bg-[#008736]/60 my-2"></div>
 
 					<div class="flex items-center justify-between mt-2">
-						<span class="text-lg text-gray-200">
-							{{ bannedState ? 'Gesperrt' : 'Nicht gesperrt' }}
-						</span>
-
+						<span class="text-lg text-gray-200">Gesperrt</span>
 						<!-- Toggle Switch -->
 						<label class="relative inline-flex items-center cursor-pointer">
 							<input type="checkbox" class="sr-only peer" v-model="bannedState" :disabled="!props.account?.banned" @change="emits('unban', props.account?._id)" />
@@ -149,23 +160,28 @@
 							<div class="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-all peer-checked:translate-x-7"></div>
 						</label>
 					</div>
-
-					<!-- Ban Reason -->
-					<div v-if="bannedState" class="mt-3">
-						<p class="text-gray-400">Grund</p>
-						<p class="text-md text-red-400 mt-1">
-							{{ props.account?.reason ?? 'Kein Grund angegeben' }}
-						</p>
-						<p class="text-gray-400">Zeit</p>
-						<p class="text-md text-red-400 mt-1">
-							{{ new Date(props.account?.time) ?? '—' }}
-						</p>
+					<div class="w-full flex flex-row gap-2 justify-between mt-2">
+						<span class="text-lg text-gray-200">{{ props.account?.reason }}</span>
+						<span class="text-lg text-gray-200">{{ new Date(props.account?.time).toLocaleString() }}</span>
 					</div>
-					<div v-else class="flex flex-col gap-2 mt-3">
+				</div>
+
+				<!-- BAN System -->
+				<div v-else class="bg-neutral-800 rounded-xl p-4">
+					<p class="text-gray-400">Ban-Status</p>
+					<div class="w-full h-[1px] bg-[#008736]/60 my-2"></div>
+
+					<!-- Ban Action -->
+					<div class="flex flex-col gap-2 mt-3">
 						<p class="text-gray-400">Grund</p>
-						<DropDown :model-value="account?.reason" placeholder="Grund wählen" :options="AdminConfig.kickAndBanReasons" />
+						<DropDown
+							:model-value="bannedReason"
+							placeholder="Grund wählen"
+							:options="AdminConfig.kickAndBanReasons"
+							@update:model-value="(val) => bannedReason = val as string"
+						/>
 						<p class="text-gray-400">Zeitraum</p>
-						<DropDown :model-value.number="account?.time" placeholder="Zeit wählen" :options="banTimes" />
+						<DropDown :model-value.number="bannedTime" placeholder="Zeit wählen" :options="banTimes" @update:model-value="(val) => bannedTime = val as number" />
 					</div>
 				</div>
 			</div>

@@ -10,7 +10,7 @@ export type EventType = 'server' | 'client';
 export type TargetType = 'model' | 'zone' | 'entity';
 
 export interface TargetDefinition {
-    id: string; // unique identifier
+    id: string;
     type: TargetType;
     model?: number;
     entityId?: number;
