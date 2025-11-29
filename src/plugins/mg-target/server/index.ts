@@ -13,14 +13,14 @@ const targets: TargetDefinition[] = [];
 async function handleTargets(player: alt.Player): Promise<void> {
     await alt.Utils.wait(500);
     Rebar.player.useWebview(player).show('Targeting', 'overlay');
-    
-    const allowedTargets = isMemberOfAllowedGroups(player) ? targets : targets.filter(x => !x.id.includes('support-'));
+
+    const allowedTargets = isMemberOfAllowedGroups(player) ? targets : targets.filter(x => !x.id.startsWith('support-'));
     player.emit(TargetingEvents.toClient.assignTargets, allowedTargets);
 }
 
 function handleCharacterUpdated<K extends keyof Character>(player: alt.Player, key: K, value: Character[K]) {
     if (key !== 'groups') return;
-    const allowedTargets = isMemberOfAllowedGroups(player) ? targets : targets.filter(x => !x.id.includes('support-'));
+    const allowedTargets = isMemberOfAllowedGroups(player) ? targets : targets.filter(x => !x.id.startsWith('support-'));
     player.emit(TargetingEvents.toClient.assignTargets, allowedTargets);
 }
 
