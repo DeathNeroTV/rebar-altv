@@ -1,3 +1,4 @@
+import { pinInteriorInMemory } from 'natives';
 import { useIplLoaderApi } from '../api.js';
 
 const api = useIplLoaderApi();
@@ -53,4 +54,6 @@ export function loadAdminBase() {
     api.setIplPropState(interiorId, 'set_int_02_clutter2', true);
 
     api.refreshInterior(interiorId);
+
+    pinInteriorInMemory(interiorId);
 }

@@ -9,6 +9,11 @@ export interface TargetOption {
 export type EventType = 'server' | 'client';
 export type TargetType = 'model' | 'zone' | 'entity';
 
+export interface RayCastHit {
+    pos:  { x: number; y: number; z: number };
+    entityHit: number;
+}
+
 export interface TargetDefinition {
     id: string;
     type: TargetType;

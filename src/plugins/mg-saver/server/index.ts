@@ -27,11 +27,12 @@ const updatePlayers = async () => {
             const weapon = document.getField('weapon');
             if (weapon && weapon.hash === player.currentWeapon) {
                 weapon.ammo = await natives.invokeWithResult('getAmmoInClip', player, weapon.hash);
-                weapon.totalAmmo = await natives.invokeWithResult('getAmmoInPedWeapon', player, weapon.hash);            
+                weapon.totalAmmo = await natives.invokeWithResult('getAmmoInPedWeapon', player, weapon.hash);       
+                await document.set('weapon', weapon);     
             }
-            await document.setBulk({ pos: player.pos, rot: player.rot, dimension: player.dimension, ...(weapon ? { ...weapon } : {}) });
+            Rebar.player.useState(player).save();
+            Rebar.player.useWeapon(player).save();
         } catch {}
-        Rebar.player.useWeapon(player).save();
     }
 
     isUpdatingPlayers = false;

@@ -8,7 +8,7 @@ const Rebar = useRebar();
 const facilityLifts = [
     { 
         id: 'facility_lift_up',
-        position: { x: 512.9891, y: 4827.9863, z: -62.8195 },
+        position: { x: 482.9407, y: 4812.6460, z: -58.3898 },
         radius: 20,
         options: [{ 
             label: 'Nach oben', 
@@ -27,7 +27,7 @@ const facilityLifts = [
             event: AdminEvents.toServer.teleport, 
             type: 'server', 
             icon: 'angles-down', 
-            data: { teleportTo: { x: 512.9891, y: 4827.9863, z: -62.8195, heading: 0.0 }, vehicle: true } 
+            data: { teleportTo: { x: 482.9407, y: 4812.6460, z: -58.3898, heading: 0.0 }, vehicle: true } 
         }] as TargetOption[]
     },
 ]; 
@@ -41,20 +41,26 @@ async function handleTeleportServer(player: alt.Player, data: { teleportTo: { x:
     await alt.Utils.wait(500);
 
     if (player.vehicle?.valid && data.vehicle) {
+        player.vehicle.frozen = true;
         player.vehicle.pos = new alt.Vector3(data.teleportTo.x, data.teleportTo.y, data.teleportTo.z);
         player.vehicle.rot = new alt.Vector3(0, 0, degToRadians(data.teleportTo.heading));
+        await alt.Utils.wait(500);
+        playerWorld.clearScreenFade(500);
+        player.vehicle.frozen = false;
         playerNatives.invoke('placeObjectOnGroundProperly', player.vehicle);
-        return;
+    } else {
+        player.frozen = true;
+        player.pos = new alt.Vector3(data.teleportTo.x, data.teleportTo.y, data.teleportTo.z);
+        player.rot = new alt.Vector3(0, 0, degToRadians(data.teleportTo.heading));
+        await alt.Utils.wait(500);
+        playerWorld.clearScreenFade(500);
+        player.frozen = false;
+        playerNatives.invoke('placeObjectOnGroundProperly', player);
     }
-
-    player.pos = new alt.Vector3(data.teleportTo.x, data.teleportTo.y, data.teleportTo.z);
-    player.rot = new alt.Vector3(0, 0, degToRadians(data.teleportTo.heading));
-    playerNatives.invoke('placeObjectOnGroundProperly', player);
-    playerWorld.clearScreenFade(500);
 }
 
 function degToRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
+    return (degrees * Math.PI) / 180;
 }
 
 async function init() {

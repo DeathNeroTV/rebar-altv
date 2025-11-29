@@ -130,7 +130,7 @@
 
 <template>
 	<transition name="fade">
-		<div v-if="isDead || isReviving" class="fixed inset-0 z-40 flex items-center justify-center bg-neutral-950/70 text-gray-100">
+		<div v-if="isDead || isReviving" class="fixed inset-0 flex items-center justify-center bg-neutral-950/70 text-gray-100">
 			<!-- === Death HUD === -->
 			<div
 				v-if="isDead && !isReviving"

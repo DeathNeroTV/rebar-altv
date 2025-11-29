@@ -4,7 +4,7 @@ import { Vehicle } from "@Shared/types/vehicle.js";
 export const Config = {
     language: 'de',
     timePerSecond: 30,
-    ticksInMS: 500,
+    ticksInMS: 100,
     baseDrain: {
         food: 0.0025,    // geringer Grundverbrauch, ~2% pro 10 min bei Ruhe
         water: 0.003,   // höherer Grundverbrauch, ~3% pro 10 min bei Ruhe

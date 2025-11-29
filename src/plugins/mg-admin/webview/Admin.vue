@@ -85,7 +85,7 @@
 </script>
 
 <template>
-	<div class="w-screen h-screen flex flex-row bg-transparent text-gray-100 z-50">
+	<div class="w-screen h-screen flex flex-row bg-transparent text-gray-100 z-20">
 		<Sidebar :active="activePage" @navigate="setActivePage" @logout="logout" :language="AdminConfig.language" :sections="infos" @spamming="spamming" />
 
 		<!-- Main Content -->

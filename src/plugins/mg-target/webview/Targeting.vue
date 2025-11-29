@@ -1,12 +1,20 @@
 <template>
-	<div v-if="isActive" class="absolute top-0 left-0 w-screen h-screen flex items-center justify-center">
-		<div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-row gap-2 justify-between items-center text-center select-none z-50">
-			<font-awesome-icon :icon="['fas', 'eye']" class="rounded-full h-12 w-12 shadow-[0_0_25px_#00873640]" :class="hasTarget ? 'text-[#008736]/90' : 'text-neutral-950/90'" />
+	<div v-if="isActive" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-row gap-2 justify-between items-center text-center select-none z-[9999]">
+		<font-awesome-icon :icon="['fas', 'eye']" class="rounded-full h-12 w-12 shadow-[0_0_25px_#00873640]" :class="hasTarget ? 'text-[#008736]/90' : 'text-neutral-950/90'" />
 
-			<Transition name="fade">
-				<TargetMenu v-if="showMenu" :options="options" @select="handleSelect" />
-			</Transition>
-		</div>
+		<Transition name="fade">
+			<div v-if="showMenu" class="flex flex-col gap-2 p-1.5 min-w-[250px] max-w-[350px] rounded-lg text-gray-100 bg-neutral-950/25 border border-neutral-800/25 shadow-lg">
+				<button
+					v-for="opt in options"
+					:key="opt.label"
+					@click="handleSelect(opt)"
+					class="flex flex-1 gap-2 transition-all duration-200 px-4 py-2 rounded-xl cursor-pointer bg-neutral-950/10 hover:bg-[#007836]/25 text-center items-center justify-between"
+				>
+					<font-awesome-icon :icon="['fas', opt.icon]" class="min-w-5" />
+					<span class="w-full uppercase">{{ opt.label }}</span>
+				</button>
+			</div>
+		</Transition>
 	</div>
 </template>
 
@@ -15,8 +23,6 @@
 	import { useEvents } from '@Composables/useEvents.js';
 	import { TargetOption } from '../shared/interfaces.js';
 	import { TargetingEvents } from '../shared/events.js';
-
-	import TargetMenu from './components/TargetMenu.vue';
 
 	const events = useEvents();
 

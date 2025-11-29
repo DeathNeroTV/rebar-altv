@@ -1,6 +1,6 @@
 import * as alt from 'alt-client';
 import * as natives from 'natives';
-import { TargetDefinition } from '../shared/interfaces.js';
+import { RayCastHit, TargetDefinition } from '../shared/interfaces.js';
 import { useRebarClient } from '@Client/index.js';
 import { TargetingEvents } from '../shared/events.js';
 import { useClientApi } from '@Client/api/index.js';
@@ -11,9 +11,10 @@ const view = Rebar.webview.useWebview();
 const targets: TargetDefinition[] = [];
 let currentTarget: TargetDefinition | null = null;
 let isTargetingActive = false;
+let isMenuOpen = false;
 
-const COLOR_ACTIVE = { r: 0, g: 180, b: 255, a: 255 }; // hellblau
-const COLOR_IDLE = { r: 255, g: 255, b: 255, a: 200 }; // weiß
+const COLOR_ACTIVE = { r: 0, g: 135, b: 54, a: 255 };
+const COLOR_IDLE = { r: 155, g: 155, b: 155, a: 175 };
 
 const keyBinds: KeyInfo[] = [
     {
@@ -21,13 +22,13 @@ const keyBinds: KeyInfo[] = [
         identifier: 'targeting-toggle-eye',
         description: 'Zeige/Verstecke das dritte Auge',
         keyDown: () => {
-            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen() || isMenuOpen) return;
             isTargetingActive = true;
             Rebar.player.useControls().setAttackControlsDisabled(true);
             view.emit(TargetingEvents.toClient.showTarget);
         },
         keyUp: () => {
-            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
+            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen() || isMenuOpen) return;
             isTargetingActive = false;
             currentTarget = null;
             Rebar.player.useControls().setAttackControlsDisabled(false);
@@ -35,14 +36,15 @@ const keyBinds: KeyInfo[] = [
         }
     },
     {
-        key: alt.KeyCode.MouseRight,
+        key: alt.KeyCode.MouseLeft,
         identifier: 'targeting-trigger-menu',
         description: 'Öffne das InteraktionsmenÜ',
         keyDown: () => {
             if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             if (!currentTarget) return;
+            isMenuOpen = true;
             view.emit(TargetingEvents.toClient.openMenu, currentTarget.options);
-            view.showCursor(true);
+            view.focus();
             Rebar.player.useControls().setControls(false);
         }
     },
@@ -52,30 +54,45 @@ const keyBindApi = await useClientApi().getAsync('keyBinds-api');
 keyBinds.forEach(keyBind => keyBindApi.add(keyBind));
 
 view.on(TargetingEvents.toClient.hideTarget, () => {
-    view.showCursor(false);
+    isMenuOpen = false;
+    isTargetingActive = false;
+    currentTarget = null;
+    view.unfocus();
     Rebar.player.useControls().setControls(true);
     view.emit(TargetingEvents.toClient.hideTarget);
 });
 
 alt.onServer(TargetingEvents.toClient.listTargets, (newTargets: TargetDefinition[]) => {
-    newTargets.forEach(t => {
-        if (!targets.find(x => x.id === t.id)) targets.push(t); 
-    });
-    alt.log('targets', targets);
+    if (!Array.isArray(newTargets) || newTargets.length === 0) return;
+
+    for (const t of newTargets) {
+        const exists = targets.some(x => x.id === t.id);
+        if (!exists) targets.push(t);
+    }
 });
 
 alt.everyTick(() => {
     if (!isTargetingActive) return;
 
-    const hit = getScreenRaycastHit();
-    const matchedTarget = findMatchingTarget(hit, 45);
+    const hit = raycastForward();
+    if (!hit) {
+        if (currentTarget) {
+            currentTarget = null;
+            view.emit(TargetingEvents.toClient.hasTarget, false);
+        }
+        return;
+    }
 
-    view.emit(TargetingEvents.toClient.hasTarget, !!matchedTarget);
-    
-    if (matchedTarget && (!currentTarget || currentTarget.id !== matchedTarget.id)) currentTarget = matchedTarget;
-    else if (!matchedTarget && currentTarget) currentTarget = null;
+    const matched = matchTarget(hit);
+    view.emit(TargetingEvents.toClient.hasTarget, !!matched);
 
-    drawAllTargetDots(matchedTarget);
+    if (matched && (!currentTarget || currentTarget.id !== matched.id)) {
+        currentTarget = matched;
+    } else if (!matched && currentTarget) {
+        currentTarget = null;
+    }
+
+    drawAllTargetDots(matched);
 });
 
 function drawAllTargetDots(active?: TargetDefinition | null) {
@@ -93,74 +110,57 @@ function drawAllTargetDots(active?: TargetDefinition | null) {
 
         if (!pos) continue;
 
-        const [onScreen, screenX, screenY] = natives.getScreenCoordFromWorldCoord(
-            pos.x,
-            pos.y,
-            pos.z + 1.0 
-        ) as [boolean, number, number];
+        const dist = natives.getDistanceBetweenCoords(alt.Player.local.pos.x, alt.Player.local.pos.y, alt.Player.local.pos.z, pos.x, pos.y, pos.z, true);
+        if (dist > t.radius) continue;
 
-        if (!onScreen) continue;
-
-        const dist = natives.getDistanceBetweenCoords(
-            pos.x, pos.y, pos.z,
-            alt.Player.local.pos.x, alt.Player.local.pos.y, alt.Player.local.pos.z,
-            true
-        );
-
-        const size = Math.max(0.002, 0.008 - dist * 0.0008);
+        const width = 0.02;
+        const height = width * natives.getAspectRatio(false);
         const color = active && active.id === t.id ? COLOR_ACTIVE : COLOR_IDLE;
 
         natives.requestStreamedTextureDict('shared', true);
         if (!natives.hasStreamedTextureDictLoaded('shared')) continue;
-        natives.drawSprite('shared', 'dot', screenX, screenY, size, size, 0, color.r, color.g, color.b, color.a, false, 0);
+        natives.setDrawOrigin(pos.x, pos.y, pos.z, false);
+        natives.drawSprite('shared', 'emptydot_32', 0, 0, width, height, 0, color.r, color.g, color.b, color.a, false, 0);
     }
+    natives.clearDrawOrigin();
 }
 
-function findMatchingTarget(hit?: { entity: number; pos: alt.Vector3 }, fovAngle = 30): TargetDefinition | null {
-    const playerPos = alt.Player.local.pos;
-    const camRot = natives.getGameplayCamRot(2);
-    const camDir = Rebar.utility.math.rotationToDirection(camRot);
-
-    // 1️⃣ Prüfe Entities/Models über Raycast
-    if (hit) {
-        for (const t of targets) {
-            if (t.type === 'model' && hit.entity && natives.getEntityModel(hit.entity) === t.model) return t;
-            if (t.type === 'entity' && hit.entity && t.entityId === hit.entity) return t;
-        }
-    }
-
-    // 2️⃣ Prüfe Zonen
+function matchTarget(hit: RayCastHit) {
     for (const t of targets) {
-        if (t.type !== 'zone' || !t.position || !t.radius) continue;
+        // Entity
+        if (t.type === 'entity' && t.entityId === hit.entityHit) {
+            return t;
+        }
 
-        const dist = natives.getDistanceBetweenCoords(
-            playerPos.x, playerPos.y, playerPos.z,
-            t.position.x, t.position.y, t.position.z,
-            true
-        );
+        // Model
+        if (t.type === 'model') {
+            const model = natives.getEntityModel(hit.entityHit);
+            if (model === t.model) return t;
+        }
 
-        if (dist > t.radius) continue; // Spieler außerhalb der Zone
+        // Zone
+        if (t.type === 'zone') {
+            const dist = natives.getDistanceBetweenCoords(
+                hit.pos.x, hit.pos.y, hit.pos.z,
+                t.position.x, t.position.y, t.position.z,
+                false
+            );
 
-        // Optional: Sichtlinienprüfung
-        const dirToZone = { x: t.position.x - playerPos.x, y: t.position.y - playerPos.y, z: t.position.z - playerPos.z };
-        const lengthDir = Math.sqrt(dirToZone.x**2 + dirToZone.y**2 + dirToZone.z**2);
-        const lengthCam = Math.sqrt(camDir.x**2 + camDir.y**2 + camDir.z**2);
-        const dot = (dirToZone.x * camDir.x + dirToZone.y * camDir.y + dirToZone.z * camDir.z) / (lengthDir * lengthCam);
-        const angle = Math.acos(dot) * (180 / Math.PI);
-        if (angle <= fovAngle) return t;
+            if (dist <= t.radius) return t;
+        }
     }
 
     return null;
 }
 
-function getScreenRaycastHit(): { entity: number; pos: alt.Vector3 } | null {
-    const player = alt.Player.local.scriptID;
+function raycastForward(maxDistance: number = 25): { pos: alt.Vector3, entityHit: number } | null {
     const camPos = natives.getGameplayCamCoord();
     const camRot = natives.getGameplayCamRot(2);
     const dir = Rebar.utility.math.rotationToDirection(camRot);
-    const end = { x: camPos.x + dir.x * 6, y: camPos.y + dir.y * 6, z: camPos.z + dir.z * 6 };
-    const ray = natives.startExpensiveSynchronousShapeTestLosProbe(camPos.x, camPos.y, camPos.z, end.x, end.y, end.z, 511, player, 4);
-    const [_, hit, hitCoords, _surfaceNormal, entityHit] = natives.getShapeTestResult(ray);
-
-    return !hit ? null : { entity: entityHit, pos: hitCoords };
+    const end = { x: camPos.x + dir.x * maxDistance, y: camPos.y + dir.y * maxDistance, z: camPos.z + dir.z * maxDistance };
+    const entity = alt.Player.local.vehicle ?? alt.Player.local;
+    const mask = 1|2|4|8|16|32|256;
+    const result = natives.startShapeTestLosProbe(camPos.x, camPos.y, camPos.z, end.x, end.y, end.z, mask, entity, 4);
+    const [_, hit, hitPos, _surfaceNormal, entityHit] = natives.getShapeTestResult(result);
+    return !hit ? { pos: entity.pos, entityHit: 0 } : { pos: new alt.Vector3(hitPos.x, hitPos.y, hitPos.z), entityHit };
 }

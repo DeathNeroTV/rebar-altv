@@ -1,5 +1,5 @@
 <template>
-	<div :class="notificationPositionClass" class="z-[9999]">
+	<div :class="notificationPositionClass">
 		<transition-group :name="transitionNotificationName" tag="div">
 			<div v-for="notification in reversedNotifications" :key="notification.id">
 				<NotificationComponent :notification-prop="notification" :secondsAgo="notification.elapsedSeconds" />
@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
 	import { ref, computed, onMounted } from 'vue';
-	import { Label, VueNotification } from '../shared/interface.js';
+	import { VueNotification } from '../shared/interface.js';
 	import { NotifyEvents } from '../shared/events.js';
 	import NotificationComponent from './components/NotificationComponent.vue';
 	import { MGNotifications } from '../shared/config.js';
@@ -41,7 +41,7 @@
 			'bottom-left': 'fixed bottom-4 left-4',
 			'left-center': 'fixed top-1/2 left-4 transform -translate-y-1/2',
 		};
-		return `${positions[MGNotifications.position]} z-50 space-x-4`;
+		return `${positions[MGNotifications.position]} z-30 space-x-4`;
 	});
 
 	const transitionNotificationName = computed(() => {
