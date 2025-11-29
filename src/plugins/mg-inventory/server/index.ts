@@ -458,6 +458,10 @@ async function handleRightClick(player: alt.Player, uid: string) {
     const item = inventory.slots[index];
     if (!item) return;
 
+    if (['id_card', 'driver_license', 'weapon_license'].includes(item.name)) {
+        return;
+    }
+
     const success = await useInventoryService().use(player, index);
     if (!success) return;
 

@@ -9,6 +9,9 @@ export const AdminEvents = {
         ghosting: {
             toggle: 'mg-admin:ghost:toggle',
         },
+        give: {
+            license: 'mg-admin:give:license',
+        },
     },
     toWebview: {
         whitelist: {
@@ -75,5 +78,8 @@ export const AdminEvents = {
         },
         teleport: 'mg-admin:server:teleport',
         action: 'mg-admin:action:invoke',
+        give: {
+            license: 'mg-admin:give:license',
+        },
     }
 };

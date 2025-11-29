@@ -3,6 +3,8 @@ import { useRebar } from '@Server/index.js';
 import { TargetingEvents } from '../shared/events.js';
 import { invokeSelect, useApi } from './api.js';
 import { TargetDefinition, TargetOption } from '../shared/interfaces.js';
+import { Character } from '@Shared/types/character.js';
+import { isMemberOfAllowedGroups } from '@Plugins/mg-admin/server/functions.js';
 
 const Rebar = useRebar();
 const api = Rebar.useApi();
@@ -11,7 +13,15 @@ const targets: TargetDefinition[] = [];
 async function handleTargets(player: alt.Player): Promise<void> {
     await alt.Utils.wait(500);
     Rebar.player.useWebview(player).show('Targeting', 'overlay');
-    player.emit(TargetingEvents.toClient.listTargets, targets);
+    
+    const allowedTargets = isMemberOfAllowedGroups(player) ? targets : targets.filter(x => !x.id.includes('support-'));
+    player.emit(TargetingEvents.toClient.assignTargets, allowedTargets);
+}
+
+function handleCharacterUpdated<K extends keyof Character>(player: alt.Player, key: K, value: Character[K]) {
+    if (key !== 'groups') return;
+    const allowedTargets = isMemberOfAllowedGroups(player) ? targets : targets.filter(x => !x.id.includes('support-'));
+    player.emit(TargetingEvents.toClient.assignTargets, allowedTargets);
 }
 
 function handleAddEntity(id: string, entityId: number, options: TargetOption[]) {
@@ -45,6 +55,8 @@ async function init() {
 
     charCreatorApi.onCreate(handleTargets);
     charCreatorApi.onSkipCreate(handleTargets);
+
+    alt.on('rebar:playerCharacterUpdated', handleCharacterUpdated);
     alt.onClient(TargetingEvents.toServer.showTarget, invokeSelect);
 }
 

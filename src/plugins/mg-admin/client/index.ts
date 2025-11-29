@@ -54,6 +54,12 @@ async function init() {
     if (!keyBindApi) throw Error('KeyBind Api not found');
     keyBindApi.add(keyBind);
 
+    view.on(AdminEvents.toClient.give.license, (data: { item: string; quantity: number; }) => {
+        const target = alt.Utils.getClosestPlayer({ pos: alt.Player.local.pos, range: 3 });
+        if (!target) return;
+        alt.emitServer(AdminEvents.toServer.give.license, target, data);
+    });
+
     alt.onRpc(AdminEvents.toClient.waypoint, handleWaypointRequest);
     alt.onServer(AdminEvents.toClient.whitelist.add, handleWhitelistRequest);
     alt.onServer(AdminEvents.toClient.whitelist.update, handleWhitelistUpdate);

@@ -5,6 +5,7 @@ export const TargetingEvents = {
         showTarget: 'mg:target:show',
         hideTarget: 'mg:target:hide',
         listTargets: 'mg:target:list',
+        assignTargets: 'mg-target:list:assign',
     },
     toServer: {
         showTarget: 'mg:target:show',

@@ -71,6 +71,16 @@ alt.onServer(TargetingEvents.toClient.listTargets, (newTargets: TargetDefinition
     }
 });
 
+alt.onServer(TargetingEvents.toClient.assignTargets, (newTargets: TargetDefinition[]) => {
+    if (!Array.isArray(newTargets) || newTargets.length === 0) return;
+    targets.splice(0, targets.length);
+
+    for (const t of newTargets) {
+        const exists = targets.some(x => x.id === t.id);
+        if (!exists) targets.push(t);
+    }
+});
+
 alt.everyTick(() => {
     if (!isTargetingActive) return;
 
@@ -160,7 +170,7 @@ function raycastForward(maxDistance: number = 25): { pos: alt.Vector3, entityHit
     const end = { x: camPos.x + dir.x * maxDistance, y: camPos.y + dir.y * maxDistance, z: camPos.z + dir.z * maxDistance };
     const entity = alt.Player.local.vehicle ?? alt.Player.local;
     const mask = 1|2|4|8|16|32|256;
-    const result = natives.startShapeTestLosProbe(camPos.x, camPos.y, camPos.z, end.x, end.y, end.z, mask, entity, 4);
+    const result = natives.startExpensiveSynchronousShapeTestLosProbe(camPos.x, camPos.y, camPos.z, end.x, end.y, end.z, mask, entity, 4);
     const [_, hit, hitPos, _surfaceNormal, entityHit] = natives.getShapeTestResult(result);
     return !hit ? { pos: entity.pos, entityHit: 0 } : { pos: new alt.Vector3(hitPos.x, hitPos.y, hitPos.z), entityHit };
 }

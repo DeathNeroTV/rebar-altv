@@ -16,6 +16,10 @@ const colorType = {
 }
 
 export function loadAdminBase() {
+    api.enableIpl('cs1_15c_hut', true);
+    api.enableIpl('cs1_15c_hut_lod', true);
+    api.enableIpl('cs1_15_cultchapel', true);
+    
     api.enableIpl('xm_hatch_10_cutscene', true);
     api.enableIpl('xm_hatch_closed', true);
     api.enableIpl('xm_hatches_terrain', true);
