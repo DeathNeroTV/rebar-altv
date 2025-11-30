@@ -168,6 +168,9 @@ Rebar.services.useServiceRegister().register('inventoryService', {
         const item = inventory.slots[slot];
         if (!item) return null;
 
+        const notUseable = ['licenses', 'resources', 'weapons'];
+        if (!item.useable || notUseable.includes(item.category)) return item;
+
         const leftOver = Math.max(0, item.quantity - 1);
         if (leftOver > 0) item.quantity = leftOver;
         else inventory.slots[slot] = null;
@@ -457,10 +460,6 @@ async function handleRightClick(player: alt.Player, uid: string) {
 
     const item = inventory.slots[index];
     if (!item) return;
-
-    if (['id_card', 'driver_license', 'weapon_license'].includes(item.name)) {
-        return;
-    }
 
     const success = await useInventoryService().use(player, index);
     if (!success) return;
@@ -841,6 +840,7 @@ async function init() {
             desc: weapon.desc[InventoryConfig.language],
             icon: weaponInfo.name.toLowerCase(),
             maxStack: 1,
+            useable: false,
             name: weapon.name[InventoryConfig.language],
             quantity: 1,
             uid: weaponInfo.name.toLowerCase(),

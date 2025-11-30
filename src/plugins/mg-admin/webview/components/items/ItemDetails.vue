@@ -14,6 +14,7 @@
 		{ label: 'Nahrung/Getränk', value: 'eatable' },
 		{ label: 'Werkstoff', value: 'resources' },
 		{ label: 'Waffe', value: 'weapons' },
+		{ label: 'Lizenzen', value: 'licenses' },
 	];
 
 	const emits = defineEmits<{
@@ -166,9 +167,22 @@
 						:model-value="localItem.category"
 						:options="categories"
 						placeholder="Kategorie auswählen"
-						@selected="(val) => (localItem.category = val)"
+						@selected="(val) => (localItem.category = val as string)"
 					/>
 					<p v-else class="text-lg font-medium mt-1">{{ localItem.category || '—' }}</p>
+				</div>
+
+				<!-- Useable -->
+				<div class="w-full flex items-center justify-between bg-neutral-800 p-3 rounded-lg">
+					<span class="text-lg text-gray-200 px-4">Nutzbar</span>
+					<!-- Toggle Switch -->
+					<label class="relative inline-flex items-center cursor-pointer">
+						<input type="checkbox" class="sr-only peer" v-model="localItem.useable" :disabled="!editing" />
+						<div
+							class="w-14 h-7 rounded-full transition peer-focus:ring-2 peer-focus:ring-[#008736] peer-disabled:opacity-40 peer-disabled:cursor-not-allowed bg-red-500 peer-checked:bg-emerald-500"
+						></div>
+						<div class="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-all peer-checked:translate-x-7"></div>
+					</label>
 				</div>
 
 				<!-- Beschreibung -->
@@ -210,7 +224,7 @@
 								placeholder="Schlüssel"
 								class="bg-neutral-900 border border-[#008736]/40 rounded-lg p-2 w-1/3 focus:ring-2 focus:ring-[#008736]"
 							/>
-							<template v-if="!Number.isNaN(localItem.data[key])">
+							<template v-if="!Number.isNaN(value)">
 								<input
 									v-model.number="localItem.data[key]"
 									type="number"

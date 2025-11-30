@@ -16,6 +16,7 @@
 		uid: '',
 		desc: '',
 		icon: '',
+		useable: false,
 		maxStack: 1,
 		category: 'resources',
 		name: 'Neuer Gegenstand',

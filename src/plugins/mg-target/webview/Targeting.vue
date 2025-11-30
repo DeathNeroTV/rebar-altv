@@ -8,7 +8,7 @@
 					v-for="opt in options"
 					:key="opt.label"
 					@click="handleSelect(opt)"
-					class="flex flex-1 gap-2 transition-all duration-200 px-4 py-2 rounded-xl cursor-pointer bg-neutral-950/10 hover:bg-[#007836]/25 text-center items-center justify-between"
+					class="flex flex-1 gap-2 transition-all duration-200 px-4 py-2 rounded-xl hover:cursor-pointer bg-neutral-950/10 hover:bg-[#007836]/25 text-center items-center justify-between"
 				>
 					<font-awesome-icon :icon="['fas', opt.icon]" class="min-w-5" />
 					<span class="w-full uppercase">{{ opt.label }}</span>

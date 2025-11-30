@@ -22,16 +22,17 @@ const keyBinds: KeyInfo[] = [
         identifier: 'targeting-toggle-eye',
         description: 'Zeige/Verstecke das dritte Auge',
         keyDown: () => {
-            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen() || isMenuOpen) return;
+            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             isTargetingActive = true;
             Rebar.player.useControls().setAttackControlsDisabled(true);
             view.emit(TargetingEvents.toClient.showTarget);
         },
         keyUp: () => {
-            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen() || isMenuOpen) return;
+            if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             isTargetingActive = false;
             currentTarget = null;
             Rebar.player.useControls().setAttackControlsDisabled(false);
+            Rebar.player.useControls().setControls(true);
             view.emit(TargetingEvents.toClient.hideTarget);
         }
     },
@@ -42,12 +43,11 @@ const keyBinds: KeyInfo[] = [
         keyDown: () => {
             if (Rebar.menus.isWorldMenuOpen() || Rebar.menus.isNativeMenuOpen() || alt.isMenuOpen() || view.isAnyPageOpen()) return;
             if (!currentTarget) return;
-            isMenuOpen = true;
             view.emit(TargetingEvents.toClient.openMenu, currentTarget.options);
-            view.focus();
             Rebar.player.useControls().setControls(false);
+            alt.setTimeout(() => view.focus(), 100);
         }
-    },
+    }
 ];
 
 const keyBindApi = await useClientApi().getAsync('keyBinds-api');
@@ -150,12 +150,12 @@ function matchTarget(hit: RayCastHit) {
 
         // Zone
         if (t.type === 'zone') {
+            const entity = alt.Player.local.vehicle ?? alt.Player.local;
             const dist = natives.getDistanceBetweenCoords(
-                hit.pos.x, hit.pos.y, hit.pos.z,
+                entity.pos.x, entity.pos.y, entity.pos.z,
                 t.position.x, t.position.y, t.position.z,
-                false
+                true
             );
-
             if (dist <= t.radius) return t;
         }
     }

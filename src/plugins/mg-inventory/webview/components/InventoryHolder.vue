@@ -23,15 +23,16 @@
 	}>();
 
 	const searchQuery = ref('');
-	const selectedCategory = ref<'all' | 'medical' | 'eatable' | 'weapons' | 'drugs' | 'resources'>('all');
+	const selectedCategory = ref<'all' | 'medical' | 'eatable' | 'weapons' | 'drugs' | 'resources' | 'licenses'>('all');
 
 	const categories = [
-		{ value: 'all', icon: 'bars' },
-		{ value: 'medical', icon: 'kit-medical' },
-		{ value: 'eatable', icon: 'utensils' },
-		{ value: 'weapons', icon: 'gun' },
-		{ value: 'drugs', icon: 'cannabis' },
-		{ value: 'resources', icon: 'screwdriver-wrench' },
+		{ value: 'all', icon: 'bars', label: 'Alles' },
+		{ value: 'medical', icon: 'kit-medical', label: 'Medizinisch' },
+		{ value: 'eatable', icon: 'utensils', label: 'Essen & Trinken' },
+		{ value: 'weapons', icon: 'gun', label: 'Waffen' },
+		{ value: 'drugs', icon: 'cannabis', label: 'Drogen' },
+		{ value: 'resources', icon: 'screwdriver-wrench', label: 'Werkstoffe' },
+		{ value: 'licenses', icon: 'id-card', label: 'Lizenzen' },
 	] as const;
 
 	const displayedItems = computed(() => {
@@ -138,15 +139,23 @@
 				<div class="bg-neutral-600 w-0.5 h-5"></div>
 				<input type="text" v-model="searchQuery" placeholder="Suchen..." class="flex-1 bg-neutral-800 text-gray-100 focus:outline-none placeholder-neutral-600" />
 			</div>
-			<div class="w-1/2 flex flex-row gap-5 text-gray-100 text-3xl items-center justify-end">
-				<font-awesome-icon
-					v-for="cat in categories"
-					:icon="['fas', cat.icon]"
-					:key="cat.value"
-					@click="selectedCategory = cat.value"
-					class="transition-all duration-300"
-					:class="[selectedCategory === cat.value ? 'text-[#008736]' : 'hover:text-[#008736]']"
-				/>
+			<div class="w-1/2 flex flex-row gap-8 text-gray-100 text-3xl items-center justify-end">
+				<div v-for="cat in categories" :key="cat.value" class="relative flex flex-col items-center">
+					<!-- Icon mit eigener Hover-Gruppe -->
+					<div class="group flex flex-col items-center">
+						<font-awesome-icon
+							:icon="['fas', cat.icon]"
+							@click="selectedCategory = cat.value"
+							class="transition-all duration-300 cursor-pointer"
+							:class="[selectedCategory === cat.value ? 'text-[#008736]' : 'hover:text-[#008736]']"
+						/>
+
+						<!-- Label nur beim Icon-Hover -->
+						<span class="absolute top-[110%] text-base text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+							{{ cat.label }}
+						</span>
+					</div>
+				</div>
 			</div>
 		</div>
 

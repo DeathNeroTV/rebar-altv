@@ -41,7 +41,8 @@ export interface ActiveInventorySession {
 export interface TlrpItem extends RebarBaseItem {
     _id?: string;
     uid: string;
-    category?: 'medical' | 'eatable' | 'weapons' | 'drugs' | 'resources';
+    category?: 'medical' | 'eatable' | 'weapons' | 'drugs' | 'resources' | 'licenses';
     quantity: number;
+    useable: boolean;
     data?: { [key: string]: any };
 }

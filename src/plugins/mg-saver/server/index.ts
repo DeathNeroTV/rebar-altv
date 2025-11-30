@@ -30,7 +30,8 @@ const updatePlayers = async () => {
                 weapon.totalAmmo = await natives.invokeWithResult('getAmmoInPedWeapon', player, weapon.hash);       
                 await document.set('weapon', weapon);     
             }
-            Rebar.player.useState(player).save();
+
+            await document.setBulk({ pos: player.pos, rot: player.rot, ...(player.dimension !== 0 ? { dimension: player.dimension } : {}), ...(weapon ? { weapon } : {}) });
             Rebar.player.useWeapon(player).save();
         } catch {}
     }
